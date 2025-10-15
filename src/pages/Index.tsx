@@ -102,6 +102,29 @@ const Index = () => {
     return 'plaintext';
   };
 
+  const handleCreateFile = async (name: string, content: string) => {
+    const language = getLanguageFromFileName(name);
+    
+    const newFile: FileItem = {
+      id: `${Date.now()}`,
+      name,
+      type: 'file',
+      content,
+      language,
+    };
+    
+    setFiles((prev) => [...prev, newFile]);
+    setActiveFile(newFile.id);
+    
+    // Save to IndexedDB
+    if (dbReady) {
+      await saveFile(newFile);
+    }
+    
+    toast.success(`Created ${name}`);
+    addToConsole(`✓ Created new file: ${name}`);
+  };
+
   const handleFileUpload = async (fileList: FileList) => {
     const newFiles: FileItem[] = [];
     
@@ -386,6 +409,7 @@ except:
             onFileSelect={handleFileSelect}
             onFileUpload={handleFileUpload}
             onFileDelete={handleFileDelete}
+            onCreateFile={handleCreateFile}
             onSaveAll={handleSaveAll}
             installedPackages={installedPackages}
             onInstallPackage={installPythonPackage}

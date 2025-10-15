@@ -2,6 +2,7 @@ import { File, Folder, Upload, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PackageManager } from "@/components/PackageManager";
+import { NewFileDialog } from "@/components/NewFileDialog";
 import { cn } from "@/lib/utils";
 
 interface FileItem {
@@ -17,6 +18,7 @@ interface FileExplorerProps {
   onFileSelect: (fileId: string) => void;
   onFileUpload: (files: FileList) => void;
   onFileDelete: (fileId: string) => void;
+  onCreateFile: (name: string, content: string) => void;
   onSaveAll: () => void;
   installedPackages: string[];
   onInstallPackage: (packageName: string) => Promise<void>;
@@ -29,6 +31,7 @@ export const FileExplorer = ({
   onFileSelect,
   onFileUpload,
   onFileDelete,
+  onCreateFile,
   onSaveAll,
   installedPackages,
   onInstallPackage,
@@ -42,8 +45,11 @@ export const FileExplorer = ({
 
   return (
     <div className="h-full bg-sidebar-custom border-r border-border flex flex-col">
-      <div className="p-3 border-b border-border">
+      <div className="p-3 border-b border-border space-y-2">
         <h2 className="text-sm font-semibold text-foreground mb-2">Explorer</h2>
+        
+        <NewFileDialog onCreateFile={onCreateFile} />
+        
         <label htmlFor="file-upload">
           <Button variant="secondary" className="w-full" asChild>
             <span className="cursor-pointer">
@@ -56,11 +62,12 @@ export const FileExplorer = ({
           id="file-upload"
           type="file"
           multiple
-          accept=".py,.r,.rmd,.csv"
+          accept=".py,.r,.rmd,.csv,.txt"
           className="hidden"
           onChange={handleFileInput}
         />
-        <Button variant="secondary" className="w-full mt-2" onClick={onSaveAll}>
+        
+        <Button variant="secondary" className="w-full" onClick={onSaveAll}>
           <Save className="w-4 h-4 mr-2" />
           Save All
         </Button>
