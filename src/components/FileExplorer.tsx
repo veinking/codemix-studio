@@ -1,9 +1,23 @@
-import { File, Folder, Upload, Trash2, Save } from "lucide-react";
+import { File, Folder, Upload, Trash2, Save, FilePlus, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PackageManager } from "@/components/PackageManager";
-import { NewFileDialog } from "@/components/NewFileDialog";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 interface FileItem {
   id: string;
@@ -25,6 +39,13 @@ interface FileExplorerProps {
   isInstalling: boolean;
 }
 
+const FILE_TEMPLATES = {
+  python: { extension: '.py', template: '# Python Script\n\nprint("Hello, World!")\n' },
+  r: { extension: '.r', template: '# R Script\n\nprint("Hello, World!")\n' },
+  rmarkdown: { extension: '.rmd', template: `---\ntitle: "Untitled"\noutput: html_document\n---\n\n\`\`\`{r setup, include=FALSE}\nknitr::opts_chunk$set(echo = TRUE)\n\`\`\`\n\n## R Markdown Document\n` },
+  text: { extension: '.txt', template: '' },
+};
+
 export const FileExplorer = ({
   files,
   activeFile,
@@ -37,40 +58,96 @@ export const FileExplorer = ({
   onInstallPackage,
   isInstalling,
 }: FileExplorerProps) => {
+  const [newFileOpen, setNewFileOpen] = useState(false);
+  const [fileName, setFileName] = useState("");
+  const [fileType, setFileType] = useState<keyof typeof FILE_TEMPLATES>("python");
+
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       onFileUpload(e.target.files);
     }
   };
 
+  const handleCreateFile = () => {
+    if (!fileName.trim()) return;
+    const template = FILE_TEMPLATES[fileType];
+    const fullName = fileName.includes('.') ? fileName : fileName + template.extension;
+    onCreateFile(fullName, template.template);
+    setFileName("");
+    setFileType("python");
+    setNewFileOpen(false);
+  };
+
   return (
     <div className="h-full bg-sidebar-custom border-r border-border flex flex-col">
-      <div className="p-3 border-b border-border space-y-2">
-        <h2 className="text-sm font-semibold text-foreground mb-2">Explorer</h2>
+      <div className="p-3 border-b border-border">
+        <h2 className="text-sm font-semibold text-foreground mb-3">Explorer</h2>
         
-        <NewFileDialog onCreateFile={onCreateFile} />
-        
-        <label htmlFor="file-upload">
-          <Button variant="secondary" className="w-full" asChild>
-            <span className="cursor-pointer">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Files
-            </span>
+        <div className="space-y-2">
+          <Collapsible open={newFileOpen} onOpenChange={setNewFileOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="secondary" className="w-full justify-between">
+                <span className="flex items-center">
+                  <FilePlus className="w-4 h-4 mr-2" />
+                  New File
+                </span>
+                {newFileOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="mt-2 space-y-2 p-3 bg-background/50 rounded-md border border-border">
+              <div className="grid gap-2">
+                <Label htmlFor="file-type" className="text-xs">File Type</Label>
+                <Select value={fileType} onValueChange={(value) => setFileType(value as keyof typeof FILE_TEMPLATES)}>
+                  <SelectTrigger id="file-type" className="h-9">
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="python">Python (.py)</SelectItem>
+                    <SelectItem value="r">R Script (.r)</SelectItem>
+                    <SelectItem value="rmarkdown">R Markdown (.rmd)</SelectItem>
+                    <SelectItem value="text">Text File (.txt)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="file-name" className="text-xs">File Name</Label>
+                <Input
+                  id="file-name"
+                  placeholder="script"
+                  value={fileName}
+                  onChange={(e) => setFileName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleCreateFile()}
+                  className="h-9"
+                />
+              </div>
+              <Button onClick={handleCreateFile} disabled={!fileName.trim()} className="w-full" size="sm">
+                Create File
+              </Button>
+            </CollapsibleContent>
+          </Collapsible>
+          
+          <label htmlFor="file-upload">
+            <Button variant="secondary" className="w-full" asChild>
+              <span className="cursor-pointer">
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Files
+              </span>
+            </Button>
+          </label>
+          <input
+            id="file-upload"
+            type="file"
+            multiple
+            accept=".py,.r,.rmd,.csv,.txt"
+            className="hidden"
+            onChange={handleFileInput}
+          />
+          
+          <Button variant="secondary" className="w-full" onClick={onSaveAll}>
+            <Save className="w-4 h-4 mr-2" />
+            Save All
           </Button>
-        </label>
-        <input
-          id="file-upload"
-          type="file"
-          multiple
-          accept=".py,.r,.rmd,.csv,.txt"
-          className="hidden"
-          onChange={handleFileInput}
-        />
-        
-        <Button variant="secondary" className="w-full" onClick={onSaveAll}>
-          <Save className="w-4 h-4 mr-2" />
-          Save All
-        </Button>
+        </div>
       </div>
       
       <ScrollArea className="flex-1">
