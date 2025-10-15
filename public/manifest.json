@@ -1,0 +1,39 @@
+{
+  "name": "OpenIDE - Python & R Browser IDE",
+  "short_name": "OpenIDE",
+  "description": "Run Python and R code directly in your browser. Works offline, no installation required.",
+  "start_url": "/?source=pwa",
+  "display": "standalone",
+  "background_color": "#1e1e1e",
+  "theme_color": "#00bcd4",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["development", "education", "productivity"],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "540x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ]
+}

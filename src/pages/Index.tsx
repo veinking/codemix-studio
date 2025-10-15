@@ -1,11 +1,14 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { FileExplorer } from "@/components/FileExplorer";
 import { CodeEditor } from "@/components/CodeEditor";
 import { ConsolePanel } from "@/components/ConsolePanel";
 import { Toolbar } from "@/components/Toolbar";
 import { DatasetViewer } from "@/components/DatasetViewer";
 import { PlotViewer } from "@/components/PlotViewer";
+import { MobileLayout } from "@/components/layouts/MobileLayout";
+import { DesktopLayout } from "@/components/layouts/DesktopLayout";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
+import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
 
@@ -36,6 +39,7 @@ const Index = () => {
   const pyodideRef = useRef<any>(null);
   const webrRef = useRef<any>(null);
   const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
+  const { isMobile, deviceType } = useDeviceType();
 
   // Load files from IndexedDB on mount
   useEffect(() => {
@@ -87,8 +91,12 @@ const Index = () => {
         addToConsole("✗ Error loading R environment: " + error);
       }
     };
-    loadWebR();
-  }, []);
+    
+    // Only load WebR on desktop to save mobile resources
+    if (!isMobile) {
+      loadWebR();
+    }
+  }, [isMobile]);
 
   const addToConsole = (message: string) => {
     setConsoleOutput((prev) => [...prev, message]);
@@ -337,7 +345,7 @@ except:
 
   const runRCode = async (code: string) => {
     if (!webrRef.current) {
-      addToConsole("✗ Error: R environment not ready");
+      addToConsole("✗ Error: R environment not ready (Desktop only)");
       setIsRunning(false);
       return;
     }
@@ -392,76 +400,92 @@ except:
   const currentFile = files.find((f) => f.id === activeFile);
   const currentDataset = showDataset ? datasets.get(showDataset) : null;
 
-  return (
-    <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
-      <Toolbar
-        onRun={handleRunCode}
-        onDownload={handleDownload}
-        currentFile={activeFile}
-        isRunning={isRunning}
+  // Prepare components
+  const toolbarComponent = (
+    <Toolbar
+      onRun={handleRunCode}
+      onDownload={handleDownload}
+      currentFile={activeFile}
+      isRunning={isRunning}
+    />
+  );
+
+  const fileExplorerComponent = (
+    <FileExplorer
+      files={files}
+      activeFile={activeFile}
+      onFileSelect={handleFileSelect}
+      onFileUpload={handleFileUpload}
+      onFileDelete={handleFileDelete}
+      onCreateFile={handleCreateFile}
+      onSaveAll={handleSaveAll}
+      installedPackages={installedPackages}
+      onInstallPackage={installPythonPackage}
+      isInstalling={isInstalling}
+    />
+  );
+
+  const editorComponent = currentFile ? (
+    currentDataset ? (
+      <DatasetViewer
+        headers={currentDataset.headers}
+        data={currentDataset.data}
       />
-      
-      <div className="flex-1 flex overflow-hidden relative">
-        <div className="w-64 flex-shrink-0">
-          <FileExplorer
-            files={files}
-            activeFile={activeFile}
-            onFileSelect={handleFileSelect}
-            onFileUpload={handleFileUpload}
-            onFileDelete={handleFileDelete}
-            onCreateFile={handleCreateFile}
-            onSaveAll={handleSaveAll}
-            installedPackages={installedPackages}
-            onInstallPackage={installPythonPackage}
-            isInstalling={isInstalling}
-          />
-        </div>
-        
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 bg-editor overflow-hidden">
-            {currentFile ? (
-              currentDataset ? (
-                <DatasetViewer
-                  headers={currentDataset.headers}
-                  data={currentDataset.data}
-                />
-              ) : (
-                <CodeEditor
-                  value={currentFile.content}
-                  language={currentFile.language}
-                  onChange={handleCodeChange}
-                />
-              )
-            ) : (
-              <div className="h-full flex items-center justify-center">
-                <div className="text-center">
-                  <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Welcome to OpenIDE
-                  </h2>
-                  <p className="text-muted-foreground mb-4">
-                    Upload a Python (.py), R (.r, .rmd), or CSV file to get started
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Files are automatically saved to your browser
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-          
-          <div className="h-64 flex-shrink-0">
-            <ConsolePanel
-              output={consoleOutput}
-              onClear={() => setConsoleOutput([])}
-            />
-          </div>
-        </div>
-        
-        {plotData && (
-          <PlotViewer plotData={plotData} onClose={() => setPlotData(null)} />
-        )}
+    ) : (
+      <CodeEditor
+        value={currentFile.content}
+        language={currentFile.language}
+        onChange={handleCodeChange}
+      />
+    )
+  ) : (
+    <div className="h-full flex items-center justify-center">
+      <div className="text-center p-4">
+        <h2 className="text-2xl font-bold text-foreground mb-2">
+          Welcome to OpenIDE
+        </h2>
+        <p className="text-muted-foreground mb-2">
+          {isMobile ? 'Tap' : 'Click'} "New File" or upload a Python (.py), R (.r, .rmd), or CSV file
+        </p>
+        <p className="text-xs text-muted-foreground">
+          Files are automatically saved to your browser • Device: {deviceType}
+        </p>
       </div>
     </div>
+  );
+
+  const consoleComponent = (
+    <ConsolePanel
+      output={consoleOutput}
+      onClear={() => setConsoleOutput([])}
+    />
+  );
+
+  return (
+    <>
+      {isMobile ? (
+        <MobileLayout
+          toolbar={toolbarComponent}
+          fileExplorer={fileExplorerComponent}
+          editor={editorComponent}
+          console={consoleComponent}
+          onRun={handleRunCode}
+          isRunning={isRunning}
+          currentFile={activeFile}
+        />
+      ) : (
+        <DesktopLayout
+          toolbar={toolbarComponent}
+          fileExplorer={fileExplorerComponent}
+          editor={editorComponent}
+          console={consoleComponent}
+        />
+      )}
+      
+      {plotData && (
+        <PlotViewer plotData={plotData} onClose={() => setPlotData(null)} />
+      )}
+    </>
   );
 };
 
