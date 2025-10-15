@@ -1,4 +1,4 @@
-import { File, Folder, Upload, Trash2, Save, FilePlus, ChevronDown, ChevronUp } from "lucide-react";
+import { File, Folder, Upload, Trash2, Save, FilePlus, ChevronDown, ChevronUp, Beaker } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PackageManager } from "@/components/PackageManager";
@@ -37,6 +37,7 @@ interface FileExplorerProps {
   installedPackages: string[];
   onInstallPackage: (packageName: string) => Promise<void>;
   isInstalling: boolean;
+  onOpenLabTrainer?: () => void;
 }
 
 const FILE_TEMPLATES = {
@@ -57,6 +58,7 @@ export const FileExplorer = ({
   installedPackages,
   onInstallPackage,
   isInstalling,
+  onOpenLabTrainer = () => {},
 }: FileExplorerProps) => {
   const [newFileOpen, setNewFileOpen] = useState(false);
   const [fileName, setFileName] = useState("");
@@ -194,6 +196,18 @@ export const FileExplorer = ({
         onInstallPackage={onInstallPackage}
         isInstalling={isInstalling}
       />
+      
+      <div className="p-3 border-t border-border">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full"
+          onClick={onOpenLabTrainer}
+        >
+          <Beaker className="h-4 w-4 mr-2" />
+          Practice Labs
+        </Button>
+      </div>
     </div>
   );
 };

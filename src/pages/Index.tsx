@@ -8,6 +8,7 @@ import { PlotViewer } from "@/components/PlotViewer";
 import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { DesktopLayout } from "@/components/layouts/DesktopLayout";
 import { AIAssistant } from "@/components/AIAssistant";
+import { LabTrainer } from "@/components/LabTrainer";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -37,6 +38,7 @@ const Index = () => {
   const [installedPackages, setInstalledPackages] = useState<string[]>([]);
   const [isInstalling, setIsInstalling] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string>("");
+  const [labTrainerOpen, setLabTrainerOpen] = useState(false);
   
   const pyodideRef = useRef<any>(null);
   const webrRef = useRef<any>(null);
@@ -399,6 +401,11 @@ except:
     toast.success(`Downloaded ${file.name}`);
   };
 
+  const handleLoadLabIntoEditor = (content: string, title: string) => {
+    handleCreateFile(title, content);
+    setLabTrainerOpen(false);
+  };
+
   const currentFile = files.find((f) => f.id === activeFile);
   const currentDataset = showDataset ? datasets.get(showDataset) : null;
 
@@ -424,6 +431,7 @@ except:
       installedPackages={installedPackages}
       onInstallPackage={installPythonPackage}
       isInstalling={isInstalling}
+      onOpenLabTrainer={() => setLabTrainerOpen(true)}
     />
   );
 
@@ -502,6 +510,12 @@ except:
       {plotData && (
         <PlotViewer plotData={plotData} onClose={() => setPlotData(null)} />
       )}
+
+      <LabTrainer 
+        open={labTrainerOpen} 
+        onOpenChange={setLabTrainerOpen}
+        onLoadLab={handleLoadLabIntoEditor}
+      />
     </>
   );
 };

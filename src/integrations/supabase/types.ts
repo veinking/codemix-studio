@@ -14,7 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      labs_history: {
+        Row: {
+          completed: boolean
+          difficulty: string
+          generated_at: string
+          id: string
+          lab_content: string
+          lab_theme: string
+          lab_title: string
+          test_passed: boolean
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          difficulty: string
+          generated_at?: string
+          id?: string
+          lab_content: string
+          lab_theme: string
+          lab_title: string
+          test_passed?: boolean
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          difficulty?: string
+          generated_at?: string
+          id?: string
+          lab_content?: string
+          lab_theme?: string
+          lab_title?: string
+          test_passed?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
+      labs_progress: {
+        Row: {
+          completed_count: number
+          created_at: string
+          difficulty: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_count?: number
+          created_at?: string
+          difficulty: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_count?: number
+          created_at?: string
+          difficulty?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
