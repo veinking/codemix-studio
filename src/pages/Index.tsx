@@ -484,6 +484,8 @@ except:
             onRun={handleRunCode}
             isRunning={isRunning}
             currentFile={activeFile}
+            onDownload={handleDownload}
+            onClearConsole={() => setConsoleOutput([])}
           />
         ) : (
           <DesktopLayout
