@@ -1,73 +1,196 @@
-# Welcome to your Lovable project
+# 🌐 OpenIDE — Browser-Based Python & R Environment
 
-## Project info
+**OpenIDE** is an open-source, browser-based IDE inspired by RStudio — built for Python and R.  
+It runs code *entirely in your browser*, powered by WebAssembly (Pyodide & webR), with an optional lightweight backend for cloud sync and collaboration.
 
-**URL**: https://lovable.dev/projects/495ca4b6-d8e1-4e4c-965e-594d39780d56
+> "Run data science anywhere — instantly, securely, and open source."
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## 🚀 Features
 
-**Use Lovable**
+- 🧠 **Python & R runtimes in the browser** (via Pyodide + webR)
+- 🪶 **Lightweight server** — minimal backend for saving files & auth
+- 📄 **Integrated code editor** (Monaco Editor)
+- 🧩 **Plots & visualization support** (Matplotlib, ggplot2, Plotly)
+- 🧱 **Offline mode** with local storage (IndexedDB + File System Access API)
+- 🔐 **Secure sandboxed execution** (Web Workers)
+- 🌍 **Optional cloud sync & collaboration**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/495ca4b6-d8e1-4e4c-965e-594d39780d56) and start prompting.
+---
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🧩 Tech Stack
 
-**Use your preferred IDE**
+| Layer | Technology |
+|-------|-------------|
+| Frontend | React / Svelte / SolidJS |
+| Editor | Monaco Editor (VS Code engine) |
+| Python Runtime | [Pyodide](https://pyodide.org) |
+| R Runtime | [webR](https://docs.r-wasm.org/webr/latest/) |
+| Storage | IndexedDB + File System Access API |
+| Backend (optional) | FastAPI / Supabase Functions |
+| Auth | Supabase Auth / OAuth 2.0 |
+| Hosting | Vercel / Netlify / Cloudflare Pages |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+---
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## 🧱 Architecture Overview
 
-Follow these steps:
+```
+Frontend (Browser)
+├── Monaco Editor
+├── Pyodide (Python Runtime)
+├── webR (R Runtime)
+├── Plot Renderer
+├── File Manager (IndexedDB / FS Access)
+└── API Client → (Optional) Backend
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Backend (optional)
+├── Auth (JWT / OAuth)
+├── File Storage (Supabase / Firebase)
+└── Remote Compute (Future)
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+🧠 **Client-heavy design:**  
+Most execution happens in the browser — no need for a heavy backend server.  
+The backend only handles saving, sharing, and optional collaboration.
 
-# Step 3: Install the necessary dependencies.
-npm i
+---
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+## ⚙️ Getting Started
+
+### Prerequisites
+- Node.js ≥ 18
+- Python ≥ 3.10 (if using FastAPI backend)
+- npm or yarn
+
+### 1. Clone the Repo
+```bash
+git clone https://github.com/yourusername/openide.git
+cd openide
+```
+
+### 2. Run the Frontend
+
+```bash
+cd client
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+This launches the local dev server (Vite / Webpack) — the IDE will open in your browser.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 3. (Optional) Run the Backend
 
-**Use GitHub Codespaces**
+```bash
+cd server
+pip install -r requirements.txt
+uvicorn main:app --reload
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 4. Try It Out
 
-## What technologies are used for this project?
+* Open your browser to `http://localhost:5173`
+* Type some Python or R code in the editor
+* Hit **Run** — the output appears in the console below!
 
-This project is built with:
+---
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## 📂 Project Structure
 
-## How can I deploy this project?
+```
+/client
+  /src
+    /components
+    /runtimes
+      /python
+      /r
+    /hooks
+    /state
+  package.json
 
-Simply open [Lovable](https://lovable.dev/projects/495ca4b6-d8e1-4e4c-965e-594d39780d56) and click on Share -> Publish.
+/server
+  /api
+  /models
+  main.py
+  requirements.txt
 
-## Can I connect a custom domain to my Lovable project?
+/docs
+  setup.md
+  contributing.md
+  architecture.md
 
-Yes, you can!
+/examples
+  /python
+  /r
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+LICENSE
+README.md
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+---
+
+## 🧰 Roadmap
+
+| Stage              | Description                               | Status        |
+| ------------------ | ----------------------------------------- | ------------- |
+| **MVP**            | Run Python & R locally with Monaco editor | ✅ In progress |
+| **Offline Mode**   | IndexedDB + FS API for persistence        | 🧩 Planned    |
+| **Cloud Sync**     | Supabase or Firebase backend              | 🧩 Planned    |
+| **Collaboration**  | Real-time shared sessions                 | 🧠 Future     |
+| **Plugin API**     | Extend with Julia / SQL / AI tools        | 💡 Future     |
+| **Remote Compute** | Dockerized jobs for large workloads       | 💡 Future     |
+
+---
+
+## 🧑‍💻 Contributing
+
+We'd love your help!
+
+1. Fork the repo & clone it locally
+2. Create a feature branch (`git checkout -b feature/awesome-thing`)
+3. Commit your changes (`git commit -m 'Add awesome thing'`)
+4. Push to your fork (`git push origin feature/awesome-thing`)
+5. Open a Pull Request 🚀
+
+Please read [`CONTRIBUTING.md`](./docs/contributing.md) before submitting.
+
+---
+
+## 🔒 Security
+
+All code runs client-side in a sandboxed environment (Web Workers / iframes).
+The backend **never executes** user code — it only stores metadata and user files.
+
+---
+
+## 🧑‍🎓 License
+
+Licensed under the [MIT License](./LICENSE).
+Feel free to fork, remix, and use in your own projects.
+
+---
+
+## ❤️ Acknowledgements
+
+* [Pyodide](https://pyodide.org)
+* [webR](https://docs.r-wasm.org/webr/latest/)
+* [Monaco Editor](https://microsoft.github.io/monaco-editor/)
+* [Supabase](https://supabase.com)
+* [FastAPI](https://fastapi.tiangolo.com)
+* The open-source community 🙌
+
+---
+
+## 🌟 Vision
+
+> Build a truly portable, browser-native IDE for data science —
+> No installs. No setup. Just open a tab and code.
+
+---
+
+## 🔗 Lovable Project
+
+**URL**: https://lovable.dev/projects/495ca4b6-d8e1-4e4c-965e-594d39780d56
+
+This project was built with [Lovable](https://lovable.dev) - the AI-powered app builder.
