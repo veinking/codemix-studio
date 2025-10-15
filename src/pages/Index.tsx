@@ -7,6 +7,7 @@ import { DatasetViewer } from "@/components/DatasetViewer";
 import { PlotViewer } from "@/components/PlotViewer";
 import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { DesktopLayout } from "@/components/layouts/DesktopLayout";
+import { AIAssistant } from "@/components/AIAssistant";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ const Index = () => {
   const [plotData, setPlotData] = useState<string | null>(null);
   const [installedPackages, setInstalledPackages] = useState<string[]>([]);
   const [isInstalling, setIsInstalling] = useState(false);
+  const [selectedCode, setSelectedCode] = useState<string>("");
   
   const pyodideRef = useRef<any>(null);
   const webrRef = useRef<any>(null);
@@ -461,26 +463,39 @@ except:
     />
   );
 
+  const aiAssistantComponent = currentFile ? (
+    <AIAssistant
+      code={currentFile.content}
+      language={currentFile.language}
+      onCodeUpdate={handleCodeChange}
+      selectedCode={selectedCode}
+    />
+  ) : null;
+
   return (
     <>
-      {isMobile ? (
-        <MobileLayout
-          toolbar={toolbarComponent}
-          fileExplorer={fileExplorerComponent}
-          editor={editorComponent}
-          console={consoleComponent}
-          onRun={handleRunCode}
-          isRunning={isRunning}
-          currentFile={activeFile}
-        />
-      ) : (
-        <DesktopLayout
-          toolbar={toolbarComponent}
-          fileExplorer={fileExplorerComponent}
-          editor={editorComponent}
-          console={consoleComponent}
-        />
-      )}
+      <div className="flex flex-col h-screen">
+        {isMobile ? (
+          <MobileLayout
+            toolbar={toolbarComponent}
+            fileExplorer={fileExplorerComponent}
+            editor={editorComponent}
+            console={consoleComponent}
+            onRun={handleRunCode}
+            isRunning={isRunning}
+            currentFile={activeFile}
+          />
+        ) : (
+          <DesktopLayout
+            toolbar={toolbarComponent}
+            fileExplorer={fileExplorerComponent}
+            editor={editorComponent}
+            console={consoleComponent}
+          />
+        )}
+        
+        {aiAssistantComponent}
+      </div>
       
       {plotData && (
         <PlotViewer plotData={plotData} onClose={() => setPlotData(null)} />
