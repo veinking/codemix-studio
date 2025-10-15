@@ -1,6 +1,7 @@
-import { File, Folder, Upload, Trash2 } from "lucide-react";
+import { File, Folder, Upload, Trash2, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PackageManager } from "@/components/PackageManager";
 import { cn } from "@/lib/utils";
 
 interface FileItem {
@@ -16,6 +17,10 @@ interface FileExplorerProps {
   onFileSelect: (fileId: string) => void;
   onFileUpload: (files: FileList) => void;
   onFileDelete: (fileId: string) => void;
+  onSaveAll: () => void;
+  installedPackages: string[];
+  onInstallPackage: (packageName: string) => Promise<void>;
+  isInstalling: boolean;
 }
 
 export const FileExplorer = ({
@@ -24,6 +29,10 @@ export const FileExplorer = ({
   onFileSelect,
   onFileUpload,
   onFileDelete,
+  onSaveAll,
+  installedPackages,
+  onInstallPackage,
+  isInstalling,
 }: FileExplorerProps) => {
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -51,6 +60,10 @@ export const FileExplorer = ({
           className="hidden"
           onChange={handleFileInput}
         />
+        <Button variant="secondary" className="w-full mt-2" onClick={onSaveAll}>
+          <Save className="w-4 h-4 mr-2" />
+          Save All
+        </Button>
       </div>
       
       <ScrollArea className="flex-1">
@@ -91,6 +104,12 @@ export const FileExplorer = ({
           )}
         </div>
       </ScrollArea>
+      
+      <PackageManager
+        installedPackages={installedPackages}
+        onInstallPackage={onInstallPackage}
+        isInstalling={isInstalling}
+      />
     </div>
   );
 };

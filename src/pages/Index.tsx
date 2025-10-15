@@ -4,6 +4,8 @@ import { CodeEditor } from "@/components/CodeEditor";
 import { ConsolePanel } from "@/components/ConsolePanel";
 import { Toolbar } from "@/components/Toolbar";
 import { DatasetViewer } from "@/components/DatasetViewer";
+import { PlotViewer } from "@/components/PlotViewer";
+import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
 
@@ -27,7 +29,32 @@ const Index = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [datasets, setDatasets] = useState<Map<string, Dataset>>(new Map());
   const [showDataset, setShowDataset] = useState<string | null>(null);
+  const [plotData, setPlotData] = useState<string | null>(null);
+  const [installedPackages, setInstalledPackages] = useState<string[]>([]);
+  const [isInstalling, setIsInstalling] = useState(false);
+  
   const pyodideRef = useRef<any>(null);
+  const webrRef = useRef<any>(null);
+  const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
+
+  // Load files from IndexedDB on mount
+  useEffect(() => {
+    const loadStoredFiles = async () => {
+      if (!dbReady) return;
+      
+      try {
+        const storedFiles = await loadFiles();
+        if (storedFiles.length > 0) {
+          setFiles(storedFiles);
+          toast.success(`Loaded ${storedFiles.length} file(s) from storage`);
+        }
+      } catch (error) {
+        console.error("Error loading files:", error);
+      }
+    };
+    
+    loadStoredFiles();
+  }, [dbReady]);
 
   // Initialize Pyodide
   useEffect(() => {
@@ -38,12 +65,29 @@ const Index = () => {
           indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
         });
         pyodideRef.current = pyodide;
-        addToConsole("Python environment ready!");
+        addToConsole("✓ Python environment ready!");
       } catch (error) {
-        addToConsole("Error loading Python environment: " + error);
+        addToConsole("✗ Error loading Python environment: " + error);
       }
     };
     loadPyodide();
+  }, []);
+
+  // Initialize WebR
+  useEffect(() => {
+    const loadWebR = async () => {
+      try {
+        // @ts-ignore - WebR is loaded via CDN
+        const { WebR } = await import('https://webr.r-wasm.org/latest/webr.mjs');
+        const webR = new WebR();
+        await webR.init();
+        webrRef.current = webR;
+        addToConsole("✓ R environment ready!");
+      } catch (error) {
+        addToConsole("✗ Error loading R environment: " + error);
+      }
+    };
+    loadWebR();
   }, []);
 
   const addToConsole = (message: string) => {
@@ -77,10 +121,15 @@ const Index = () => {
       // If CSV, parse and store as dataset
       if (language === 'csv') {
         parseCSV(content, file.name);
-        addToConsole(`Dataset loaded: ${file.name}`);
+        addToConsole(`✓ Dataset loaded: ${file.name}`);
       }
       
       newFiles.push(fileItem);
+      
+      // Save to IndexedDB
+      if (dbReady) {
+        await saveFile(fileItem);
+      }
     }
     
     setFiles((prev) => [...prev, ...newFiles]);
@@ -112,7 +161,7 @@ const Index = () => {
     }
   };
 
-  const handleFileDelete = (fileId: string) => {
+  const handleFileDelete = async (fileId: string) => {
     const file = files.find(f => f.id === fileId);
     if (file && file.language === 'csv') {
       setDatasets(prev => {
@@ -121,6 +170,11 @@ const Index = () => {
         return newMap;
       });
     }
+    
+    if (dbReady) {
+      await deleteFile(fileId);
+    }
+    
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
     if (activeFile === fileId) {
       setActiveFile(null);
@@ -129,16 +183,65 @@ const Index = () => {
     toast.success("File deleted");
   };
 
-  const handleCodeChange = (value: string | undefined) => {
+  const handleSaveAll = async () => {
+    if (!dbReady) {
+      toast.error("Database not ready");
+      return;
+    }
+    
+    try {
+      for (const file of files) {
+        await saveFile(file);
+      }
+      toast.success("All files saved!");
+    } catch (error) {
+      toast.error("Error saving files");
+    }
+  };
+
+  const handleCodeChange = async (value: string | undefined) => {
     if (!activeFile || !value) return;
+    
     setFiles((prev) =>
-      prev.map((f) => (f.id === activeFile ? { ...f, content: value } : f))
+      prev.map((f) => {
+        if (f.id === activeFile) {
+          const updated = { ...f, content: value };
+          // Auto-save to IndexedDB
+          if (dbReady) {
+            saveFile(updated);
+          }
+          return updated;
+        }
+        return f;
+      })
     );
+  };
+
+  const installPythonPackage = async (packageName: string): Promise<void> => {
+    if (!pyodideRef.current) {
+      toast.error("Python environment not ready");
+      return;
+    }
+
+    setIsInstalling(true);
+    addToConsole(`>>> Installing ${packageName}...`);
+    
+    try {
+      await pyodideRef.current.loadPackage(packageName);
+      setInstalledPackages(prev => [...prev, packageName]);
+      addToConsole(`✓ ${packageName} installed successfully`);
+      toast.success(`${packageName} installed!`);
+    } catch (error: any) {
+      addToConsole(`✗ Error installing ${packageName}: ${error.message}`);
+      toast.error(`Failed to install ${packageName}`);
+    } finally {
+      setIsInstalling(false);
+    }
   };
 
   const runPythonCode = async (code: string) => {
     if (!pyodideRef.current) {
-      addToConsole("Error: Python environment not ready");
+      addToConsole("✗ Error: Python environment not ready");
       return;
     }
 
@@ -146,37 +249,92 @@ const Index = () => {
     addToConsole(">>> Running Python code...");
     
     try {
-      // Redirect stdout to capture print statements
+      // Setup matplotlib to save plots
       await pyodideRef.current.runPythonAsync(`
 import sys
 from io import StringIO
+import base64
+
 sys.stdout = StringIO()
+
+# Setup matplotlib if available
+try:
+    import matplotlib
+    import matplotlib.pyplot as plt
+    matplotlib.use('Agg')
+    _plot_data = None
+except ImportError:
+    pass
       `);
       
       // Run user code
       await pyodideRef.current.runPythonAsync(code);
       
+      // Check for plots
+      try {
+        const plotCheck = await pyodideRef.current.runPythonAsync(`
+try:
+    import matplotlib.pyplot as plt
+    import io
+    import base64
+    
+    if plt.get_fignums():
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+        buf.seek(0)
+        img_str = base64.b64encode(buf.read()).decode()
+        plt.close('all')
+        f"data:image/png;base64,{img_str}"
+    else:
+        ""
+except:
+    ""
+        `);
+        
+        if (plotCheck) {
+          setPlotData(plotCheck);
+        }
+      } catch (e) {
+        // No matplotlib or no plots
+      }
+      
       // Get output
-      const output = await pyodideRef.current.runPythonAsync(`
-sys.stdout.getvalue()
-      `);
+      const output = await pyodideRef.current.runPythonAsync(`sys.stdout.getvalue()`);
       
       if (output) {
-        addToConsole(output);
+        output.split('\n').forEach((line: string) => addToConsole(line));
       }
-      addToConsole(">>> Execution completed");
+      addToConsole(">>> Execution completed ✓");
     } catch (error: any) {
-      addToConsole(`Error: ${error.message}`);
+      addToConsole(`✗ Error: ${error.message}`);
     } finally {
       setIsRunning(false);
     }
   };
 
-  const runRCode = (code: string) => {
-    addToConsole(">>> R execution not yet implemented");
-    addToConsole(">>> Note: R support requires WebR integration");
-    toast.info("R support coming soon! Python is ready to use.");
-    setIsRunning(false);
+  const runRCode = async (code: string) => {
+    if (!webrRef.current) {
+      addToConsole("✗ Error: R environment not ready");
+      setIsRunning(false);
+      return;
+    }
+
+    setIsRunning(true);
+    addToConsole(">>> Running R code...");
+    
+    try {
+      const result = await webrRef.current.evalR(code);
+      const output = await result.toJs();
+      
+      if (output) {
+        addToConsole(String(output));
+      }
+      addToConsole(">>> Execution completed ✓");
+    } catch (error: any) {
+      addToConsole(`✗ Error: ${error.message}`);
+    } finally {
+      setIsRunning(false);
+    }
   };
 
   const handleRunCode = async () => {
@@ -186,13 +344,14 @@ sys.stdout.getvalue()
     if (!file) return;
     
     setConsoleOutput([]);
+    setPlotData(null);
     
     if (file.language === 'python') {
       await runPythonCode(file.content);
     } else if (file.language === 'r') {
-      runRCode(file.content);
+      await runRCode(file.content);
     } else {
-      addToConsole("Error: Can only run Python (.py) or R (.r, .rmd) files");
+      addToConsole("✗ Error: Can only run Python (.py) or R (.r, .rmd) files");
       setIsRunning(false);
     }
   };
@@ -219,7 +378,7 @@ sys.stdout.getvalue()
         isRunning={isRunning}
       />
       
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         <div className="w-64 flex-shrink-0">
           <FileExplorer
             files={files}
@@ -227,6 +386,10 @@ sys.stdout.getvalue()
             onFileSelect={handleFileSelect}
             onFileUpload={handleFileUpload}
             onFileDelete={handleFileDelete}
+            onSaveAll={handleSaveAll}
+            installedPackages={installedPackages}
+            onInstallPackage={installPythonPackage}
+            isInstalling={isInstalling}
           />
         </div>
         
@@ -249,10 +412,13 @@ sys.stdout.getvalue()
               <div className="h-full flex items-center justify-center">
                 <div className="text-center">
                   <h2 className="text-2xl font-bold text-foreground mb-2">
-                    Welcome to PyR IDE
+                    Welcome to OpenIDE
                   </h2>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground mb-4">
                     Upload a Python (.py), R (.r, .rmd), or CSV file to get started
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Files are automatically saved to your browser
                   </p>
                 </div>
               </div>
@@ -266,6 +432,10 @@ sys.stdout.getvalue()
             />
           </div>
         </div>
+        
+        {plotData && (
+          <PlotViewer plotData={plotData} onClose={() => setPlotData(null)} />
+        )}
       </div>
     </div>
   );
