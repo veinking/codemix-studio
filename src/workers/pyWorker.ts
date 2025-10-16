@@ -1,28 +1,30 @@
 // Pyodide Web Worker - runs off main thread for better iOS/Safari compatibility
+// This is a CLASSIC worker (not module) to support importScripts()
+
+/// <reference lib="webworker" />
+
 let pyodide: any = null;
 
-type Msg =
-  | { type: 'init'; indexURL: string; mobile: boolean }
-  | { type: 'run'; code: string }
-  | { type: 'install'; name: string };
-
-self.onmessage = async (evt: MessageEvent<Msg>) => {
+// Message handler
+self.onmessage = async (evt: MessageEvent) => {
   const msg = evt.data;
 
   try {
     if (msg.type === 'init') {
-      // Load Pyodide from CDN to avoid bundling issues with npm package
+      // Load Pyodide v0.28.3 from CDN using importScripts
       const PYODIDE_VERSION = '0.28.3';
       const cdnUrl = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/pyodide.js`;
       
-      // Import the CDN loader script using worker importScripts API
-      (self as any).importScripts(cdnUrl);
+      console.log('[PyWorker] Loading Pyodide from CDN:', cdnUrl);
       
-      // Access the global loadPyodide function
+      // importScripts works in classic workers only
+      importScripts(cdnUrl);
+      
+      // Access the global loadPyodide function injected by the script
       const loadPyodide = (self as any).loadPyodide;
       
       if (!loadPyodide) {
-        throw new Error('Failed to load Pyodide from CDN');
+        throw new Error('Failed to load Pyodide from CDN - loadPyodide not found');
       }
 
       const cfg: any = {
