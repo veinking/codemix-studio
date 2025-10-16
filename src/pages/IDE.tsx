@@ -27,7 +27,7 @@ interface Dataset {
   data: string[][];
 }
 
-const Index = () => {
+const IDE = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
@@ -572,4 +572,4 @@ except:
   );
 };
 
-export default Index;
+export default IDE;

@@ -8,40 +8,47 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 11.8%;
-    --foreground: 0 0% 95%;
+    /* Synthwave Purple Theme */
+    --background: 270 50% 8%;
+    --foreground: 280 80% 95%;
 
-    --card: 0 0% 14.5%;
-    --card-foreground: 0 0% 95%;
+    --card: 270 40% 12%;
+    --card-foreground: 280 80% 95%;
 
-    --popover: 0 0% 14.5%;
-    --popover-foreground: 0 0% 95%;
+    --popover: 270 40% 12%;
+    --popover-foreground: 280 80% 95%;
 
-    --primary: 195 100% 50%;
-    --primary-foreground: 0 0% 11.8%;
+    --primary: 280 90% 65%;
+    --primary-foreground: 280 20% 10%;
 
-    --secondary: 0 0% 18%;
-    --secondary-foreground: 0 0% 95%;
+    --secondary: 300 70% 55%;
+    --secondary-foreground: 280 80% 95%;
 
-    --muted: 0 0% 18%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 270 30% 20%;
+    --muted-foreground: 280 20% 60%;
 
-    --accent: 195 100% 50%;
-    --accent-foreground: 0 0% 11.8%;
+    --accent: 320 85% 60%;
+    --accent-foreground: 280 20% 10%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 95%;
 
-    --border: 0 0% 20%;
-    --input: 0 0% 20%;
-    --ring: 195 100% 50%;
+    --border: 280 50% 25%;
+    --input: 280 40% 18%;
+    --ring: 280 90% 65%;
 
-    --radius: 0.25rem;
+    --radius: 0.5rem;
 
-    --editor-bg: 0 0% 14.5%;
-    --console-bg: 0 0% 11.8%;
-    --sidebar-bg: 0 0% 11.8%;
-    --toolbar-bg: 0 0% 18%;
+    --editor-bg: 270 40% 12%;
+    --console-bg: 270 50% 8%;
+    --sidebar-bg: 270 50% 8%;
+    --toolbar-bg: 270 35% 15%;
+
+    /* Synthwave Gradients */
+    --gradient-synthwave: linear-gradient(135deg, hsl(280 90% 65%) 0%, hsl(320 85% 60%) 50%, hsl(340 80% 55%) 100%);
+    --gradient-neon: linear-gradient(90deg, hsl(280 90% 65%) 0%, hsl(300 85% 60%) 100%);
+    --glow-purple: 0 0 20px hsl(280 90% 65% / 0.5), 0 0 40px hsl(280 90% 65% / 0.3);
+    --glow-pink: 0 0 20px hsl(320 85% 60% / 0.5), 0 0 40px hsl(320 85% 60% / 0.3);
   }
 }
 
