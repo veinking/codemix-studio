@@ -181,6 +181,13 @@ export const MobileLayout = ({
         </div>
       )}
 
+      {/* Toolbar - Language Selector & Features */}
+      {!isFullScreen && (
+        <div className="bg-toolbar border-b border-border px-3 py-2 shrink-0">
+          {toolbar}
+        </div>
+      )}
+
       {/* Full Screen Exit Button */}
       {isFullScreen && (
         <Button
