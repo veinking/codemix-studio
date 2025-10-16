@@ -34,24 +34,18 @@ export const Toolbar = ({
   onInsertCode = () => {}
 }: ToolbarProps) => {
   return (
-    <div className="bg-toolbar border-b border-border p-2 flex items-center justify-between">
+    <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">
-        <Code2 className="w-5 h-5 text-primary" />
-        <h1 className="text-lg font-bold text-foreground">OpenIDE</h1>
-        
         {!currentFile && (
-          <>
-            <span className="text-muted-foreground text-sm ml-2">•</span>
-            <Select value={scratchLanguage} onValueChange={onScratchLanguageChange}>
-              <SelectTrigger className="w-[120px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="python">Python</SelectItem>
-                <SelectItem value="r">R</SelectItem>
-              </SelectContent>
-            </Select>
-          </>
+          <Select value={scratchLanguage} onValueChange={onScratchLanguageChange}>
+            <SelectTrigger className="w-[120px] h-8">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="python">Python</SelectItem>
+              <SelectItem value="r">R</SelectItem>
+            </SelectContent>
+          </Select>
         )}
       </div>
       

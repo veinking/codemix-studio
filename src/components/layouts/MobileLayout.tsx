@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
-import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download } from "lucide-react";
+import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download, Home } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -48,6 +49,7 @@ export const MobileLayout = ({
   onSaveScratchAsFile,
   dataOpsComponent,
 }: MobileLayoutProps) => {
+  const navigate = useNavigate();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
@@ -65,7 +67,17 @@ export const MobileLayout = ({
       {/* Minimal Top Bar */}
       {!isFullScreen && (
         <div className="bg-toolbar border-b border-border px-3 py-2 flex items-center justify-between shrink-0">
-          <h1 className="text-sm font-bold text-foreground">OpenIDE</h1>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 touch-manipulation"
+              onClick={() => navigate('/')}
+            >
+              <Home className="w-4 w-4" />
+            </Button>
+            <h1 className="text-sm font-bold text-foreground">OpenIDE</h1>
+          </div>
           
           <div className="flex items-center gap-2">
             <label htmlFor="csv-upload-mobile" className="cursor-pointer">
