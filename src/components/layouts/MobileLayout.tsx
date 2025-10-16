@@ -200,8 +200,11 @@ export const MobileLayout = ({
         </Button>
       )}
 
-      {/* Editor - Takes Full Height */}
-      <div className={isFullScreen ? "h-screen" : "flex-1 min-h-0 overflow-hidden"}>
+      {/* Editor - Takes Full Height with Bottom Padding for Floating Buttons */}
+      <div 
+        className={isFullScreen ? "h-screen" : "flex-1 min-h-0 overflow-hidden"}
+        style={!isFullScreen ? { paddingBottom: 'max(140px, calc(140px + env(safe-area-inset-bottom)))' } : undefined}
+      >
         {editor}
       </div>
 
@@ -209,7 +212,7 @@ export const MobileLayout = ({
       {!isFullScreen && (
         <>
           {/* Floating Action Button - iOS Safe Area */}
-          <div className="fixed right-4 z-40" style={{ bottom: 'max(5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
+          <div className="fixed right-4 z-40" style={{ bottom: 'max(6rem, calc(6rem + env(safe-area-inset-bottom)))' }}>
             <Button
               onClick={onRun}
               disabled={isRunning}
@@ -246,8 +249,8 @@ export const MobileLayout = ({
             </DrawerContent>
           </Drawer>
 
-          {/* Tools Drawer */}
-          <div className="fixed bottom-24 left-4 z-40">
+          {/* Tools Drawer - Positioned higher to avoid blocking editor */}
+          <div className="fixed left-4 z-40" style={{ bottom: 'max(6rem, calc(6rem + env(safe-area-inset-bottom)))' }}>
             {dataOpsComponent}
           </div>
         </>
