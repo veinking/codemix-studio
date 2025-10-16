@@ -2,7 +2,8 @@ import { RuntimeExecutor, RuntimeConfig, ExecutionResult, CompatibilityResult } 
 import { checkLibraryCompatibility } from '@/utils/libraryCompatibility';
 
 export class PythonRuntime implements RuntimeExecutor {
-  private pyodide: any = null;
+  private worker: Worker | null = null;
+  private isReady = false;
   public isInitialized = false;
 
   public config: RuntimeConfig = {
@@ -18,135 +19,107 @@ export class PythonRuntime implements RuntimeExecutor {
     if (this.isInitialized) return;
 
     try {
-      console.log('Loading Pyodide...');
-      let loadFn: any | null = null;
-      let importErr: any = null;
-      try {
-        // Prefer npm module (bundled) on modern browsers
-        const mod = await import('pyodide');
-        loadFn = (mod as any).loadPyodide;
-        console.log('[Pyodide] Using npm module loader');
-      } catch (e) {
-        importErr = e;
-        console.warn('[Pyodide] ESM import failed, falling back to global loader:', e);
-        const globalLoader = (globalThis as any).loadPyodide;
-        if (typeof globalLoader === 'function') {
-          loadFn = globalLoader;
-          console.log('[Pyodide] Using global window.loadPyodide');
-        }
-      }
-
+      console.log('[PythonRuntime] Initializing Pyodide worker...');
+      
+      // Pin the same version everywhere
       const PYODIDE_VERSION = '0.28.3';
       const indexURL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
 
-      const config: any = {
-        indexURL,
-        stdout: (text: string) => console.log(text),
-        stderr: (text: string) => console.error(text),
-      };
+      this.worker = new Worker(
+        new URL('../workers/pyWorker.ts', import.meta.url), 
+        { type: 'module' }
+      );
 
-      if (isMobile) {
-        config.args = ['--no-threading'];
-      }
+      // Wait for ready signal
+      await new Promise<void>((resolve, reject) => {
+        const timeout = setTimeout(() => {
+          reject(new Error('Pyodide initialization timeout (40s)'));
+        }, 40000);
 
-      if (!loadFn) {
-        console.error('[Pyodide] No loader available. Did the script tag fail to load?');
-        throw new Error(`Unable to load Pyodide. ESM error: ${importErr?.message || importErr}`);
-      }
+        const handler = (evt: MessageEvent) => {
+          const msg = evt.data;
+          
+          if (msg.type === 'ready') {
+            clearTimeout(timeout);
+            this.worker?.removeEventListener('message', handler);
+            this.isReady = true;
+            resolve();
+          } else if (msg.type === 'error') {
+            clearTimeout(timeout);
+            this.worker?.removeEventListener('message', handler);
+            reject(new Error(msg.error));
+          }
+        };
 
-      console.log('Initializing Pyodide runtime with indexURL:', indexURL);
-      try {
-        this.pyodide = await loadFn(config);
-      } catch (initErr: any) {
-        console.error('[Pyodide] Initial load failed:', initErr);
-        // Retry once with a fresh cache-busting parameter
-        const cacheBusted = `${indexURL}?v=${Date.now()}`;
-        config.indexURL = cacheBusted;
-        console.log('Retrying Pyodide initialization with cache-busted indexURL:', cacheBusted);
-        this.pyodide = await loadFn(config);
-      }
+        this.worker?.addEventListener('message', handler);
+        this.worker?.postMessage({ type: 'init', indexURL, mobile: isMobile });
+      });
 
-      console.log('Loading Python packages...');
-      await this.pyodide.loadPackage(['micropip', 'numpy', 'pandas']);
-      
       this.isInitialized = true;
-      console.log('Python runtime initialized successfully');
+      console.log('[PythonRuntime] Python runtime initialized successfully via worker');
     } catch (error: any) {
-      console.error('Python initialization error:', error);
+      console.error('[PythonRuntime] Initialization error:', error);
       throw new Error(`Failed to initialize Python: ${error.message || 'Unknown error'}`);
     }
   }
 
   async execute(code: string, onOutput: (text: string) => void): Promise<ExecutionResult> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.worker) {
       throw new Error('Python runtime not initialized');
     }
 
     const result: ExecutionResult = { output: '', datasets: [] };
-    
-    this.pyodide.setStdout({
-      batched: (text: string) => {
-        result.output += text + '\n';
-        onOutput(text);
-      }
+
+    return new Promise((resolve) => {
+      const listener = (evt: MessageEvent) => {
+        const msg = evt.data;
+
+        if (msg.type === 'stdout' || msg.type === 'stderr') {
+          result.output += msg.text + '\n';
+          onOutput(msg.text);
+        } else if (msg.type === 'result') {
+          if (msg.result !== undefined && msg.result !== null) {
+            const outputStr = String(msg.result);
+            result.output += outputStr + '\n';
+            onOutput(outputStr);
+          }
+          this.worker?.removeEventListener('message', listener);
+          resolve(result);
+        } else if (msg.type === 'error') {
+          result.error = msg.error;
+          result.output += `Error: ${msg.error}\n`;
+          onOutput(`Error: ${msg.error}`);
+          this.worker?.removeEventListener('message', listener);
+          resolve(result);
+        }
+      };
+
+      this.worker!.addEventListener('message', listener);
+      this.worker!.postMessage({ type: 'run', code });
     });
-
-    this.pyodide.setStderr({
-      batched: (text: string) => {
-        result.output += text + '\n';
-        onOutput(text);
-      }
-    });
-
-    try {
-      const output = await this.pyodide.runPythonAsync(code);
-      
-      if (output !== undefined && output !== null) {
-        const outputStr = String(output);
-        result.output += outputStr + '\n';
-        onOutput(outputStr);
-      }
-
-      // Check for matplotlib plots
-      const plotCode = `
-import sys
-import io
-import base64
-try:
-    import matplotlib.pyplot as plt
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight', dpi=150)
-    buf.seek(0)
-    img_base64 = base64.b64encode(buf.read()).decode('utf-8')
-    plt.close('all')
-    img_base64
-except Exception as e:
-    None
-      `;
-      
-      const plotData = await this.pyodide.runPythonAsync(plotCode);
-      if (plotData) {
-        result.plotUrl = `data:image/png;base64,${plotData}`;
-      }
-
-    } catch (error: any) {
-      result.error = error.message || String(error);
-      result.output += `Error: ${result.error}\n`;
-      onOutput(`Error: ${result.error}`);
-    }
-
-    return result;
   }
 
   async installPackage(name: string): Promise<void> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.worker) {
       throw new Error('Python runtime not initialized');
     }
 
-    await this.pyodide.runPythonAsync(`
-import micropip
-await micropip.install('${name}')
-    `);
+    return new Promise((resolve, reject) => {
+      const listener = (evt: MessageEvent) => {
+        const msg = evt.data;
+        
+        if (msg.type === 'installed') {
+          this.worker?.removeEventListener('message', listener);
+          resolve();
+        } else if (msg.type === 'error') {
+          this.worker?.removeEventListener('message', listener);
+          reject(new Error(msg.error));
+        }
+      };
+
+      this.worker!.addEventListener('message', listener);
+      this.worker!.postMessage({ type: 'install', name });
+    });
   }
 
   checkCompatibility(code: string, isMobile: boolean): CompatibilityResult {

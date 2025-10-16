@@ -60,4 +60,18 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Mobile safe-area support for notch/home indicator */
+  .mobile-editor-shell {
+    padding-bottom: max(80px, env(safe-area-inset-bottom));
+  }
+
+  .mobile-console-drawer {
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+  }
+
+  .mobile-run-fab {
+    bottom: max(16px, calc(env(safe-area-inset-bottom) + 16px));
+    z-index: 1000;
+  }
 }
