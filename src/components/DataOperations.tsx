@@ -8,7 +8,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Database, ArrowUpDown, Filter, BarChart3, Table2 } from "lucide-react";
+import { Database, ArrowUpDown, Filter, BarChart3, Table2, Copy, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 interface DataOperationsProps {
@@ -109,6 +109,15 @@ export const DataOperations = ({ onInsertCode, datasetName }: DataOperationsProp
     toast.success(`Inserted: ${name}`);
   };
 
+  const handleCopy = async (code: string, name: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      toast.success(`Copied: ${name}`);
+    } catch (err) {
+      toast.error("Failed to copy to clipboard");
+    }
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -139,18 +148,30 @@ export const DataOperations = ({ onInsertCode, datasetName }: DataOperationsProp
                   {category.operations.map((op) => (
                     <div
                       key={op.name}
-                      className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 transition-all group cursor-pointer"
-                      onClick={() => handleInsert(op.code, op.name)}
+                      className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 transition-all group"
                     >
                       <div className="flex items-start justify-between mb-1">
                         <h4 className="text-sm font-medium text-foreground">{op.name}</h4>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          Insert
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2"
+                            onClick={() => handleInsert(op.code, op.name)}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Insert
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2"
+                            onClick={() => handleCopy(op.code, op.name)}
+                          >
+                            <Copy className="w-3 h-3 mr-1" />
+                            Copy
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-xs text-muted-foreground">{op.description}</p>
                     </div>

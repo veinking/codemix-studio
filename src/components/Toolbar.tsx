@@ -7,6 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DataOperations } from "@/components/DataOperations";
+import { MLOperations } from "@/components/MLOperations";
 
 interface ToolbarProps {
   onRun: () => void;
@@ -16,6 +18,7 @@ interface ToolbarProps {
   isRunning: boolean;
   scratchLanguage: 'python' | 'r';
   onScratchLanguageChange: (lang: 'python' | 'r') => void;
+  onInsertCode?: (code: string) => void;
 }
 
 export const Toolbar = ({ 
@@ -25,7 +28,8 @@ export const Toolbar = ({
   currentFile, 
   isRunning,
   scratchLanguage,
-  onScratchLanguageChange
+  onScratchLanguageChange,
+  onInsertCode = () => {}
 }: ToolbarProps) => {
   return (
     <div className="bg-toolbar border-b border-border p-2 flex items-center justify-between">
@@ -50,6 +54,9 @@ export const Toolbar = ({
       </div>
       
       <div className="flex items-center gap-2">
+        <DataOperations onInsertCode={onInsertCode} />
+        <MLOperations onInsertCode={onInsertCode} />
+        
         <Button
           variant="default"
           size="sm"

@@ -10,6 +10,7 @@ import { DesktopLayout } from "@/components/layouts/DesktopLayout";
 import { AIAssistant } from "@/components/AIAssistant";
 import { LabTrainer } from "@/components/LabTrainer";
 import { DataOperations } from "@/components/DataOperations";
+import { MLOperations } from "@/components/MLOperations";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -509,6 +510,7 @@ except:
       isRunning={isRunning}
       scratchLanguage={scratchLanguage}
       onScratchLanguageChange={setScratchLanguage}
+      onInsertCode={handleInsertCode}
     />
   );
 
@@ -579,6 +581,12 @@ except:
     />
   );
 
+  const mlOpsComponent = (
+    <MLOperations 
+      onInsertCode={handleInsertCode}
+    />
+  );
+
   return (
     <>
       <div className="flex flex-col h-screen">
@@ -594,7 +602,12 @@ except:
             onDownload={handleDownload}
             onClearConsole={() => setConsoleOutput([])}
             onCSVUpload={handleCSVUpload}
-            dataOpsComponent={dataOpsComponent}
+            dataOpsComponent={
+              <div className="flex gap-1">
+                {dataOpsComponent}
+                {mlOpsComponent}
+              </div>
+            }
           />
         ) : (
           <DesktopLayout
