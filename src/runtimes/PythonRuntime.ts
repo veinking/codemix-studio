@@ -17,22 +17,31 @@ export class PythonRuntime implements RuntimeExecutor {
   async initialize(isMobile: boolean): Promise<void> {
     if (this.isInitialized) return;
 
-    const { loadPyodide } = await import('pyodide');
-    
-    const config: any = {
-      stdout: (text: string) => console.log(text),
-      stderr: (text: string) => console.error(text),
-    };
+    try {
+      console.log('Loading Pyodide...');
+      const { loadPyodide } = await import('pyodide');
+      
+      const config: any = {
+        stdout: (text: string) => console.log(text),
+        stderr: (text: string) => console.error(text),
+      };
 
-    if (isMobile) {
-      config.args = ['--no-threading'];
+      if (isMobile) {
+        config.args = ['--no-threading'];
+      }
+
+      console.log('Initializing Pyodide runtime...');
+      this.pyodide = await loadPyodide(config);
+      
+      console.log('Loading Python packages...');
+      await this.pyodide.loadPackage(['micropip', 'numpy', 'pandas']);
+      
+      this.isInitialized = true;
+      console.log('Python runtime initialized successfully');
+    } catch (error: any) {
+      console.error('Python initialization error:', error);
+      throw new Error(`Failed to initialize Python: ${error.message || 'Unknown error'}`);
     }
-
-    this.pyodide = await loadPyodide(config);
-    
-    await this.pyodide.loadPackage(['micropip', 'numpy', 'pandas']);
-    
-    this.isInitialized = true;
   }
 
   async execute(code: string, onOutput: (text: string) => void): Promise<ExecutionResult> {
