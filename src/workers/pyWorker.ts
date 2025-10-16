@@ -11,40 +11,45 @@ self.onmessage = async (evt: MessageEvent) => {
 
   try {
     if (msg.type === 'init') {
-      // Load Pyodide v0.28.3 from CDN using importScripts
-      const PYODIDE_VERSION = '0.28.3';
-      const cdnUrl = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/pyodide.js`;
-      
-      console.log('[PyWorker] Loading Pyodide from CDN:', cdnUrl);
-      
-      // importScripts works in classic workers only
-      importScripts(cdnUrl);
-      
-      // Access the global loadPyodide function injected by the script
-      const loadPyodide = (self as any).loadPyodide;
-      
-      if (!loadPyodide) {
-        throw new Error('Failed to load Pyodide from CDN - loadPyodide not found');
+      const { indexURL } = msg;
+
+      let loadPyodide: any;
+      try {
+        // Try NPM import first
+        const mod = await import('pyodide');
+        loadPyodide = (mod as any).loadPyodide;
+      } catch {
+        // Fallback to CDN script if import fails
+        importScripts(`${indexURL}pyodide.js`);
+        // @ts-ignore
+        loadPyodide = self.loadPyodide;
       }
 
+      // --- Safari / iOS detection ---
+      const ua = navigator.userAgent || '';
+      const isIOS = /iPad|iPhone|iPod/.test(ua);
+      const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+      const disableThreads = isIOS || isSafari;
+
       const cfg: any = {
-        indexURL: msg.indexURL,
+        indexURL,
         stdout: (t: string) => self.postMessage({ type: 'stdout', text: t }),
         stderr: (t: string) => self.postMessage({ type: 'stderr', text: t }),
       };
-      
-      if (msg.mobile) {
+
+      if (disableThreads) {
         cfg.args = ['--no-threading'];
+        cfg.disableSharedMemory = true;
+        cfg.disableWasmThreads = true;
       }
 
-      console.log('[PyWorker] Initializing Pyodide with indexURL:', msg.indexURL);
-      pyodide = await loadPyodide(cfg);
-      
-      console.log('[PyWorker] Loading Python packages...');
-      await pyodide.loadPackage(['micropip', 'numpy', 'pandas']);
-      
-      self.postMessage({ type: 'ready' });
-      console.log('[PyWorker] Pyodide ready');
+      try {
+        pyodide = await loadPyodide(cfg);
+        await pyodide.loadPackage(['micropip']);
+        self.postMessage({ type: 'ready' });
+      } catch (err: any) {
+        self.postMessage({ type: 'error', error: 'Init failed: ' + err.message });
+      }
       return;
     }
 
