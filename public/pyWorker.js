@@ -1,114 +1,108 @@
 // ============================================================
-//  UNIVERSAL PYODIDE WORKER
-//  Supports Desktop, Android, and iOS Safari seamlessly
-//  Version auto-switcher + diagnostics + retry logic
+//  SAFARI-SAFE PYODIDE WORKER
+//  Uses core-mini build to prevent memory crashes
+//  Classic import mode for maximum compatibility
 // ============================================================
 
+const PYODIDE_BASE = "https://cdn.jsdelivr.net/pyodide/v0.24.1/core/";
+
+let pyodide = null;
+let isInitializing = false;
+
+// === Safari-safe Pyodide Loader ===
+async function initPyodideSafe() {
+  if (pyodide) return pyodide;
+  if (isInitializing) {
+    // Wait for ongoing initialization
+    while (isInitializing) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    return pyodide;
+  }
+
+  isInitializing = true;
+
+  try {
+    self.postMessage({
+      type: "log",
+      text: `[PyWorker] Initializing Pyodide v0.24.1 (core build)
+Device: ${navigator.userAgent}`,
+    });
+
+    // Classic mode import for Safari; prevents "importScripts with module" error
+    importScripts(`${PYODIDE_BASE}pyodide.js`);
+    // eslint-disable-next-line no-undef
+    const loadPyodide = self.loadPyodide;
+
+    // eslint-disable-next-line no-undef
+    pyodide = await loadPyodide({
+      indexURL: PYODIDE_BASE,
+      stdout: (t) => self.postMessage({ type: "stdout", text: t }),
+      stderr: (t) => self.postMessage({ type: "stderr", text: t }),
+    });
+
+    self.pyodide = pyodide;
+    self.postMessage({ 
+      type: "ready",
+      text: "✅ Pyodide initialized (core-mini build)"
+    });
+    console.log("✅ Pyodide initialized (core-mini build)");
+  } catch (err) {
+    console.error("Pyodide init error:", err);
+    self.postMessage({
+      type: "error",
+      error: "Safari-safe init failed: " + String(err),
+    });
+  } finally {
+    isInitializing = false;
+  }
+
+  return pyodide;
+}
+
+// === Lazy Package Loader ===
+async function ensurePackage(pkg) {
+  try {
+    if (!pyodide) await initPyodideSafe();
+    if (!pyodide) throw new Error("Pyodide not initialized");
+    
+    if (!pyodide.loadedPackages[pkg]) {
+      self.postMessage({
+        type: "log",
+        text: `📦 Loading package: ${pkg}`,
+      });
+      await pyodide.loadPackage(pkg);
+      self.postMessage({
+        type: "log",
+        text: `✅ Loaded package: ${pkg}`,
+      });
+    }
+  } catch (e) {
+    console.warn(`Could not load ${pkg}:`, e);
+    self.postMessage({
+      type: "log",
+      text: `⚠️ Could not load ${pkg}: ${String(e)}`,
+    });
+  }
+}
+
+// === Message Handler ===
 self.onmessage = async (e) => {
   const msg = e.data;
-  if (!self.retryAttempted) self.retryAttempted = false;
 
   // =============== INIT ===============
   if (msg.type === "init") {
-    const { indexURL } = msg;
-
-    const watchdog = setTimeout(() => {
-      self.postMessage({
-        type: "error",
-        error: "[PyWorker] Init timeout (15s). Reloading...",
-      });
-      self.postMessage({ type: "reload" });
-      close();
-    }, 15000);
-
-    try {
-      // --- Detect device/browser ---
-      const ua = navigator.userAgent || "";
-      const isIOS = /iPad|iPhone|iPod/.test(ua);
-      const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
-      const disableThreads = isIOS || isSafari;
-
-      // --- Choose Pyodide version ---
-      const pyVersion = disableThreads ? "0.24.1" : "0.28.3";
-      const pyodideURL = `https://cdn.jsdelivr.net/pyodide/v${pyVersion}/full/pyodide.js`;
-
-      // --- Load Pyodide dynamically ---
-      importScripts(pyodideURL);
-      // eslint-disable-next-line no-undef
-      const loadPyodide = self.loadPyodide;
-
-      // --- Log environment ---
-      self.postMessage({
-        type: "log",
-        text: `[PyWorker] Initializing Pyodide v${pyVersion}
-Device: ${ua}
-Threads disabled: ${disableThreads}
-Retry attempt: ${self.retryAttempted}`,
-      });
-
-      // --- Pyodide Config ---
-      const cfg = {
-        indexURL: `https://cdn.jsdelivr.net/pyodide/v${pyVersion}/full/`,
-        stdout: (t) => self.postMessage({ type: "stdout", text: t }),
-        stderr: (t) => self.postMessage({ type: "stderr", text: t }),
-        pyodideMemoryLimit: 256, // Limit memory to avoid iOS crashes
-      };
-
-      if (disableThreads) {
-        delete self.SharedArrayBuffer;
-        cfg.args = ["--no-threading"];
-        cfg.disableSharedMemory = true;
-        cfg.disableWasmThreads = true;
-        cfg.pthreadPoolSize = 0;
-      }
-
-      // --- Load Pyodide ---
-      // eslint-disable-next-line no-undef
-      self.pyodide = await loadPyodide(cfg);
-      // eslint-disable-next-line no-undef
-      await self.pyodide.loadPackage(["micropip"]);
-
-      clearTimeout(watchdog);
-      self.retryAttempted = false;
-      self.postMessage({
-        type: "ready",
-        text: `[PyWorker] Pyodide ${pyVersion} initialized successfully.`,
-      });
-    } catch (err) {
-      clearTimeout(watchdog);
-      const errMsg = err && err.message ? err.message : JSON.stringify(err);
-
-      self.postMessage({
-        type: "error",
-        error: "[PyWorker] Init failed: " + errMsg,
-      });
-
-      // --- Auto-retry logic for exit(2) ---
-      if (!self.retryAttempted && /exit\(2\)/i.test(errMsg)) {
-        self.retryAttempted = true;
-        self.postMessage({
-          type: "log",
-          text: "[PyWorker] Detected exit(2) crash — retrying once...",
-        });
-        setTimeout(() => {
-          self.postMessage({ type: "reload" });
-          close();
-        }, 1000);
-      } else {
-        self.postMessage({
-          type: "error",
-          error: "[PyWorker] Initialization failed permanently: " + errMsg,
-        });
-      }
-    }
+    await initPyodideSafe();
     return;
   }
 
   // =============== RUN PYTHON ===============
-  if (msg.type === "run" && self.pyodide) {
+  if (msg.type === "run") {
     try {
+      await initPyodideSafe();
+      await ensurePackage("micropip");
       // eslint-disable-next-line no-undef
-      const result = await self.pyodide.runPythonAsync(msg.code);
+      const result = await pyodide.runPythonAsync(msg.code);
       self.postMessage({ type: "result", result });
     } catch (err) {
       self.postMessage({ type: "error", error: String(err) });
@@ -117,17 +111,19 @@ Retry attempt: ${self.retryAttempted}`,
   }
 
   // =============== INSTALL PACKAGE ===============
-  if (msg.type === "install" && self.pyodide) {
+  if (msg.type === "install") {
     try {
+      await initPyodideSafe();
+      await ensurePackage("micropip");
       // eslint-disable-next-line no-undef
-      await self.pyodide.runPythonAsync(`
+      await pyodide.runPythonAsync(`
 import micropip
 await micropip.install("${msg.name}")
 `);
       self.postMessage({
         type: "installed",
         name: msg.name,
-        text: `[PyWorker] Installed package: ${msg.name}`,
+        text: `✅ Installed package: ${msg.name}`,
       });
     } catch (err) {
       self.postMessage({ type: "error", error: String(err) });
