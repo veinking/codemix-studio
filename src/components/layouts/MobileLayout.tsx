@@ -1,10 +1,17 @@
 import { ReactNode, useState } from "react";
-import { Play, ChevronDown, ChevronUp, Maximize2, Minimize2, Menu, Download, Trash2, FileUp } from "lucide-react";
+import { Play, Menu, FileUp, X, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
@@ -37,49 +44,29 @@ export const MobileLayout = ({
   onCSVUpload,
   dataOpsComponent,
 }: MobileLayoutProps) => {
-  const [showConsole, setShowConsole] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [filesOpen, setFilesOpen] = useState(false);
 
   const handleCSVInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.name.endsWith('.csv')) {
       onCSVUpload(file);
+      setFilesOpen(false);
     }
   };
 
   return (
-    <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
-      {/* Compact Mobile Toolbar */}
+    <div className="h-screen w-full flex flex-col bg-background overflow-hidden touch-manipulation">
+      {/* Minimal Top Bar */}
       {!isFullScreen && (
-        <div className="bg-toolbar border-b border-border px-2 py-1.5 flex items-center justify-between">
+        <div className="bg-toolbar border-b border-border px-3 py-2 flex items-center justify-between shrink-0">
+          <h1 className="text-sm font-bold text-foreground">OpenIDE</h1>
+          
           <div className="flex items-center gap-2">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 px-2">
-                  <Menu className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[280px] bg-background">
-                <SheetHeader>
-                  <SheetTitle>Files & Tools</SheetTitle>
-                  <SheetDescription>Manage your workspace</SheetDescription>
-                </SheetHeader>
-                <div className="mt-4 h-[calc(100vh-120px)] overflow-auto">
-                  {fileExplorer}
-                </div>
-              </SheetContent>
-            </Sheet>
-            
-            <h1 className="text-xs font-bold text-foreground">PyR IDE</h1>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {dataOpsComponent}
-            
-            <label htmlFor="csv-upload-mobile">
-              <Button variant="ghost" size="sm" className="h-8 px-2" asChild>
+            <label htmlFor="csv-upload-mobile" className="cursor-pointer">
+              <Button variant="ghost" size="icon" className="h-9 w-9 touch-manipulation" asChild>
                 <span>
-                  <FileUp className="w-4 h-4" />
+                  <FileUp className="w-5 h-5" />
                 </span>
               </Button>
             </label>
@@ -91,78 +78,91 @@ export const MobileLayout = ({
               onChange={handleCSVInput}
             />
 
+            <Sheet open={filesOpen} onOpenChange={setFilesOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 touch-manipulation">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85vw] max-w-[320px] bg-background p-0">
+                <SheetHeader className="px-4 py-3 border-b border-border">
+                  <SheetTitle>Files</SheetTitle>
+                </SheetHeader>
+                <div className="h-[calc(100vh-60px)] overflow-auto">
+                  {fileExplorer}
+                </div>
+              </SheetContent>
+            </Sheet>
+
             <Button
               variant="ghost"
-              size="sm"
-              className="h-8 px-2"
+              size="icon"
+              className="h-9 w-9 touch-manipulation"
               onClick={() => setIsFullScreen(!isFullScreen)}
             >
-              {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
             </Button>
           </div>
         </div>
       )}
 
-      {/* Full Screen Mode Floating Controls */}
+      {/* Full Screen Exit Button */}
       {isFullScreen && (
-        <div className="absolute top-2 right-2 z-50 flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onRun}
-            disabled={isRunning}
-            className="shadow-lg"
-          >
-            <Play className="w-4 h-4 mr-1" />
-            {isRunning ? 'Running...' : 'Run'}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setIsFullScreen(false)}
-            className="shadow-lg"
-          >
-            <Minimize2 className="w-4 h-4" />
-          </Button>
-        </div>
+        <Button
+          variant="secondary"
+          size="icon"
+          onClick={() => setIsFullScreen(false)}
+          className="absolute top-3 right-3 z-50 h-10 w-10 rounded-full shadow-lg touch-manipulation"
+        >
+          <X className="w-5 h-5" />
+        </Button>
       )}
 
-      {/* Editor Area - Main Focus */}
-      <div className={isFullScreen ? "h-screen" : "flex-1 min-h-0"}>
+      {/* Editor - Takes Full Height */}
+      <div className={isFullScreen ? "h-screen" : "flex-1 min-h-0 overflow-hidden"}>
         {editor}
       </div>
 
-      {/* Bottom Action Bar - Hidden in full screen */}
+      {/* Floating Run Button + Console Drawer */}
       {!isFullScreen && (
-        <div className="border-t border-border bg-toolbar">
-          {/* Run Button */}
-          <div className="p-2">
+        <>
+          {/* Floating Action Button */}
+          <div className="fixed bottom-20 right-4 z-40">
             <Button
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 touch-manipulation h-12"
               onClick={onRun}
               disabled={isRunning}
+              className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 touch-manipulation"
+              style={{ boxShadow: 'var(--glow-purple)' }}
             >
-              <Play className="w-5 h-5 mr-2" />
-              {isRunning ? 'Running...' : 'Run Code'}
+              <Play className="w-6 h-6" fill="currentColor" />
             </Button>
           </div>
 
-          {/* Console Toggle */}
-          <button
-            className="w-full px-3 py-2 flex items-center justify-between hover:bg-secondary transition-colors border-t border-border"
-            onClick={() => setShowConsole(!showConsole)}
-          >
-            <span className="text-xs font-semibold text-foreground">Output</span>
-            {showConsole ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-          </button>
-        </div>
-      )}
+          {/* Bottom Console Drawer */}
+          <Drawer>
+            <DrawerTrigger asChild>
+              <div className="fixed bottom-0 left-0 right-0 z-30 bg-toolbar border-t border-border">
+                <button className="w-full py-3 flex items-center justify-center gap-2 active:bg-muted/50 transition-colors touch-manipulation">
+                  <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
+                </button>
+              </div>
+            </DrawerTrigger>
+            <DrawerContent className="max-h-[70vh]">
+              <DrawerHeader className="border-b border-border">
+                <DrawerTitle>Console Output</DrawerTitle>
+                <DrawerDescription>View execution results</DrawerDescription>
+              </DrawerHeader>
+              <div className="h-[50vh] overflow-hidden">
+                {consolePanel}
+              </div>
+            </DrawerContent>
+          </Drawer>
 
-      {/* Console Area - Collapsible */}
-      {showConsole && !isFullScreen && (
-        <div className="h-48 border-t border-border">
-          {consolePanel}
-        </div>
+          {/* Tools Drawer */}
+          <div className="fixed bottom-24 left-4 z-40">
+            {dataOpsComponent}
+          </div>
+        </>
       )}
     </div>
   );
