@@ -42,11 +42,26 @@ export class PythonRuntime implements RuntimeExecutor {
             clearTimeout(timeout);
             this.worker?.removeEventListener('message', handler);
             this.isReady = true;
+            console.log(msg.text || '[PythonRuntime] Pyodide ready');
             resolve();
           } else if (msg.type === 'error') {
             clearTimeout(timeout);
             this.worker?.removeEventListener('message', handler);
             reject(new Error(msg.error));
+          } else if (msg.type === 'log') {
+            console.log(msg.text);
+          } else if (msg.type === 'reload') {
+            console.warn('[PythonRuntime] Worker requested reload — restarting...');
+            clearTimeout(timeout);
+            this.worker?.removeEventListener('message', handler);
+            this.worker?.terminate();
+            this.worker = null;
+            this.isReady = false;
+            this.isInitialized = false;
+            // Retry initialization
+            setTimeout(() => {
+              this.initialize(isMobile).then(resolve).catch(reject);
+            }, 500);
           }
         };
 
@@ -90,6 +105,9 @@ export class PythonRuntime implements RuntimeExecutor {
           onOutput(`Error: ${msg.error}`);
           this.worker?.removeEventListener('message', listener);
           resolve(result);
+        } else if (msg.type === 'log') {
+          console.log(msg.text);
+          onOutput(msg.text);
         }
       };
 
@@ -108,11 +126,14 @@ export class PythonRuntime implements RuntimeExecutor {
         const msg = evt.data;
         
         if (msg.type === 'installed') {
+          console.log(msg.text || `[PythonRuntime] Package ${name} installed`);
           this.worker?.removeEventListener('message', listener);
           resolve();
         } else if (msg.type === 'error') {
           this.worker?.removeEventListener('message', listener);
           reject(new Error(msg.error));
+        } else if (msg.type === 'log') {
+          console.log(msg.text);
         }
       };
 
