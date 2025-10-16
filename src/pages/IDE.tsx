@@ -83,13 +83,16 @@ const IDE = () => {
     loadStoredFiles();
   }, [dbReady]);
 
-  // Initialize Pyodide
+  // Initialize Pyodide with iOS memory optimization
   useEffect(() => {
     const loadPyodide = async () => {
       try {
+        // iOS memory optimization: single-threaded mode, reduced stdlib
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         // @ts-ignore - Pyodide is loaded via CDN
         const pyodide = await window.loadPyodide({
           indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+          fullStdLib: !isIOS, // Reduce memory footprint on iOS
         });
         pyodideRef.current = pyodide;
         addToConsole("✓ Python environment ready!");
@@ -159,8 +162,17 @@ const IDE = () => {
   const handleFileUpload = async (fileList: FileList) => {
     const newFiles: FileItem[] = [];
     
+    // Check file size on mobile (warn if >5MB)
+    const maxSize = isMobile ? 5 * 1024 * 1024 : 20 * 1024 * 1024; // 5MB mobile, 20MB desktop
+    
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
+      
+      if (file.size > maxSize) {
+        toast.error(`${file.name} exceeds ${isMobile ? '5MB' : '20MB'} limit. Skipping.`);
+        continue;
+      }
+      
       const content = await file.text();
       const language = getLanguageFromFileName(file.name);
       
@@ -180,9 +192,19 @@ const IDE = () => {
       
       newFiles.push(fileItem);
       
-      // Save to IndexedDB
+      // Save to IndexedDB with quota handling
       if (dbReady) {
-        await saveFile(fileItem);
+        try {
+          await saveFile(fileItem);
+        } catch (error: any) {
+          if (error?.message === "STORAGE_FULL") {
+            toast.error("Storage full. File won't persist after reload.", {
+              duration: 5000,
+            });
+          } else {
+            throw error;
+          }
+        }
       }
     }
     
@@ -267,9 +289,14 @@ const IDE = () => {
       prev.map((f) => {
         if (f.id === activeFile) {
           const updated = { ...f, content: value };
-          // Auto-save to IndexedDB
+          // Auto-save to IndexedDB with quota handling
           if (dbReady) {
-            saveFile(updated);
+            saveFile(updated).catch((error: any) => {
+              if (error?.message === "STORAGE_FULL") {
+                // Silent handling - already in sessionStorage fallback
+                console.warn("Storage full, using session storage");
+              }
+            });
           }
           return updated;
         }
@@ -472,6 +499,16 @@ except:
   };
 
   const handleCSVUpload = async (file: File) => {
+    // Check file size on mobile
+    const maxSize = isMobile ? 5 * 1024 * 1024 : 20 * 1024 * 1024;
+    
+    if (file.size > maxSize) {
+      toast.error(`CSV exceeds ${isMobile ? '5MB' : '20MB'}. Large datasets may cause memory issues on mobile.`, {
+        duration: 5000,
+      });
+      return;
+    }
+    
     const content = await file.text();
     const language = getLanguageFromFileName(file.name);
     
@@ -491,7 +528,15 @@ except:
     setActiveFile(fileItem.id);
     
     if (dbReady) {
-      await saveFile(fileItem);
+      try {
+        await saveFile(fileItem);
+      } catch (error: any) {
+        if (error?.message === "STORAGE_FULL") {
+          toast.error("Storage full. File won't persist after reload.", {
+            duration: 5000,
+          });
+        }
+      }
     }
     
     toast.success(`Loaded ${file.name}`);

@@ -48,7 +48,20 @@ export const useIndexedDB = () => {
       const request = store.put({ ...file, lastModified: Date.now() });
 
       request.onsuccess = () => resolve();
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        // Handle quota exceeded errors on iOS
+        if (request.error?.name === 'QuotaExceededError') {
+          // Try to save to sessionStorage as fallback
+          try {
+            sessionStorage.setItem(`file_${file.id}`, JSON.stringify(file));
+            reject(new Error("STORAGE_FULL"));
+          } catch {
+            reject(new Error("STORAGE_FULL"));
+          }
+        } else {
+          reject(request.error);
+        }
+      };
     });
   };
 

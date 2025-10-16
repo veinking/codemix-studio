@@ -187,8 +187,8 @@ export const MobileLayout = ({
       {/* Floating Run Button + Console Drawer */}
       {!isFullScreen && (
         <>
-          {/* Floating Action Button */}
-          <div className="fixed bottom-20 right-4 z-40">
+          {/* Floating Action Button - iOS Safe Area */}
+          <div className="fixed right-4 z-40" style={{ bottom: 'max(5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
             <Button
               onClick={onRun}
               disabled={isRunning}
@@ -199,16 +199,22 @@ export const MobileLayout = ({
             </Button>
           </div>
 
-          {/* Bottom Console Drawer */}
+          {/* Bottom Console Drawer - iOS Safe Area */}
           <Drawer>
             <DrawerTrigger asChild>
-              <div className="fixed bottom-0 left-0 right-0 z-30 bg-toolbar border-t border-border">
+              <div 
+                className="fixed bottom-0 left-0 right-0 z-30 bg-toolbar border-t border-border"
+                style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}
+              >
                 <button className="w-full py-3 flex items-center justify-center gap-2 active:bg-muted/50 transition-colors touch-manipulation">
                   <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
                 </button>
               </div>
             </DrawerTrigger>
-            <DrawerContent className="max-h-[70vh]">
+            <DrawerContent 
+              className="max-h-[70vh]"
+              style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+            >
               <DrawerHeader className="border-b border-border">
                 <DrawerTitle>Console Output</DrawerTitle>
                 <DrawerDescription>View execution results</DrawerDescription>
