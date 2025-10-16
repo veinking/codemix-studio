@@ -1,12 +1,9 @@
-// Pyodide Web Worker - runs off main thread for better iOS/Safari compatibility
-// This is a CLASSIC worker (not module) to support importScripts()
+// Pyodide Web Worker - Classic worker loaded as external script
+// This file is NOT bundled by Vite to avoid code-splitting issues
 
-/// <reference lib="webworker" />
+let pyodide = null;
 
-let pyodide: any = null;
-
-// Message handler
-self.onmessage = async (evt: MessageEvent) => {
+self.onmessage = async (evt) => {
   const msg = evt.data;
 
   try {
@@ -14,26 +11,24 @@ self.onmessage = async (evt: MessageEvent) => {
       const { indexURL } = msg;
 
       // Load Pyodide from CDN using importScripts (classic worker only)
-      // Note: We use CDN instead of npm import to avoid code-splitting issues with IIFE format
-      importScripts(`${indexURL}pyodide.js`);
+      self.importScripts(indexURL + 'pyodide.js');
       
-      // @ts-ignore - loadPyodide is injected globally by the script
       const loadPyodide = self.loadPyodide;
       
       if (!loadPyodide) {
         throw new Error('Failed to load Pyodide - loadPyodide not found on global scope');
       }
 
-      // --- Safari / iOS detection ---
+      // Safari / iOS detection
       const ua = navigator.userAgent || '';
       const isIOS = /iPad|iPhone|iPod/.test(ua);
       const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
       const disableThreads = isIOS || isSafari;
 
-      const cfg: any = {
-        indexURL,
-        stdout: (t: string) => self.postMessage({ type: 'stdout', text: t }),
-        stderr: (t: string) => self.postMessage({ type: 'stderr', text: t }),
+      const cfg = {
+        indexURL: indexURL,
+        stdout: (t) => self.postMessage({ type: 'stdout', text: t }),
+        stderr: (t) => self.postMessage({ type: 'stderr', text: t }),
       };
 
       if (disableThreads) {
@@ -46,7 +41,7 @@ self.onmessage = async (evt: MessageEvent) => {
         pyodide = await loadPyodide(cfg);
         await pyodide.loadPackage(['micropip']);
         self.postMessage({ type: 'ready' });
-      } catch (err: any) {
+      } catch (err) {
         self.postMessage({ type: 'error', error: 'Init failed: ' + err.message });
       }
       return;
@@ -70,7 +65,7 @@ await micropip.install("${msg.name}")
       self.postMessage({ type: 'installed', name: msg.name });
       return;
     }
-  } catch (err: any) {
+  } catch (err) {
     console.error('[PyWorker] Error:', err);
     self.postMessage({ type: 'error', error: String(err?.message || err) });
   }

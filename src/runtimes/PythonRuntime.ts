@@ -25,10 +25,9 @@ export class PythonRuntime implements RuntimeExecutor {
       const PYODIDE_VERSION = '0.28.3';
       const indexURL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
 
-      // Create classic worker (not module) to support importScripts
-      this.worker = new Worker(
-        new URL('../workers/pyWorker.ts?worker', import.meta.url)
-      );
+      // Load worker from public directory (not bundled by Vite)
+      // This avoids code-splitting issues with IIFE format
+      this.worker = new Worker('/pyWorker.js');
 
       // Wait for ready signal
       await new Promise<void>((resolve, reject) => {
