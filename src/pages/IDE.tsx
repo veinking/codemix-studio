@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { FileExplorer } from "@/components/FileExplorer";
 import { CodeEditor } from "@/components/CodeEditor";
 import { ConsolePanel } from "@/components/ConsolePanel";
@@ -12,18 +12,26 @@ import { LabTrainer } from "@/components/LabTrainer";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
 import { WelcomeOverlay } from "@/components/WelcomeOverlay";
+import { PackageManager } from "@/components/PackageManager";
+import { FeatureDrawer } from "@/components/FeatureDrawer";
+import { SidePanel } from "@/components/SidePanel";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
-import { checkLibraryCompatibility, getCompatibilityMessage } from "@/utils/libraryCompatibility";
+import { getCompatibilityMessage } from "@/utils/libraryCompatibility";
+import { RuntimeRegistry } from "@/runtimes/RuntimeRegistry";
+import { PythonRuntime } from "@/runtimes/PythonRuntime";
+import { RRuntime } from "@/runtimes/RRuntime";
+import { JavaScriptRuntime } from "@/runtimes/JavaScriptRuntime";
+import { SQLRuntime } from "@/runtimes/SQLRuntime";
 
 interface FileItem {
   id: string;
   name: string;
   type: 'file' | 'folder';
   content: string;
-  language: string;
+  language: 'python' | 'r' | 'javascript' | 'sql' | 'csv' | 'plaintext';
 }
 
 interface Dataset {
@@ -44,22 +52,20 @@ const IDE = () => {
   const [selectedCode, setSelectedCode] = useState<string>("");
   const [labTrainerOpen, setLabTrainerOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [runtimesInitialized, setRuntimesInitialized] = useState({
-    python: false,
-    r: false,
+  const [initializedRuntimes, setInitializedRuntimes] = useState<Set<string>>(new Set());
+  const [featureDrawerOpen, setFeatureDrawerOpen] = useState(false);
+  const [sidePanelOpen, setSidePanelOpen] = useState(() => {
+    return localStorage.getItem('sidePanelOpen') === 'true';
   });
   
   // Scratch pad state (not saved to files, only sessionStorage)
   const [scratchCode, setScratchCode] = useState<string>(() => {
     return sessionStorage.getItem('scratchCode') || '';
   });
-  const [scratchLanguage, setScratchLanguage] = useState<'python' | 'r'>(() => {
-    return (sessionStorage.getItem('scratchLanguage') as 'python' | 'r') || 'python';
+  const [scratchLanguage, setScratchLanguage] = useState<'python' | 'r' | 'javascript' | 'sql'>(() => {
+    return (sessionStorage.getItem('scratchLanguage') as any) || 'python';
   });
   
-  const pyodideRef = useRef<any>(null);
-  const webrRef = useRef<any>(null);
-  const initializingRef = useRef({ python: false, r: false });
   const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
   const { isMobile, deviceType } = useDeviceType();
 
@@ -71,6 +77,14 @@ const IDE = () => {
   useEffect(() => {
     sessionStorage.setItem('scratchLanguage', scratchLanguage);
   }, [scratchLanguage]);
+
+  // Register all runtimes on mount
+  useEffect(() => {
+    RuntimeRegistry.register(new PythonRuntime());
+    RuntimeRegistry.register(new RRuntime());
+    RuntimeRegistry.register(new JavaScriptRuntime());
+    RuntimeRegistry.register(new SQLRuntime());
+  }, []);
 
   // First-run experience
   useEffect(() => {
@@ -110,6 +124,59 @@ plt.show()
 print("✓ Demo complete! Try editing this code or create your own files.")`,
         },
         {
+          id: 'demo-js',
+          name: 'demo.js',
+          type: 'file',
+          language: 'javascript',
+          content: `// JavaScript Demo - Welcome to OpenIDE!
+
+const greet = (name) => {
+  return \`Hello, \${name}! Welcome to OpenIDE.\`;
+};
+
+console.log(greet("World"));
+
+// Array methods
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map(n => n * 2);
+console.log("Doubled:", doubled);
+
+// Async/await example
+async function fetchData() {
+  console.log("Fetching data...");
+  return { status: "success", data: [10, 20, 30] };
+}
+
+fetchData().then(result => {
+  console.log("Result:", result);
+});
+
+console.log("✓ JavaScript demo complete!");`,
+        },
+        {
+          id: 'demo-sql',
+          name: 'demo.sql',
+          type: 'file',
+          language: 'sql',
+          content: `-- SQL Demo - Welcome to OpenIDE!
+
+CREATE TABLE users (
+  id INTEGER PRIMARY KEY,
+  name TEXT NOT NULL,
+  age INTEGER,
+  city TEXT
+);
+
+INSERT INTO users (name, age, city) VALUES
+  ('Alice', 28, 'New York'),
+  ('Bob', 34, 'San Francisco'),
+  ('Charlie', 23, 'Los Angeles');
+
+SELECT * FROM users;
+
+SELECT name, age FROM users WHERE age > 25 ORDER BY age DESC;`,
+        },
+        {
           id: 'demo-csv',
           name: 'sample.csv',
           type: 'file',
@@ -147,7 +214,12 @@ Jack,30,Miami,86`,
       try {
         const storedFiles = await loadFiles();
         if (storedFiles.length > 0) {
-          setFiles(storedFiles);
+          // Cast stored files to FileItem with proper language types
+          const typedFiles = storedFiles.map(f => ({
+            ...f,
+            language: f.language as FileItem['language']
+          }));
+          setFiles(typedFiles);
           toast.success(`Loaded ${storedFiles.length} file(s) from storage`);
         }
       } catch (error) {
@@ -162,11 +234,14 @@ Jack,30,Miami,86`,
     setConsoleOutput((prev) => [...prev, message]);
   };
 
-  const getLanguageFromFileName = (fileName: string): string => {
+  const getLanguageFromFileName = (fileName: string): 'python' | 'r' | 'javascript' | 'sql' | 'csv' | 'plaintext' => {
     const ext = fileName.split('.').pop()?.toLowerCase();
-    if (ext === 'py') return 'python';
-    if (ext === 'r' || ext === 'rmd') return 'r';
     if (ext === 'csv') return 'csv';
+    
+    const detected = RuntimeRegistry.detectLanguage(fileName);
+    if (detected === 'javascript' || detected === 'sql' || detected === 'r') return detected;
+    if (detected === 'python') return 'python';
+    
     return 'plaintext';
   };
 
@@ -342,9 +417,25 @@ Jack,30,Miami,86`,
     );
   };
 
-  const installPythonPackage = async (packageName: string): Promise<void> => {
-    if (!pyodideRef.current) {
-      toast.error("Python environment not ready");
+  const installPackage = async (packageName: string): Promise<void> => {
+    const language = activeFile
+      ? (files.find(f => f.id === activeFile)?.language || 'python')
+      : scratchLanguage;
+
+    const runtime = RuntimeRegistry.get(language);
+    
+    if (!runtime) {
+      toast.error(`No runtime found for ${language}`);
+      return;
+    }
+
+    if (!runtime.config.supportsPackages) {
+      toast.error(`${runtime.config.displayName} does not support package installation`);
+      return;
+    }
+
+    if (!runtime.installPackage) {
+      toast.error(`Package installation not implemented for ${runtime.config.displayName}`);
       return;
     }
 
@@ -352,7 +443,7 @@ Jack,30,Miami,86`,
     addToConsole(`>>> Installing ${packageName}...`);
     
     try {
-      await pyodideRef.current.loadPackage(packageName);
+      await runtime.installPackage(packageName);
       setInstalledPackages(prev => [...prev, packageName]);
       addToConsole(`✓ ${packageName} installed successfully`);
       toast.success(`${packageName} installed!`);
@@ -364,226 +455,109 @@ Jack,30,Miami,86`,
     }
   };
 
-  // Lazy initialize Python runtime
-  const initializePython = async () => {
-    if (pyodideRef.current || initializingRef.current.python) {
-      return;
-    }
-    
-    initializingRef.current.python = true;
-    const toastId = toast.loading("Initializing Python environment...");
-    
-    try {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      // @ts-ignore - Pyodide is loaded via CDN
-      const pyodide = await window.loadPyodide({
-        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
-        fullStdLib: !isIOS,
-      });
-      pyodideRef.current = pyodide;
-      await pyodide.loadPackage("micropip");
-      setRuntimesInitialized(prev => ({ ...prev, python: true }));
-      addToConsole("✓ Python environment ready!");
-      toast.success("Python ready", { id: toastId });
-    } catch (error) {
-      addToConsole("✗ Error loading Python environment: " + error);
-      toast.error("Failed to load Python", { id: toastId });
-    } finally {
-      initializingRef.current.python = false;
-    }
-  };
-
-  // Lazy initialize R runtime
-  const initializeR = async () => {
-    if (webrRef.current || initializingRef.current.r || isMobile) {
-      return;
-    }
-    
-    initializingRef.current.r = true;
-    const toastId = toast.loading("Initializing R environment...");
-    
-    try {
-      // @ts-ignore - WebR is loaded via CDN
-      const { WebR } = await import('https://webr.r-wasm.org/latest/webr.mjs');
-      const webR = new WebR();
-      await webR.init();
-      webrRef.current = webR;
-      setRuntimesInitialized(prev => ({ ...prev, r: true }));
-      addToConsole("✓ R environment ready!");
-      toast.success("R ready", { id: toastId });
-    } catch (error) {
-      addToConsole("✗ Error loading R environment: " + error);
-      toast.error("Failed to load R", { id: toastId });
-    } finally {
-      initializingRef.current.r = false;
-    }
-  };
-
-  const runPythonCode = async (code: string) => {
-    // Check library compatibility before running
-    const compatibility = checkLibraryCompatibility(code, 'python', isMobile);
-    if (!compatibility.isCompatible || compatibility.warnings.length > 0) {
-      const message = getCompatibilityMessage(compatibility);
-      addToConsole(message);
-      
-      if (!compatibility.isCompatible) {
-        addToConsole("\n✗ Code cannot run due to incompatible libraries");
-        setIsRunning(false);
-        return;
-      }
-    }
-    
-    // Initialize Python if needed
-    if (!pyodideRef.current) {
-      await initializePython();
-      if (!pyodideRef.current) {
-        addToConsole("✗ Error: Failed to initialize Python");
-        return;
-      }
-    }
-
-    setIsRunning(true);
-    addToConsole(">>> Running Python code...");
-    
-    try {
-      // Setup matplotlib to save plots
-      await pyodideRef.current.runPythonAsync(`
-import sys
-from io import StringIO
-import base64
-
-sys.stdout = StringIO()
-
-# Setup matplotlib if available
-try:
-    import matplotlib
-    import matplotlib.pyplot as plt
-    matplotlib.use('Agg')
-    _plot_data = None
-except ImportError:
-    pass
-      `);
-      
-      // Run user code
-      await pyodideRef.current.runPythonAsync(code);
-      
-      // Check for plots
-      try {
-        const plotCheck = await pyodideRef.current.runPythonAsync(`
-try:
-    import matplotlib.pyplot as plt
-    import io
-    import base64
-    
-    if plt.get_fignums():
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png', dpi=100, bbox_inches='tight')
-        buf.seek(0)
-        img_str = base64.b64encode(buf.read()).decode()
-        plt.close('all')
-        f"data:image/png;base64,{img_str}"
-    else:
-        ""
-except:
-    ""
-        `);
-        
-        if (plotCheck) {
-          setPlotData(plotCheck);
-        }
-      } catch (e) {
-        // No matplotlib or no plots
-      }
-      
-      // Get output
-      const output = await pyodideRef.current.runPythonAsync(`sys.stdout.getvalue()`);
-      
-      if (output) {
-        output.split('\n').forEach((line: string) => addToConsole(line));
-      }
-      addToConsole(">>> Execution completed ✓");
-    } catch (error: any) {
-      addToConsole(`✗ Error: ${error.message}`);
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const runRCode = async (code: string) => {
-    if (isMobile) {
-      addToConsole("✗ Error: R is only available on desktop");
-      setIsRunning(false);
-      return;
-    }
-    
-    // Check library compatibility before running
-    const compatibility = checkLibraryCompatibility(code, 'r', isMobile);
-    if (!compatibility.isCompatible || compatibility.warnings.length > 0) {
-      const message = getCompatibilityMessage(compatibility);
-      addToConsole(message);
-      
-      if (!compatibility.isCompatible) {
-        addToConsole("\n✗ Code cannot run due to incompatible libraries");
-        setIsRunning(false);
-        return;
-      }
-    }
-    
-    // Initialize R if needed
-    if (!webrRef.current) {
-      await initializeR();
-      if (!webrRef.current) {
-        addToConsole("✗ Error: Failed to initialize R");
-        setIsRunning(false);
-        return;
-      }
-    }
-
-    setIsRunning(true);
-    addToConsole(">>> Running R code...");
-    
-    try {
-      const result = await webrRef.current.evalR(code);
-      const output = await result.toJs();
-      
-      if (output) {
-        addToConsole(String(output));
-      }
-      addToConsole(">>> Execution completed ✓");
-    } catch (error: any) {
-      addToConsole(`✗ Error: ${error.message}`);
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
   const handleRunCode = async () => {
     setConsoleOutput([]);
     setPlotData(null);
+    setIsRunning(true);
+
+    // Determine code and language
+    const code = activeFile 
+      ? (files.find(f => f.id === activeFile)?.content || '')
+      : scratchCode;
     
-    // If no active file, run scratch code
-    if (!activeFile) {
-      if (scratchLanguage === 'python') {
-        await runPythonCode(scratchCode);
-      } else if (scratchLanguage === 'r') {
-        await runRCode(scratchCode);
-      }
+    const language = activeFile
+      ? (files.find(f => f.id === activeFile)?.language || 'python')
+      : scratchLanguage;
+
+    // Handle CSV files
+    if (language === 'csv' || language === 'plaintext') {
+      addToConsole("✗ Cannot run CSV or text files. Use the dataset viewer instead.");
+      setIsRunning(false);
       return;
     }
+
+    // Get the runtime
+    const runtime = RuntimeRegistry.get(language);
     
-    // Otherwise run the active file
-    const file = files.find((f) => f.id === activeFile);
-    if (!file) return;
+    if (!runtime) {
+      addToConsole(`✗ Error: No runtime found for ${language}`);
+      setIsRunning(false);
+      return;
+    }
+
+    // Check device compatibility
+    if (runtime.config.availableOn === 'desktop' && isMobile) {
+      addToConsole(`✗ Error: ${runtime.config.displayName} is only available on desktop`);
+      setIsRunning(false);
+      return;
+    }
+
+    // Check library compatibility (if supported)
+    if (runtime.checkCompatibility) {
+      const compat = runtime.checkCompatibility(code, isMobile);
+      if (!compat.compatible || compat.warnings.length > 0) {
+        const compatMessage = getCompatibilityMessage({
+          isCompatible: compat.compatible,
+          warnings: compat.warnings,
+          suggestions: compat.suggestions
+        });
+        addToConsole(compatMessage);
+        
+        if (!compat.compatible) {
+          addToConsole("\n✗ Code cannot run due to incompatible libraries");
+          setIsRunning(false);
+          return;
+        }
+      }
+    }
+
+    // Lazy initialize runtime
+    if (!runtime.isInitialized) {
+      const toastId = toast.loading(`Initializing ${runtime.config.displayName}...`);
+      try {
+        await runtime.initialize(isMobile);
+        setInitializedRuntimes(prev => new Set(prev).add(language));
+        addToConsole(`✓ ${runtime.config.displayName} environment ready!`);
+        toast.success(`${runtime.config.displayName} ready`, { id: toastId });
+      } catch (error: any) {
+        addToConsole(`✗ Error initializing ${runtime.config.displayName}: ${error.message}`);
+        toast.error(`Failed to load ${runtime.config.displayName}`, { id: toastId });
+        setIsRunning(false);
+        return;
+      }
+    }
+
+    // Execute code
+    addToConsole(`>>> Running ${runtime.config.displayName} code...`);
     
-    if (file.language === 'python') {
-      await runPythonCode(file.content);
-    } else if (file.language === 'r') {
-      await runRCode(file.content);
-    } else {
-      addToConsole("✗ Error: Can only run Python (.py) or R (.r, .rmd) files");
+    try {
+      const result = await runtime.execute(code, (output) => {
+        addToConsole(output);
+      });
+
+      // Handle plots
+      if (result.plotUrl) {
+        setPlotData(result.plotUrl);
+      }
+
+      // Handle datasets (for SQL queries)
+      if (result.datasets && result.datasets.length > 0) {
+        result.datasets.forEach(ds => {
+          setDatasets(prev => new Map(prev).set(ds.name, {
+            headers: ds.headers,
+            data: ds.data
+          }));
+        });
+      }
+
+      addToConsole(">>> Execution completed ✓");
+    } catch (error: any) {
+      addToConsole(`✗ Error: ${error.message}`);
+    } finally {
       setIsRunning(false);
     }
   };
+
 
   const handleDownload = () => {
     if (!activeFile) {
@@ -702,6 +676,24 @@ except:
       scratchLanguage={scratchLanguage}
       onScratchLanguageChange={setScratchLanguage}
       onInsertCode={handleInsertCode}
+      onOpenFeatures={() => setFeatureDrawerOpen(true)}
+      onOpenTools={() => setSidePanelOpen(prev => !prev)}
+    />
+  );
+
+  const packageManagerComponent = (
+    <PackageManager
+      installedPackages={installedPackages}
+      onInstallPackage={installPackage}
+      isInstalling={isInstalling}
+    />
+  );
+
+  const labTrainerComponent = (
+    <LabTrainer 
+      open={labTrainerOpen} 
+      onOpenChange={setLabTrainerOpen}
+      onLoadLab={handleLoadLabIntoEditor}
     />
   );
 
@@ -715,7 +707,7 @@ except:
       onCreateFile={handleCreateFile}
       onSaveAll={handleSaveAll}
       installedPackages={installedPackages}
-      onInstallPackage={installPythonPackage}
+      onInstallPackage={installPackage}
       isInstalling={isInstalling}
       onOpenLabTrainer={() => setLabTrainerOpen(true)}
     />
@@ -805,28 +797,42 @@ except:
                 {mlOpsComponent}
               </div>
             }
+            featureDrawer={
+              <FeatureDrawer
+                open={featureDrawerOpen}
+                onOpenChange={setFeatureDrawerOpen}
+                aiAssistant={aiAssistantComponent}
+                packageManager={packageManagerComponent}
+                dataOperations={dataOpsComponent}
+                mlOperations={mlOpsComponent}
+                labTrainer={labTrainerComponent}
+              />
+            }
           />
         ) : (
-          <DesktopLayout
-            toolbar={toolbarComponent}
-            fileExplorer={fileExplorerComponent}
-            editor={editorComponent}
-            console={consoleComponent}
-          />
+          <>
+            <DesktopLayout
+              toolbar={toolbarComponent}
+              fileExplorer={fileExplorerComponent}
+              editor={editorComponent}
+              console={consoleComponent}
+            />
+            <SidePanel
+              open={sidePanelOpen}
+              onOpenChange={setSidePanelOpen}
+              aiAssistant={aiAssistantComponent}
+              packageManager={packageManagerComponent}
+              dataOperations={dataOpsComponent}
+              mlOperations={mlOpsComponent}
+              labTrainer={labTrainerComponent}
+            />
+          </>
         )}
-        
-        {aiAssistantComponent}
       </div>
       
       {plotData && (
         <PlotViewer plotData={plotData} onClose={() => setPlotData(null)} />
       )}
-
-      <LabTrainer 
-        open={labTrainerOpen} 
-        onOpenChange={setLabTrainerOpen}
-        onLoadLab={handleLoadLabIntoEditor}
-      />
     </>
   );
 };

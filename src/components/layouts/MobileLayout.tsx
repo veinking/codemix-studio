@@ -32,6 +32,7 @@ interface MobileLayoutProps {
   onCopyAll: () => void;
   onSaveScratchAsFile: () => void;
   dataOpsComponent?: ReactNode;
+  featureDrawer?: ReactNode;
 }
 
 export const MobileLayout = ({
@@ -48,6 +49,7 @@ export const MobileLayout = ({
   onCopyAll,
   onSaveScratchAsFile,
   dataOpsComponent,
+  featureDrawer,
 }: MobileLayoutProps) => {
   const navigate = useNavigate();
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -243,6 +245,9 @@ export const MobileLayout = ({
           </div>
         </>
       )}
+      
+      {/* Feature Drawer */}
+      {featureDrawer}
     </div>
   );
 };

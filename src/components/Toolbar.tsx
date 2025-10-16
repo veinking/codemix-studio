@@ -17,9 +17,11 @@ interface ToolbarProps {
   onCopyAll: () => void;
   currentFile: string | null;
   isRunning: boolean;
-  scratchLanguage: 'python' | 'r';
-  onScratchLanguageChange: (lang: 'python' | 'r') => void;
+  scratchLanguage: 'python' | 'r' | 'javascript' | 'sql';
+  onScratchLanguageChange: (lang: 'python' | 'r' | 'javascript' | 'sql') => void;
   onInsertCode?: (code: string) => void;
+  onOpenFeatures?: () => void;
+  onOpenTools?: () => void;
 }
 
 export const Toolbar = ({ 
@@ -31,7 +33,9 @@ export const Toolbar = ({
   isRunning,
   scratchLanguage,
   onScratchLanguageChange,
-  onInsertCode = () => {}
+  onInsertCode = () => {},
+  onOpenFeatures,
+  onOpenTools
 }: ToolbarProps) => {
   return (
     <div className="flex items-center justify-between w-full">
@@ -44,14 +48,32 @@ export const Toolbar = ({
             <SelectContent>
               <SelectItem value="python">Python</SelectItem>
               <SelectItem value="r">R</SelectItem>
+              <SelectItem value="javascript">JavaScript</SelectItem>
+              <SelectItem value="sql">SQL</SelectItem>
             </SelectContent>
           </Select>
         )}
       </div>
       
-      <div className="flex items-center gap-2">
-        <DataOperations onInsertCode={onInsertCode} />
-        <MLOperations onInsertCode={onInsertCode} />
+      <div className="flex items-center gap-2">{onOpenTools && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenTools}
+          >
+            Tools ⚙️
+          </Button>
+        )}
+        
+        {onOpenFeatures && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenFeatures}
+          >
+            Features ✨
+          </Button>
+        )}
         
         <Button
           variant="default"
