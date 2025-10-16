@@ -9,6 +9,7 @@ import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { DesktopLayout } from "@/components/layouts/DesktopLayout";
 import { AIAssistant } from "@/components/AIAssistant";
 import { LabTrainer } from "@/components/LabTrainer";
+import { DataOperations } from "@/components/DataOperations";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -456,6 +457,45 @@ except:
     setLabTrainerOpen(false);
   };
 
+  const handleCSVUpload = async (file: File) => {
+    const content = await file.text();
+    const language = getLanguageFromFileName(file.name);
+    
+    const fileItem: FileItem = {
+      id: `${Date.now()}`,
+      name: file.name,
+      type: 'file',
+      content,
+      language,
+    };
+    
+    // Parse and store as dataset
+    parseCSV(content, file.name);
+    addToConsole(`✓ Dataset loaded: ${file.name}`);
+    
+    setFiles((prev) => [...prev, fileItem]);
+    setActiveFile(fileItem.id);
+    
+    if (dbReady) {
+      await saveFile(fileItem);
+    }
+    
+    toast.success(`Loaded ${file.name}`);
+  };
+
+  const handleInsertCode = (code: string) => {
+    if (activeFile) {
+      const file = files.find((f) => f.id === activeFile);
+      if (file) {
+        const updatedContent = file.content + '\n\n' + code;
+        handleCodeChange(updatedContent);
+      }
+    } else {
+      // Insert into scratch pad
+      setScratchCode((prev) => prev + '\n\n' + code);
+    }
+  };
+
   const currentFile = files.find((f) => f.id === activeFile);
   const currentDataset = showDataset ? datasets.get(showDataset) : null;
 
@@ -532,6 +572,13 @@ except:
     />
   );
 
+  const dataOpsComponent = (
+    <DataOperations 
+      onInsertCode={handleInsertCode}
+      datasetName={currentFile ? files.find(f => f.id === activeFile)?.name : undefined}
+    />
+  );
+
   return (
     <>
       <div className="flex flex-col h-screen">
@@ -546,6 +593,8 @@ except:
             currentFile={activeFile}
             onDownload={handleDownload}
             onClearConsole={() => setConsoleOutput([])}
+            onCSVUpload={handleCSVUpload}
+            dataOpsComponent={dataOpsComponent}
           />
         ) : (
           <DesktopLayout

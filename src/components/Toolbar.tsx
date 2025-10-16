@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save } from "lucide-react";
+import { Play, Download, Code2, Save, Database } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -31,7 +31,7 @@ export const Toolbar = ({
     <div className="bg-toolbar border-b border-border p-2 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <Code2 className="w-5 h-5 text-primary" />
-        <h1 className="text-lg font-bold text-foreground">PyR IDE</h1>
+        <h1 className="text-lg font-bold text-foreground">OpenIDE</h1>
         
         {!currentFile && (
           <>
