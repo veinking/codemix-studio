@@ -40,10 +40,27 @@ const Index = () => {
   const [selectedCode, setSelectedCode] = useState<string>("");
   const [labTrainerOpen, setLabTrainerOpen] = useState(false);
   
+  // Scratch pad state (not saved to files, only sessionStorage)
+  const [scratchCode, setScratchCode] = useState<string>(() => {
+    return sessionStorage.getItem('scratchCode') || '';
+  });
+  const [scratchLanguage, setScratchLanguage] = useState<'python' | 'r'>(() => {
+    return (sessionStorage.getItem('scratchLanguage') as 'python' | 'r') || 'python';
+  });
+  
   const pyodideRef = useRef<any>(null);
   const webrRef = useRef<any>(null);
   const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
   const { isMobile, deviceType } = useDeviceType();
+
+  // Persist scratch to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('scratchCode', scratchCode);
+  }, [scratchCode]);
+
+  useEffect(() => {
+    sessionStorage.setItem('scratchLanguage', scratchLanguage);
+  }, [scratchLanguage]);
 
   // Load files from IndexedDB on mount
   useEffect(() => {
@@ -235,8 +252,15 @@ const Index = () => {
   };
 
   const handleCodeChange = async (value: string | undefined) => {
-    if (!activeFile || !value) return;
+    if (!value) return;
     
+    // If no file is active, update scratch pad
+    if (!activeFile) {
+      setScratchCode(value);
+      return;
+    }
+    
+    // Otherwise update the active file
     setFiles((prev) =>
       prev.map((f) => {
         if (f.id === activeFile) {
@@ -373,13 +397,22 @@ except:
   };
 
   const handleRunCode = async () => {
-    if (!activeFile) return;
-    
-    const file = files.find((f) => f.id === activeFile);
-    if (!file) return;
-    
     setConsoleOutput([]);
     setPlotData(null);
+    
+    // If no active file, run scratch code
+    if (!activeFile) {
+      if (scratchLanguage === 'python') {
+        await runPythonCode(scratchCode);
+      } else if (scratchLanguage === 'r') {
+        await runRCode(scratchCode);
+      }
+      return;
+    }
+    
+    // Otherwise run the active file
+    const file = files.find((f) => f.id === activeFile);
+    if (!file) return;
     
     if (file.language === 'python') {
       await runPythonCode(file.content);
@@ -392,13 +425,30 @@ except:
   };
 
   const handleDownload = () => {
-    if (!activeFile) return;
+    if (!activeFile) {
+      // Download scratch content
+      const ext = scratchLanguage === 'python' ? 'py' : 'r';
+      const blob = new Blob([scratchCode], { type: "text/plain;charset=utf-8" });
+      saveAs(blob, `scratch.${ext}`);
+      toast.success(`Downloaded scratch.${ext}`);
+      return;
+    }
+    
     const file = files.find((f) => f.id === activeFile);
     if (!file) return;
     
     const blob = new Blob([file.content], { type: "text/plain;charset=utf-8" });
     saveAs(blob, file.name);
     toast.success(`Downloaded ${file.name}`);
+  };
+
+  const handleSaveScratchAsFile = async () => {
+    const ext = scratchLanguage === 'python' ? 'py' : 'r';
+    const fileName = prompt('Enter file name:', `untitled.${ext}`);
+    if (!fileName) return;
+    
+    await handleCreateFile(fileName, scratchCode);
+    toast.success(`Saved as ${fileName}`);
   };
 
   const handleLoadLabIntoEditor = (content: string, title: string) => {
@@ -414,8 +464,11 @@ except:
     <Toolbar
       onRun={handleRunCode}
       onDownload={handleDownload}
+      onSaveScratchAsFile={handleSaveScratchAsFile}
       currentFile={activeFile}
       isRunning={isRunning}
+      scratchLanguage={scratchLanguage}
+      onScratchLanguageChange={setScratchLanguage}
     />
   );
 
@@ -449,19 +502,11 @@ except:
       />
     )
   ) : (
-    <div className="h-full flex items-center justify-center">
-      <div className="text-center p-4">
-        <h2 className="text-2xl font-bold text-foreground mb-2">
-          Welcome to OpenIDE
-        </h2>
-        <p className="text-muted-foreground mb-2">
-          {isMobile ? 'Tap' : 'Click'} "New File" or upload a Python (.py), R (.r, .rmd), or CSV file
-        </p>
-        <p className="text-xs text-muted-foreground">
-          Files are automatically saved to your browser • Device: {deviceType}
-        </p>
-      </div>
-    </div>
+    <CodeEditor
+      value={scratchCode}
+      language={scratchLanguage}
+      onChange={handleCodeChange}
+    />
   );
 
   const consoleComponent = (
@@ -478,7 +523,14 @@ except:
       onCodeUpdate={handleCodeChange}
       selectedCode={selectedCode}
     />
-  ) : null;
+  ) : (
+    <AIAssistant
+      code={scratchCode}
+      language={scratchLanguage}
+      onCodeUpdate={(value) => handleCodeChange(value)}
+      selectedCode={selectedCode}
+    />
+  );
 
   return (
     <>
