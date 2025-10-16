@@ -11,9 +11,19 @@ self.onmessage = async (evt: MessageEvent<Msg>) => {
 
   try {
     if (msg.type === 'init') {
-      // Dynamically import the npm module for the same version pinned in package.json
-      const mod = await import('pyodide');
-      const loadPyodide = (mod as any).loadPyodide;
+      // Load Pyodide from CDN to avoid bundling issues with npm package
+      const PYODIDE_VERSION = '0.28.3';
+      const cdnUrl = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/pyodide.js`;
+      
+      // Import the CDN loader script using worker importScripts API
+      (self as any).importScripts(cdnUrl);
+      
+      // Access the global loadPyodide function
+      const loadPyodide = (self as any).loadPyodide;
+      
+      if (!loadPyodide) {
+        throw new Error('Failed to load Pyodide from CDN');
+      }
 
       const cfg: any = {
         indexURL: msg.indexURL,
