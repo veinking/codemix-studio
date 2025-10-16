@@ -13,16 +13,15 @@ self.onmessage = async (evt: MessageEvent) => {
     if (msg.type === 'init') {
       const { indexURL } = msg;
 
-      let loadPyodide: any;
-      try {
-        // Try NPM import first
-        const mod = await import('pyodide');
-        loadPyodide = (mod as any).loadPyodide;
-      } catch {
-        // Fallback to CDN script if import fails
-        importScripts(`${indexURL}pyodide.js`);
-        // @ts-ignore
-        loadPyodide = self.loadPyodide;
+      // Load Pyodide from CDN using importScripts (classic worker only)
+      // Note: We use CDN instead of npm import to avoid code-splitting issues with IIFE format
+      importScripts(`${indexURL}pyodide.js`);
+      
+      // @ts-ignore - loadPyodide is injected globally by the script
+      const loadPyodide = self.loadPyodide;
+      
+      if (!loadPyodide) {
+        throw new Error('Failed to load Pyodide - loadPyodide not found on global scope');
       }
 
       // --- Safari / iOS detection ---
