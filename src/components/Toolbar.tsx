@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Database } from "lucide-react";
+import { Play, Download, Code2, Save, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -14,6 +14,7 @@ interface ToolbarProps {
   onRun: () => void;
   onDownload: () => void;
   onSaveScratchAsFile: () => void;
+  onCopyAll: () => void;
   currentFile: string | null;
   isRunning: boolean;
   scratchLanguage: 'python' | 'r';
@@ -25,6 +26,7 @@ export const Toolbar = ({
   onRun, 
   onDownload, 
   onSaveScratchAsFile,
+  onCopyAll,
   currentFile, 
   isRunning,
   scratchLanguage,
@@ -66,6 +68,15 @@ export const Toolbar = ({
         >
           <Play className="w-4 h-4 mr-2" />
           {isRunning ? 'Running...' : 'Run'}
+        </Button>
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onCopyAll}
+        >
+          <Copy className="w-4 h-4 mr-2" />
+          Copy All
         </Button>
         
         {!currentFile && (

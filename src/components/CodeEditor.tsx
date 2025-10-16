@@ -101,6 +101,12 @@ export const CodeEditor = ({ value, language, onChange }: CodeEditorProps) => {
           showKeywords: true,
           showSnippets: true,
         },
+        // Enhanced selection for better touch/mouse interaction
+        selectOnLineNumbers: true,
+        selectionHighlight: true,
+        occurrencesHighlight: 'multiFile',
+        multiCursorModifier: 'ctrlCmd',
+        wordSeparators: '`~!@#$%^&*()-=+[{]}\\|;:\'",.<>/?',
       }}
     />
   );

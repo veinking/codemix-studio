@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Play, Menu, FileUp, X, Maximize2, Minimize2 } from "lucide-react";
+import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -28,6 +28,8 @@ interface MobileLayoutProps {
   onDownload: () => void;
   onClearConsole: () => void;
   onCSVUpload: (file: File) => void;
+  onCopyAll: () => void;
+  onSaveScratchAsFile: () => void;
   dataOpsComponent?: ReactNode;
 }
 
@@ -42,10 +44,13 @@ export const MobileLayout = ({
   onDownload,
   onClearConsole,
   onCSVUpload,
+  onCopyAll,
+  onSaveScratchAsFile,
   dataOpsComponent,
 }: MobileLayoutProps) => {
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
 
   const handleCSVInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -94,14 +99,70 @@ export const MobileLayout = ({
               </SheetContent>
             </Sheet>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 touch-manipulation"
-              onClick={() => setIsFullScreen(!isFullScreen)}
-            >
-              {isFullScreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
-            </Button>
+            <Drawer open={actionsOpen} onOpenChange={setActionsOpen}>
+              <DrawerTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-9 w-9 touch-manipulation">
+                  <MoreVertical className="w-5 h-5" />
+                </Button>
+              </DrawerTrigger>
+              <DrawerContent>
+                <DrawerHeader className="border-b border-border">
+                  <DrawerTitle>Actions</DrawerTitle>
+                  <DrawerDescription>Quick file operations</DrawerDescription>
+                </DrawerHeader>
+                <div className="p-4 space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12 touch-manipulation"
+                    onClick={() => {
+                      onCopyAll();
+                      setActionsOpen(false);
+                    }}
+                  >
+                    <Copy className="w-5 h-5 mr-3" />
+                    Copy All Code
+                  </Button>
+                  
+                  {!currentFile && (
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start h-12 touch-manipulation"
+                      onClick={() => {
+                        onSaveScratchAsFile();
+                        setActionsOpen(false);
+                      }}
+                    >
+                      <Save className="w-5 h-5 mr-3" />
+                      Save As File
+                    </Button>
+                  )}
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12 touch-manipulation"
+                    onClick={() => {
+                      onDownload();
+                      setActionsOpen(false);
+                    }}
+                  >
+                    <Download className="w-5 h-5 mr-3" />
+                    Download
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-12 touch-manipulation"
+                    onClick={() => {
+                      setIsFullScreen(!isFullScreen);
+                      setActionsOpen(false);
+                    }}
+                  >
+                    {isFullScreen ? <Minimize2 className="w-5 h-5 mr-3" /> : <Maximize2 className="w-5 h-5 mr-3" />}
+                    {isFullScreen ? 'Exit Full Screen' : 'Full Screen'}
+                  </Button>
+                </div>
+              </DrawerContent>
+            </Drawer>
           </div>
         </div>
       )}

@@ -453,6 +453,19 @@ except:
     toast.success(`Saved as ${fileName}`);
   };
 
+  const handleCopyAll = () => {
+    const codeToCopy = activeFile 
+      ? (files.find((f) => f.id === activeFile)?.content || '')
+      : scratchCode;
+    
+    navigator.clipboard.writeText(codeToCopy).then(() => {
+      toast.success('Code copied to clipboard');
+    }).catch((err) => {
+      console.error('Failed to copy:', err);
+      toast.error('Failed to copy code');
+    });
+  };
+
   const handleLoadLabIntoEditor = (content: string, title: string) => {
     handleCreateFile(title, content);
     setLabTrainerOpen(false);
@@ -506,6 +519,7 @@ except:
       onRun={handleRunCode}
       onDownload={handleDownload}
       onSaveScratchAsFile={handleSaveScratchAsFile}
+      onCopyAll={handleCopyAll}
       currentFile={activeFile}
       isRunning={isRunning}
       scratchLanguage={scratchLanguage}
@@ -602,6 +616,8 @@ except:
             onDownload={handleDownload}
             onClearConsole={() => setConsoleOutput([])}
             onCSVUpload={handleCSVUpload}
+            onCopyAll={handleCopyAll}
+            onSaveScratchAsFile={handleSaveScratchAsFile}
             dataOpsComponent={
               <div className="flex gap-1">
                 {dataOpsComponent}
