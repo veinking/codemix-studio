@@ -16,6 +16,7 @@ import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
+import { checkLibraryCompatibility, getCompatibilityMessage } from "@/utils/libraryCompatibility";
 
 interface FileItem {
   id: string;
@@ -419,6 +420,19 @@ Jack,30,Miami,86`,
   };
 
   const runPythonCode = async (code: string) => {
+    // Check library compatibility before running
+    const compatibility = checkLibraryCompatibility(code, 'python', isMobile);
+    if (!compatibility.isCompatible || compatibility.warnings.length > 0) {
+      const message = getCompatibilityMessage(compatibility);
+      addToConsole(message);
+      
+      if (!compatibility.isCompatible) {
+        addToConsole("\n✗ Code cannot run due to incompatible libraries");
+        setIsRunning(false);
+        return;
+      }
+    }
+    
     // Initialize Python if needed
     if (!pyodideRef.current) {
       await initializePython();
@@ -500,6 +514,19 @@ except:
       addToConsole("✗ Error: R is only available on desktop");
       setIsRunning(false);
       return;
+    }
+    
+    // Check library compatibility before running
+    const compatibility = checkLibraryCompatibility(code, 'r', isMobile);
+    if (!compatibility.isCompatible || compatibility.warnings.length > 0) {
+      const message = getCompatibilityMessage(compatibility);
+      addToConsole(message);
+      
+      if (!compatibility.isCompatible) {
+        addToConsole("\n✗ Code cannot run due to incompatible libraries");
+        setIsRunning(false);
+        return;
+      }
     }
     
     // Initialize R if needed
@@ -728,6 +755,7 @@ except:
       language={currentFile.language}
       onCodeUpdate={handleCodeChange}
       selectedCode={selectedCode}
+      isMobile={isMobile}
     />
   ) : (
     <AIAssistant
@@ -735,6 +763,7 @@ except:
       language={scratchLanguage}
       onCodeUpdate={(value) => handleCodeChange(value)}
       selectedCode={selectedCode}
+      isMobile={isMobile}
     />
   );
 

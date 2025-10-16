@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Wand2, CheckCircle, Lightbulb, X } from "lucide-react";
+import { Sparkles, Wand2, CheckCircle, Lightbulb, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -11,9 +11,10 @@ interface AIAssistantProps {
   language: string;
   onCodeUpdate: (code: string) => void;
   selectedCode?: string;
+  isMobile?: boolean;
 }
 
-export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode }: AIAssistantProps) => {
+export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobile = false }: AIAssistantProps) => {
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<string | null>(null);
@@ -35,7 +36,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode }: AIAs
     
     try {
       const { data, error } = await supabase.functions.invoke("ai-code-assistant", {
-        body: { action: "scan", code, language },
+        body: { action: "scan", code, language, isMobile },
       });
 
       if (error) throw error;
@@ -52,7 +53,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode }: AIAs
     }
   };
 
-  const handleAIAction = async (action: "autofill" | "autocomplete" | "check") => {
+  const handleAIAction = async (action: "autofill" | "autocomplete" | "check" | "optimize") => {
     if (action === "autofill" && !prompt.trim()) {
       toast.error("Please enter a goal or description");
       return;
@@ -74,6 +75,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode }: AIAs
           prompt: prompt.trim(),
           language,
           selectedCode,
+          isMobile,
         },
       });
 
@@ -86,10 +88,14 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode }: AIAs
 
       const result = data?.result;
 
-      if (action === "autofill" || action === "autocomplete") {
-        // Update the editor with the generated/completed code
+      if (action === "autofill" || action === "autocomplete" || action === "optimize") {
+        // Update the editor with the generated/completed/optimized code
         onCodeUpdate(result);
-        toast.success(action === "autofill" ? "Code generated!" : "Code completed!");
+        toast.success(
+          action === "autofill" ? "Code generated!" : 
+          action === "autocomplete" ? "Code completed!" : 
+          "Code optimized with best practices!"
+        );
         setPrompt("");
       } else {
         // Show suggestions for check action
@@ -168,6 +174,17 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode }: AIAs
         >
           <Lightbulb className="h-4 w-4" />
           Scan Now
+        </Button>
+
+        <Button
+          size="sm"
+          variant="default"
+          onClick={() => handleAIAction("optimize")}
+          disabled={isLoading || !code}
+          className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80"
+        >
+          <Zap className="h-4 w-4" />
+          Optimize
         </Button>
       </div>
 

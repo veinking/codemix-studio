@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, code, prompt, language, selectedCode } = await req.json();
+    const { action, code, prompt, language, selectedCode, isMobile } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -55,6 +55,22 @@ Return ONLY the completed code, no explanations or markdown formatting.`;
 4. Improvement suggestions
 Be specific and actionable.`;
         userPrompt = `Check this ${language} code:\n\n${selectedCode || code}`;
+        break;
+
+      case "optimize":
+        systemPrompt = `You are an expert ${language} developer specializing in code optimization and best practices.
+Your task:
+1. Optimize the code for performance, readability, and maintainability
+2. Apply ${language} best practices and idiomatic patterns
+3. Add clear, concise comments explaining:
+   - What each major section/function does
+   - Why specific optimizations were made
+   - Any important logic or edge cases
+4. ${language === 'python' ? 'IMPORTANT: Only use libraries that work in Pyodide (browser Python). NEVER use: tkinter, PyQt, turtle, threading, multiprocessing, sqlite3, or any GUI libraries. For data viz use matplotlib/plotly, for data use pandas/numpy.' : ''}
+5. ${isMobile ? 'CRITICAL: This code will run on a MOBILE device. Optimize for limited memory and processing power. Avoid heavy computations and large data processing.' : ''}
+
+Return ONLY the optimized code with inline comments. No explanations outside the code.`;
+        userPrompt = `Optimize this ${language} code with best practices and explanatory comments:\n\n${code}`;
         break;
 
       default:
