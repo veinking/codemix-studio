@@ -11,6 +11,7 @@ import { AIAssistant } from "@/components/AIAssistant";
 import { LabTrainer } from "@/components/LabTrainer";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
+import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -41,6 +42,11 @@ const IDE = () => {
   const [isInstalling, setIsInstalling] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string>("");
   const [labTrainerOpen, setLabTrainerOpen] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [runtimesInitialized, setRuntimesInitialized] = useState({
+    python: false,
+    r: false,
+  });
   
   // Scratch pad state (not saved to files, only sessionStorage)
   const [scratchCode, setScratchCode] = useState<string>(() => {
@@ -52,6 +58,7 @@ const IDE = () => {
   
   const pyodideRef = useRef<any>(null);
   const webrRef = useRef<any>(null);
+  const initializingRef = useRef({ python: false, r: false });
   const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
   const { isMobile, deviceType } = useDeviceType();
 
@@ -63,6 +70,73 @@ const IDE = () => {
   useEffect(() => {
     sessionStorage.setItem('scratchLanguage', scratchLanguage);
   }, [scratchLanguage]);
+
+  // First-run experience
+  useEffect(() => {
+    const isFirstVisit = !localStorage.getItem('openide_visited');
+    if (isFirstVisit) {
+      setShowWelcome(true);
+      localStorage.setItem('openide_visited', 'true');
+      
+      // Create demo files
+      const demoFiles: FileItem[] = [
+        {
+          id: 'demo-py',
+          name: 'demo.py',
+          type: 'file',
+          language: 'python',
+          content: `# Welcome to OpenIDE!
+# This is a simple Python demo
+
+import matplotlib.pyplot as plt
+
+# Simple calculation
+numbers = [1, 2, 3, 4, 5]
+squares = [n ** 2 for n in numbers]
+
+print("Numbers:", numbers)
+print("Squares:", squares)
+
+# Create a plot
+plt.figure(figsize=(8, 5))
+plt.plot(numbers, squares, marker='o', color='#a855f7')
+plt.title('Squares of Numbers')
+plt.xlabel('Number')
+plt.ylabel('Square')
+plt.grid(True, alpha=0.3)
+plt.show()
+
+print("✓ Demo complete! Try editing this code or create your own files.")`,
+        },
+        {
+          id: 'demo-csv',
+          name: 'sample.csv',
+          type: 'file',
+          language: 'csv',
+          content: `Name,Age,City,Score
+Alice,28,New York,95
+Bob,34,San Francisco,87
+Charlie,23,Los Angeles,92
+Diana,31,Chicago,88
+Eve,27,Boston,90
+Frank,29,Seattle,85
+Grace,25,Austin,93
+Henry,33,Denver,89
+Ivy,26,Portland,91
+Jack,30,Miami,86`,
+        },
+      ];
+      
+      setFiles(demoFiles);
+      setActiveFile('demo-py');
+      
+      // Parse the demo CSV
+      const csvFile = demoFiles.find(f => f.name === 'sample.csv');
+      if (csvFile) {
+        parseCSV(csvFile.content, csvFile.name);
+      }
+    }
+  }, []);
 
   // Load files from IndexedDB on mount
   useEffect(() => {
@@ -82,47 +156,6 @@ const IDE = () => {
     
     loadStoredFiles();
   }, [dbReady]);
-
-  // Initialize Pyodide with iOS memory optimization
-  useEffect(() => {
-    const loadPyodide = async () => {
-      try {
-        // iOS memory optimization: single-threaded mode, reduced stdlib
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        // @ts-ignore - Pyodide is loaded via CDN
-        const pyodide = await window.loadPyodide({
-          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
-          fullStdLib: !isIOS, // Reduce memory footprint on iOS
-        });
-        pyodideRef.current = pyodide;
-        addToConsole("✓ Python environment ready!");
-      } catch (error) {
-        addToConsole("✗ Error loading Python environment: " + error);
-      }
-    };
-    loadPyodide();
-  }, []);
-
-  // Initialize WebR
-  useEffect(() => {
-    const loadWebR = async () => {
-      try {
-        // @ts-ignore - WebR is loaded via CDN
-        const { WebR } = await import('https://webr.r-wasm.org/latest/webr.mjs');
-        const webR = new WebR();
-        await webR.init();
-        webrRef.current = webR;
-        addToConsole("✓ R environment ready!");
-      } catch (error) {
-        addToConsole("✗ Error loading R environment: " + error);
-      }
-    };
-    
-    // Only load WebR on desktop to save mobile resources
-    if (!isMobile) {
-      loadWebR();
-    }
-  }, [isMobile]);
 
   const addToConsole = (message: string) => {
     setConsoleOutput((prev) => [...prev, message]);
@@ -225,6 +258,9 @@ const IDE = () => {
     );
     
     setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
+    
+    // Log dataset stats
+    addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
   };
 
   const handleFileSelect = (fileId: string) => {
@@ -327,10 +363,69 @@ const IDE = () => {
     }
   };
 
-  const runPythonCode = async (code: string) => {
-    if (!pyodideRef.current) {
-      addToConsole("✗ Error: Python environment not ready");
+  // Lazy initialize Python runtime
+  const initializePython = async () => {
+    if (pyodideRef.current || initializingRef.current.python) {
       return;
+    }
+    
+    initializingRef.current.python = true;
+    const toastId = toast.loading("Initializing Python environment...");
+    
+    try {
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      // @ts-ignore - Pyodide is loaded via CDN
+      const pyodide = await window.loadPyodide({
+        indexURL: "https://cdn.jsdelivr.net/pyodide/v0.24.1/full/",
+        fullStdLib: !isIOS,
+      });
+      pyodideRef.current = pyodide;
+      await pyodide.loadPackage("micropip");
+      setRuntimesInitialized(prev => ({ ...prev, python: true }));
+      addToConsole("✓ Python environment ready!");
+      toast.success("Python ready", { id: toastId });
+    } catch (error) {
+      addToConsole("✗ Error loading Python environment: " + error);
+      toast.error("Failed to load Python", { id: toastId });
+    } finally {
+      initializingRef.current.python = false;
+    }
+  };
+
+  // Lazy initialize R runtime
+  const initializeR = async () => {
+    if (webrRef.current || initializingRef.current.r || isMobile) {
+      return;
+    }
+    
+    initializingRef.current.r = true;
+    const toastId = toast.loading("Initializing R environment...");
+    
+    try {
+      // @ts-ignore - WebR is loaded via CDN
+      const { WebR } = await import('https://webr.r-wasm.org/latest/webr.mjs');
+      const webR = new WebR();
+      await webR.init();
+      webrRef.current = webR;
+      setRuntimesInitialized(prev => ({ ...prev, r: true }));
+      addToConsole("✓ R environment ready!");
+      toast.success("R ready", { id: toastId });
+    } catch (error) {
+      addToConsole("✗ Error loading R environment: " + error);
+      toast.error("Failed to load R", { id: toastId });
+    } finally {
+      initializingRef.current.r = false;
+    }
+  };
+
+  const runPythonCode = async (code: string) => {
+    // Initialize Python if needed
+    if (!pyodideRef.current) {
+      await initializePython();
+      if (!pyodideRef.current) {
+        addToConsole("✗ Error: Failed to initialize Python");
+        return;
+      }
     }
 
     setIsRunning(true);
@@ -401,10 +496,20 @@ except:
   };
 
   const runRCode = async (code: string) => {
-    if (!webrRef.current) {
-      addToConsole("✗ Error: R environment not ready (Desktop only)");
+    if (isMobile) {
+      addToConsole("✗ Error: R is only available on desktop");
       setIsRunning(false);
       return;
+    }
+    
+    // Initialize R if needed
+    if (!webrRef.current) {
+      await initializeR();
+      if (!webrRef.current) {
+        addToConsole("✗ Error: Failed to initialize R");
+        setIsRunning(false);
+        return;
+      }
     }
 
     setIsRunning(true);
@@ -648,6 +753,8 @@ except:
 
   return (
     <>
+      {showWelcome && <WelcomeOverlay onDismiss={() => setShowWelcome(false)} />}
+      
       <div className="flex flex-col h-screen">
         {isMobile ? (
           <MobileLayout
