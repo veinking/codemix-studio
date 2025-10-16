@@ -20,8 +20,12 @@ export class PythonRuntime implements RuntimeExecutor {
     try {
       console.log('Loading Pyodide...');
       const { loadPyodide } = await import('pyodide');
-      
+
+      const PYODIDE_VERSION = '0.28.3';
+      const indexURL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
+
       const config: any = {
+        indexURL,
         stdout: (text: string) => console.log(text),
         stderr: (text: string) => console.error(text),
       };
@@ -30,7 +34,7 @@ export class PythonRuntime implements RuntimeExecutor {
         config.args = ['--no-threading'];
       }
 
-      console.log('Initializing Pyodide runtime...');
+      console.log('Initializing Pyodide runtime with indexURL:', indexURL);
       this.pyodide = await loadPyodide(config);
       
       console.log('Loading Python packages...');
