@@ -19,7 +19,22 @@ export class PythonRuntime implements RuntimeExecutor {
 
     try {
       console.log('Loading Pyodide...');
-      const { loadPyodide } = await import('pyodide');
+      let loadFn: any | null = null;
+      let importErr: any = null;
+      try {
+        // Prefer npm module (bundled) on modern browsers
+        const mod = await import('pyodide');
+        loadFn = (mod as any).loadPyodide;
+        console.log('[Pyodide] Using npm module loader');
+      } catch (e) {
+        importErr = e;
+        console.warn('[Pyodide] ESM import failed, falling back to global loader:', e);
+        const globalLoader = (globalThis as any).loadPyodide;
+        if (typeof globalLoader === 'function') {
+          loadFn = globalLoader;
+          console.log('[Pyodide] Using global window.loadPyodide');
+        }
+      }
 
       const PYODIDE_VERSION = '0.28.3';
       const indexURL = `https://cdn.jsdelivr.net/pyodide/v${PYODIDE_VERSION}/full/`;
@@ -34,9 +49,23 @@ export class PythonRuntime implements RuntimeExecutor {
         config.args = ['--no-threading'];
       }
 
+      if (!loadFn) {
+        console.error('[Pyodide] No loader available. Did the script tag fail to load?');
+        throw new Error(`Unable to load Pyodide. ESM error: ${importErr?.message || importErr}`);
+      }
+
       console.log('Initializing Pyodide runtime with indexURL:', indexURL);
-      this.pyodide = await loadPyodide(config);
-      
+      try {
+        this.pyodide = await loadFn(config);
+      } catch (initErr: any) {
+        console.error('[Pyodide] Initial load failed:', initErr);
+        // Retry once with a fresh cache-busting parameter
+        const cacheBusted = `${indexURL}?v=${Date.now()}`;
+        config.indexURL = cacheBusted;
+        console.log('Retrying Pyodide initialization with cache-busted indexURL:', cacheBusted);
+        this.pyodide = await loadFn(config);
+      }
+
       console.log('Loading Python packages...');
       await this.pyodide.loadPackage(['micropip', 'numpy', 'pandas']);
       
