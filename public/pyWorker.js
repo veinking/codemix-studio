@@ -1,32 +1,26 @@
-// Pyodide Web Worker - Classic worker loaded as external script
-// This file is NOT bundled by Vite to avoid code-splitting issues
+// pyWorker.js — fully Safari-safe Pyodide worker
 
-let pyodide = null;
+// No top-level await allowed in classic workers
+self.onmessage = async (e) => {
+  const msg = e.data;
 
-self.onmessage = async (evt) => {
-  const msg = evt.data;
+  if (msg.type === 'init') {
+    const { indexURL } = msg;
 
-  try {
-    if (msg.type === 'init') {
-      const { indexURL } = msg;
-
-      // Load Pyodide from CDN using importScripts (classic worker only)
-      self.importScripts(indexURL + 'pyodide.js');
-      
+    try {
+      // Load Pyodide from CDN (safe for classic worker)
+      importScripts(`${indexURL}pyodide.js`);
+      // @ts-ignore
       const loadPyodide = self.loadPyodide;
-      
-      if (!loadPyodide) {
-        throw new Error('Failed to load Pyodide - loadPyodide not found on global scope');
-      }
 
-      // Safari / iOS detection
+      // Safari detection
       const ua = navigator.userAgent || '';
       const isIOS = /iPad|iPhone|iPod/.test(ua);
       const isSafari = /^((?!chrome|android).)*safari/i.test(ua);
       const disableThreads = isIOS || isSafari;
 
       const cfg = {
-        indexURL: indexURL,
+        indexURL,
         stdout: (t) => self.postMessage({ type: 'stdout', text: t }),
         stderr: (t) => self.postMessage({ type: 'stderr', text: t }),
       };
@@ -37,36 +31,43 @@ self.onmessage = async (evt) => {
         cfg.disableWasmThreads = true;
       }
 
-      try {
-        pyodide = await loadPyodide(cfg);
-        await pyodide.loadPackage(['micropip']);
-        self.postMessage({ type: 'ready' });
-      } catch (err) {
-        self.postMessage({ type: 'error', error: 'Init failed: ' + err.message });
-      }
-      return;
-    }
+      // Initialize Pyodide
+      // @ts-ignore
+      self.pyodide = await loadPyodide(cfg);
 
-    if (!pyodide) {
-      throw new Error('Pyodide not initialized');
-    }
+      // Preload micropip for package installs
+      // @ts-ignore
+      await self.pyodide.loadPackage(['micropip']);
 
-    if (msg.type === 'run') {
-      const result = await pyodide.runPythonAsync(msg.code);
+      self.postMessage({ type: 'ready' });
+    } catch (err) {
+      self.postMessage({
+        type: 'error',
+        error: 'Init failed: ' + (err.message || err),
+      });
+    }
+  }
+
+  if (msg.type === 'run' && self.pyodide) {
+    try {
+      // @ts-ignore
+      const result = await self.pyodide.runPythonAsync(msg.code);
       self.postMessage({ type: 'result', result });
-      return;
+    } catch (err) {
+      self.postMessage({ type: 'error', error: String(err) });
     }
+  }
 
-    if (msg.type === 'install') {
-      await pyodide.runPythonAsync(`
+  if (msg.type === 'install' && self.pyodide) {
+    try {
+      // @ts-ignore
+      await self.pyodide.runPythonAsync(`
 import micropip
 await micropip.install("${msg.name}")
 `);
       self.postMessage({ type: 'installed', name: msg.name });
-      return;
+    } catch (err) {
+      self.postMessage({ type: 'error', error: String(err) });
     }
-  } catch (err) {
-    console.error('[PyWorker] Error:', err);
-    self.postMessage({ type: 'error', error: String(err?.message || err) });
   }
 };
