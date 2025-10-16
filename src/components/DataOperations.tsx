@@ -10,10 +10,12 @@ import {
 } from "@/components/ui/sheet";
 import { Database, ArrowUpDown, Filter, BarChart3, Table2, Copy, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { R_DATA_OPERATIONS } from "@/utils/DataOperationsR";
 
 interface DataOperationsProps {
   onInsertCode: (code: string) => void;
   datasetName?: string;
+  currentLanguage?: 'python' | 'r' | 'javascript' | 'sql';
 }
 
 const DATA_OPERATIONS = [
@@ -103,7 +105,8 @@ const DATA_OPERATIONS = [
   }
 ];
 
-export const DataOperations = ({ onInsertCode, datasetName }: DataOperationsProps) => {
+export const DataOperations = ({ onInsertCode, datasetName, currentLanguage = 'python' }: DataOperationsProps) => {
+  const operations = currentLanguage === 'r' ? R_DATA_OPERATIONS : DATA_OPERATIONS;
   const handleInsert = (code: string, name: string) => {
     onInsertCode(code);
     toast.success(`Inserted: ${name}`);
@@ -130,17 +133,17 @@ export const DataOperations = ({ onInsertCode, datasetName }: DataOperationsProp
         <SheetHeader>
           <SheetTitle>Data Operations</SheetTitle>
           <SheetDescription>
-            Quick pandas operations for data analysis
+            Quick {currentLanguage === 'r' ? 'R/dplyr' : 'pandas'} operations for data analysis
             {datasetName && ` • Dataset: ${datasetName}`}
           </SheetDescription>
         </SheetHeader>
         
         <ScrollArea className="h-[calc(100vh-120px)] mt-4">
           <div className="space-y-6 pr-4">
-            {DATA_OPERATIONS.map((category) => (
+            {operations.map((category: any) => (
               <div key={category.category} className="space-y-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-foreground border-b border-border pb-2">
-                  {category.icon}
+                  <category.icon className="w-4 h-4" />
                   <span>{category.category}</span>
                 </div>
                 

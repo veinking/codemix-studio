@@ -58,9 +58,27 @@ const IDE = () => {
     return localStorage.getItem('sidePanelOpen') === 'true';
   });
   
+  // Per-language code storage (scratch pad per language)
+  const [languageCode, setLanguageCode] = useState<{
+    python: string;
+    r: string;
+    javascript: string;
+    sql: string;
+  }>(() => {
+    const stored = sessionStorage.getItem('languageCode');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        return { python: '', r: '', javascript: '', sql: '' };
+      }
+    }
+    return { python: '', r: '', javascript: '', sql: '' };
+  });
+  
   // Scratch pad state (not saved to files, only sessionStorage)
   const [scratchCode, setScratchCode] = useState<string>(() => {
-    return sessionStorage.getItem('scratchCode') || '';
+    return languageCode.python || sessionStorage.getItem('scratchCode') || '';
   });
   const [scratchLanguage, setScratchLanguage] = useState<'python' | 'r' | 'javascript' | 'sql'>(() => {
     return (sessionStorage.getItem('scratchLanguage') as any) || 'python';
@@ -69,7 +87,12 @@ const IDE = () => {
   const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
   const { isMobile, deviceType } = useDeviceType();
 
-  // Persist scratch to sessionStorage
+  // Persist language code to sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem('languageCode', JSON.stringify(languageCode));
+  }, [languageCode]);
+
+  // Persist scratch to sessionStorage (legacy support)
   useEffect(() => {
     sessionStorage.setItem('scratchCode', scratchCode);
   }, [scratchCode]);
@@ -77,6 +100,21 @@ const IDE = () => {
   useEffect(() => {
     sessionStorage.setItem('scratchLanguage', scratchLanguage);
   }, [scratchLanguage]);
+
+  // When switching languages, save current code and load new language's code
+  const handleLanguageChange = (newLang: 'python' | 'r' | 'javascript' | 'sql') => {
+    // Save current language code
+    setLanguageCode(prev => ({
+      ...prev,
+      [scratchLanguage]: scratchCode
+    }));
+    
+    // Switch to new language
+    setScratchLanguage(newLang);
+    
+    // Load new language's code
+    setScratchCode(languageCode[newLang]);
+  };
 
   // Register all runtimes on mount
   useEffect(() => {
@@ -674,10 +712,12 @@ Jack,30,Miami,86`,
       currentFile={activeFile}
       isRunning={isRunning}
       scratchLanguage={scratchLanguage}
-      onScratchLanguageChange={setScratchLanguage}
+      onScratchLanguageChange={handleLanguageChange}
       onInsertCode={handleInsertCode}
       onOpenFeatures={() => setFeatureDrawerOpen(true)}
       onOpenTools={() => setSidePanelOpen(prev => !prev)}
+      initializedRuntimes={initializedRuntimes}
+      isMobile={isMobile}
     />
   );
 
@@ -686,6 +726,12 @@ Jack,30,Miami,86`,
       installedPackages={installedPackages}
       onInstallPackage={installPackage}
       isInstalling={isInstalling}
+      currentLanguage={
+        currentFile?.language === 'python' || currentFile?.language === 'r' || 
+        currentFile?.language === 'javascript' || currentFile?.language === 'sql'
+          ? currentFile.language
+          : scratchLanguage
+      }
     />
   );
 
@@ -763,6 +809,13 @@ Jack,30,Miami,86`,
     <DataOperations 
       onInsertCode={handleInsertCode}
       datasetName={currentFile ? files.find(f => f.id === activeFile)?.name : undefined}
+      currentLanguage={
+        currentFile?.language === 'r' || currentFile?.language === 'python' 
+          ? currentFile.language 
+          : scratchLanguage === 'r' || scratchLanguage === 'python'
+          ? scratchLanguage
+          : 'python'
+      }
     />
   );
 

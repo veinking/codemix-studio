@@ -9,9 +9,10 @@ interface PackageManagerProps {
   installedPackages: string[];
   onInstallPackage: (packageName: string) => Promise<void>;
   isInstalling: boolean;
+  currentLanguage?: 'python' | 'r' | 'javascript' | 'sql';
 }
 
-const COMMON_PACKAGES = [
+const PYTHON_PACKAGES = [
   "numpy",
   "pandas", 
   "matplotlib",
@@ -21,10 +22,21 @@ const COMMON_PACKAGES = [
   "seaborn",
 ];
 
+const R_PACKAGES = [
+  "ggplot2",
+  "dplyr",
+  "tidyr",
+  "readr",
+  "caret",
+  "randomForest",
+  "data.table",
+];
+
 export const PackageManager = ({
   installedPackages,
   onInstallPackage,
   isInstalling,
+  currentLanguage = 'python',
 }: PackageManagerProps) => {
   const [packageName, setPackageName] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -72,24 +84,36 @@ export const PackageManager = ({
             </Button>
           </div>
 
-          <div className="space-y-2">
-            <p className="text-xs text-muted-foreground">Common packages:</p>
-            <div className="flex flex-wrap gap-1">
-              {COMMON_PACKAGES.map((pkg) => {
-                const isInstalled = installedPackages.includes(pkg);
-                return (
-                  <Badge
-                    key={pkg}
-                    variant={isInstalled ? "default" : "outline"}
-                    className="cursor-pointer text-xs"
-                    onClick={() => !isInstalled && onInstallPackage(pkg)}
-                  >
-                    {pkg}
-                  </Badge>
-                );
-              })}
+          {(currentLanguage === 'python' || currentLanguage === 'r') && (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">
+                Common {currentLanguage === 'python' ? 'Python' : 'R'} packages:
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {(currentLanguage === 'python' ? PYTHON_PACKAGES : R_PACKAGES).map((pkg) => {
+                  const isInstalled = installedPackages.includes(pkg);
+                  return (
+                    <Badge
+                      key={pkg}
+                      variant={isInstalled ? "default" : "outline"}
+                      className="cursor-pointer text-xs"
+                      onClick={() => !isInstalled && onInstallPackage(pkg)}
+                    >
+                      {pkg}
+                    </Badge>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
+
+          {(currentLanguage === 'javascript' || currentLanguage === 'sql') && (
+            <p className="text-xs text-muted-foreground italic">
+              {currentLanguage === 'javascript' 
+                ? 'JavaScript runs built-in libraries' 
+                : 'SQL uses built-in database engine'}
+            </p>
+          )}
 
           {installedPackages.length > 0 && (
             <div className="mt-3">

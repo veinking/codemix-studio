@@ -1,14 +1,8 @@
 import { Play, Download, Code2, Save, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 interface ToolbarProps {
   onRun: () => void;
@@ -22,6 +16,8 @@ interface ToolbarProps {
   onInsertCode?: (code: string) => void;
   onOpenFeatures?: () => void;
   onOpenTools?: () => void;
+  initializedRuntimes?: Set<string>;
+  isMobile?: boolean;
 }
 
 export const Toolbar = ({ 
@@ -35,23 +31,20 @@ export const Toolbar = ({
   onScratchLanguageChange,
   onInsertCode = () => {},
   onOpenFeatures,
-  onOpenTools
+  onOpenTools,
+  initializedRuntimes = new Set(),
+  isMobile = false
 }: ToolbarProps) => {
   return (
     <div className="flex items-center justify-between w-full">
       <div className="flex items-center gap-2">
         {!currentFile && (
-          <Select value={scratchLanguage} onValueChange={onScratchLanguageChange}>
-            <SelectTrigger className="w-[120px] h-8">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="python">Python</SelectItem>
-              <SelectItem value="r">R</SelectItem>
-              <SelectItem value="javascript">JavaScript</SelectItem>
-              <SelectItem value="sql">SQL</SelectItem>
-            </SelectContent>
-          </Select>
+          <LanguageSelector
+            currentLanguage={scratchLanguage}
+            onLanguageChange={onScratchLanguageChange}
+            initializedRuntimes={initializedRuntimes}
+            isMobile={isMobile}
+          />
         )}
       </div>
       
