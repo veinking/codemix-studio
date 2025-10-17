@@ -44,19 +44,27 @@ export class RRuntime implements RuntimeExecutor {
     const result: ExecutionResult = { output: '', datasets: [] };
 
     try {
-      const evalResult = await this.webR.evalR(code);
+      const captureCode = `
+tryCatch({
+  paste(capture.output({
+${code}
+  }), collapse = "\\n")
+}, error = function(e) paste("Error:", conditionMessage(e)))`;
+
+      const evalResult = await this.webR.evalR(captureCode);
       const output = await evalResult.toJs();
-      
-      // Only print meaningful output (skip NULL/empty from assignments)
-      const isEmptyOutput =
-        output === null ||
-        typeof output === 'undefined' ||
-        (typeof output === 'object' && !Array.isArray(output) && Object.keys(output).length === 0) ||
-        (Array.isArray(output) && output.length === 0) ||
-        output === '';
-      
-      if (!isEmptyOutput) {
-        const outputStr = typeof output === 'string' ? output : JSON.stringify(output, null, 2);
+
+      // Normalize captured console output
+      let outputStr = '';
+      if (typeof output === 'string') {
+        outputStr = output;
+      } else if (output && typeof output === 'object' && output.type === 'character' && Array.isArray((output as any).values)) {
+        outputStr = (output as any).values.join('\n');
+      } else if (Array.isArray(output)) {
+        outputStr = (output as any[]).join('\n');
+      }
+
+      if (outputStr && outputStr.trim().length > 0) {
         result.output = outputStr;
         onOutput(outputStr);
       }
