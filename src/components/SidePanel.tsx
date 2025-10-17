@@ -9,6 +9,7 @@ interface SidePanelProps {
   onOpenChange: (open: boolean) => void;
   aiAssistant: ReactNode;
   packageManager: ReactNode;
+  dataLab: ReactNode;
   dataOperations: ReactNode;
   mlOperations: ReactNode;
   labTrainer: ReactNode;
@@ -19,6 +20,7 @@ export const SidePanel = ({
   onOpenChange,
   aiAssistant,
   packageManager,
+  dataLab,
   dataOperations,
   mlOperations,
   labTrainer,
@@ -90,8 +92,12 @@ export const SidePanel = ({
               <TabsContent value="packages" className="mt-0">
                 {packageManager}
               </TabsContent>
-              <TabsContent value="data" className="mt-0">
-                {dataOperations}
+              <TabsContent value="data" className="mt-0 space-y-4">
+                {dataLab}
+                <div className="pt-4 border-t border-border">
+                  <h3 className="text-sm font-semibold mb-3">Quick Operations</h3>
+                  {dataOperations}
+                </div>
               </TabsContent>
               <TabsContent value="ml" className="mt-0">
                 {mlOperations}

@@ -840,6 +840,20 @@ Jack,30,Miami,86`,
     />
   );
 
+  const dataLabComponent = (
+    <DataLab
+      onLoadDataset={(rows, name) => {
+        const headers = Object.keys(rows[0] || {});
+        const data = rows.map(row => headers.map(h => String(row[h] ?? '')));
+        setDatasets(prev => new Map(prev).set(name, { headers, data }));
+        setShowDataset(name);
+        toast.success(`Loaded ${name} dataset`);
+      }}
+      onInsertCode={handleInsertCode}
+      language={scratchLanguage === 'r' ? 'r' : 'python'}
+    />
+  );
+
   const dataOpsComponent = (
     <DataOperations 
       onInsertCode={handleInsertCode}
@@ -891,6 +905,7 @@ Jack,30,Miami,86`,
                 onOpenChange={setFeatureDrawerOpen}
                 aiAssistant={aiAssistantComponent}
                 packageManager={packageManagerComponent}
+                dataLab={dataLabComponent}
                 dataOperations={dataOpsComponent}
                 mlOperations={mlOpsComponent}
                 labTrainer={labTrainerComponent}
@@ -910,6 +925,7 @@ Jack,30,Miami,86`,
               onOpenChange={setSidePanelOpen}
               aiAssistant={aiAssistantComponent}
               packageManager={packageManagerComponent}
+              dataLab={dataLabComponent}
               dataOperations={dataOpsComponent}
               mlOperations={mlOpsComponent}
               labTrainer={labTrainerComponent}
