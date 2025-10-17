@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_stats: {
+        Row: {
+          active_users_today: number
+          id: string
+          total_code_runs: number
+          total_lines_executed: number
+          updated_at: string
+        }
+        Insert: {
+          active_users_today?: number
+          id?: string
+          total_code_runs?: number
+          total_lines_executed?: number
+          updated_at?: string
+        }
+        Update: {
+          active_users_today?: number
+          id?: string
+          total_code_runs?: number
+          total_lines_executed?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       labs_history: {
         Row: {
           completed: boolean
@@ -74,6 +98,30 @@ export type Database = {
           id?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      recent_activity: {
+        Row: {
+          activity_description: string
+          activity_type: string
+          created_at: string
+          id: string
+          language: string | null
+        }
+        Insert: {
+          activity_description: string
+          activity_type: string
+          created_at?: string
+          id?: string
+          language?: string | null
+        }
+        Update: {
+          activity_description?: string
+          activity_type?: string
+          created_at?: string
+          id?: string
+          language?: string | null
         }
         Relationships: []
       }
