@@ -64,6 +64,12 @@ export const AboutSection = () => {
               Built with 💜 by <span className="font-semibold">@treytrey</span>
             </p>
             <p className="text-xs text-muted-foreground">Data Science Student</p>
+            <a 
+              href="mailto:fbarfiel@gmu.edu" 
+              className="text-xs text-primary hover:underline block mt-1"
+            >
+              fbarfiel@gmu.edu
+            </a>
           </div>
         </CardContent>
       </Card>
