@@ -70,7 +70,13 @@ ${code}
       }
 
       // Heuristic: only attempt plot capture if code likely produced a plot
-      const likelyPlots = /(\bplot\s*\(|ggplot|geom_|hist\s*\(|barplot\s*\(|boxplot\s*\(|image\s*\(|heatmap\s*\()/i.test(code);
+      // Strip simple comments to avoid false positives
+      const codeNoComments = code
+        .split('\n')
+        .map(l => l.replace(/#.*/, ''))
+        .join('\n');
+      // Only match explicit function calls (e.g., plot(, ggplot(), hist(), etc.)
+      const likelyPlots = /(\bplot\s*\(|\bhist\s*\(|\bbarplot\s*\(|\bboxplot\s*\(|\bimage\s*\(|\bheatmap\s*\(|\bqplot\s*\(|\bggplot\s*\()/i.test(codeNoComments);
 
       // Check for plots only if code likely plots and graphics devices are active
       if (likelyPlots) {
@@ -86,7 +92,8 @@ tryCatch({
     tmp <- tempfile(fileext = '.png')
     dev.copy(png, tmp, width=800, height=600)
     dev.off()
-    base64enc::base64encode(tmp)
+    enc <- base64enc::base64encode(tmp)
+    if (!is.na(file.info(tmp)$size) && file.info(tmp)$size > 1500) enc else NA
   } else {
     NA
   }
@@ -96,7 +103,7 @@ tryCatch({
             const plotResult = await this.webR.evalR(plotCode);
             const plotData = await plotResult.toJs();
             
-            if (plotData && plotData !== 'NA' && typeof plotData === 'string') {
+            if (plotData && plotData !== 'NA' && typeof plotData === 'string' && plotData.length > 2000) {
               result.plotUrl = `data:image/png;base64,${plotData}`;
             }
           }
