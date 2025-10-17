@@ -4,6 +4,7 @@ import { CodeEditor } from "@/components/CodeEditor";
 import { ConsolePanel } from "@/components/ConsolePanel";
 import { Toolbar } from "@/components/Toolbar";
 import { DatasetViewer } from "@/components/DatasetViewer";
+import DataLab from "@/components/DataLab";
 import { PlotViewer } from "@/components/PlotViewer";
 import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { DesktopLayout } from "@/components/layouts/DesktopLayout";
@@ -784,6 +785,18 @@ Jack,30,Miami,86`,
       <DatasetViewer
         headers={currentDataset.headers}
         data={currentDataset.data}
+      />
+    ) : currentFile.language === 'csv' ? (
+      <DataLab
+        onLoadDataset={(rows, name) => {
+          // Convert rows to string array format
+          const headers = Object.keys(rows[0] || {});
+          const data = rows.map(row => headers.map(h => String(row[h] ?? '')));
+          setDatasets(prev => new Map(prev).set(name, { headers, data }));
+          setShowDataset(name);
+        }}
+        onInsertCode={handleInsertCode}
+        language={scratchLanguage === 'r' ? 'r' : 'python'}
       />
     ) : (
       <CodeEditor
