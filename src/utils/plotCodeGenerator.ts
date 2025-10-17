@@ -8,18 +8,17 @@ export interface PlotConfig {
   xLabel: string;
   yLabel: string;
   theme: 'default' | 'dark' | 'colorblind';
+  // Optional: inline CSV content to avoid filesystem reads in Pyodide
+  datasetContent?: string;
 }
 
 export function generatePythonPlot(config: PlotConfig): string {
-  const { dataset, chartType, xColumn, yColumn, colorColumn, title, xLabel, yLabel } = config;
+  const { dataset, datasetContent, chartType, xColumn, yColumn, colorColumn, title, xLabel, yLabel } = config;
 
-  const loadPackages = `# Load required packages from Pyodide
-import pyodide
-await pyodide.loadPackage(['pandas', 'matplotlib', 'seaborn'])
-
+  const loadPackages = `# Imports only — packages are auto-loaded by the runtime
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('module://matplotlib_pyodide.wasm_backend')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
