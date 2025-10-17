@@ -40,7 +40,50 @@ export const LabTrainer = ({ open, onOpenChange, onLoadLab }: LabTrainerProps) =
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
 
-  const topics = ["Random", "math fundamentals", "nutrition analysis", "fitness analytics", "finance & markets"];
+  const topics = [
+    "Random",
+    // CS Fundamentals
+    "loops & conditionals",
+    "functions & recursion",
+    "sorting algorithms",
+    "searching algorithms",
+    // Data Structures
+    "lists & arrays",
+    "dictionaries & hash tables",
+    "stacks & queues",
+    "trees & graphs",
+    "linked lists",
+    // Statistics & Math
+    "descriptive statistics",
+    "probability distributions",
+    "hypothesis testing",
+    "linear algebra basics",
+    "matrix operations",
+    // Data Science
+    "data cleaning & preprocessing",
+    "exploratory data analysis",
+    "data visualization",
+    "correlation & regression",
+    // Machine Learning
+    "train-test split",
+    "linear regression",
+    "classification basics",
+    "model evaluation",
+    // Python Specific
+    "list comprehensions",
+    "file I/O operations",
+    "exception handling",
+    "object-oriented programming",
+    // General Problem Solving
+    "string manipulation",
+    "number theory",
+    "math fundamentals",
+    // Application Domains
+    "nutrition analysis",
+    "fitness analytics",
+    "finance & markets",
+    "text processing",
+  ];
 
   const generateLab = async () => {
     setLoading(true);
