@@ -3,7 +3,10 @@ import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
+import { Loader2, ChevronDown } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 type Row = Record<string, any>;
 type Analysis = {
@@ -25,6 +28,10 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, langua
   const [rows, setRows] = useState<Row[]>([]);
   const [analysis, setAnalysis] = useState<Analysis[]>([]);
   const [target, setTarget] = useState<string>('');
+  const [aiRecommendations, setAiRecommendations] = useState<string[]>([]);
+  const [aiCode, setAiCode] = useState('');
+  const [isLoadingAI, setIsLoadingAI] = useState(false);
+  const [showAiSection, setShowAiSection] = useState(false);
 
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
 
@@ -110,6 +117,42 @@ if (length(num_cols) > 0) {
     setAnalysis([]);
     setFilename('');
     setTarget('');
+    setAiRecommendations([]);
+    setAiCode('');
+    setShowAiSection(false);
+  };
+
+  const askAI = async () => {
+    if (rows.length === 0) return;
+    
+    setIsLoadingAI(true);
+    setShowAiSection(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('data-advisor', {
+        body: {
+          headers: columns,
+          sampleRows: rows.slice(0, 10),
+          targetColumn: target,
+          language
+        }
+      });
+
+      if (error) {
+        console.error('AI advisor error:', error);
+        toast.error('Failed to get AI recommendations');
+        return;
+      }
+
+      setAiRecommendations(data.recommendations || []);
+      setAiCode(data.suggestedCode || '');
+      toast.success('AI recommendations ready!');
+    } catch (err) {
+      console.error('Error calling AI advisor:', err);
+      toast.error('Failed to connect to AI advisor');
+    } finally {
+      setIsLoadingAI(false);
+    }
   };
 
   return (
@@ -140,6 +183,16 @@ if (length(num_cols) > 0) {
               <Button variant="secondary" onClick={() => onInsertCode(mkCode())}>
                 Insert Cleaning & Plots ({language.toUpperCase()})
               </Button>
+              <Button variant="default" onClick={askAI} disabled={isLoadingAI}>
+                {isLoadingAI ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Analyzing...
+                  </>
+                ) : (
+                  'Ask AI for Next Steps'
+                )}
+              </Button>
               <Button variant="outline" onClick={clearData}>
                 Clear & Upload New
               </Button>
@@ -151,6 +204,54 @@ if (length(num_cols) > 0) {
           <div className="text-sm text-muted-foreground">
             <b>{filename}</b> • {rows.length.toLocaleString()} rows • {columns.length} columns
           </div>
+        )}
+
+        {showAiSection && (
+          <Collapsible open={true} className="space-y-2">
+            <CollapsibleTrigger className="flex items-center gap-2 w-full">
+              <ChevronDown className="w-4 h-4" />
+              <span className="font-medium">AI Recommendations</span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-3">
+              {isLoadingAI ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Analyzing your data...</span>
+                </div>
+              ) : (
+                <>
+                  {aiRecommendations.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Suggested Next Steps:</div>
+                      <ul className="space-y-1 text-sm list-disc list-inside">
+                        {aiRecommendations.map((rec, i) => (
+                          <li key={i}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {aiCode && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-medium">Generated Code:</div>
+                      <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
+                        {aiCode}
+                      </pre>
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        onClick={() => {
+                          onInsertCode(aiCode);
+                          toast.success('AI code inserted into editor');
+                        }}
+                      >
+                        Insert AI Code
+                      </Button>
+                    </div>
+                  )}
+                </>
+              )}
+            </CollapsibleContent>
+          </Collapsible>
         )}
 
         {rows.length > 0 && (

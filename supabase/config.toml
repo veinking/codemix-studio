@@ -6,5 +6,8 @@ verify_jwt = false
 [functions.code-translator]
 verify_jwt = false
 
+[functions.data-advisor]
+verify_jwt = false
+
 [functions.lab-trainer]
 verify_jwt = false
