@@ -60,9 +60,9 @@ Be specific and actionable.`;
       case "optimize":
         const languageGuidelines: Record<string, string> = {
           python: 'IMPORTANT: Only use libraries that work in Pyodide (browser Python). NEVER use: tkinter, PyQt, turtle, threading, multiprocessing, sqlite3, or any GUI libraries. For data viz use matplotlib/plotly, for data use pandas/numpy.',
-          r: 'Use base R or common CRAN packages (dplyr, ggplot2, tidyr). Avoid packages requiring system dependencies.',
-          javascript: 'Use modern ES6+ syntax. Prefer async/await over promises. Use built-in methods over libraries when possible.',
-          sql: 'Write clean, standard SQL that works across databases. Use proper indexing hints and avoid vendor-specific syntax when possible.',
+          r: 'Use webR-compatible R code with base R or common packages (dplyr, ggplot2, tidyr, stringr). Use ggplot2 for visualizations. Avoid packages requiring system dependencies or compiled code.',
+          javascript: 'Use modern ES6+ syntax. Prefer async/await over promises. Use functional patterns (map, filter, reduce). Avoid unnecessary dependencies.',
+          sql: 'Write standard SQLite-compatible SQL. Use proper indexing, joins, and query optimization. Avoid vendor-specific extensions.',
         };
 
         systemPrompt = `You are an expert ${language} developer specializing in code optimization and best practices.

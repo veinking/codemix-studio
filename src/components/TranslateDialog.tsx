@@ -1,17 +1,19 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, ArrowRight } from "lucide-react";
 
+type Lang = 'python' | 'r' | 'javascript' | 'sql';
+
 interface TranslateDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sourceCode: string;
-  sourceLanguage: 'python' | 'r' | 'javascript' | 'sql';
-  onTranslated: (code: string, language: 'python' | 'r' | 'javascript' | 'sql') => void;
+  sourceLanguage: Lang;
+  onTranslated: (code: string, language: Lang) => void;
 }
 
 export const TranslateDialog = ({
@@ -21,7 +23,7 @@ export const TranslateDialog = ({
   sourceLanguage,
   onTranslated,
 }: TranslateDialogProps) => {
-  const [targetLanguage, setTargetLanguage] = useState<'python' | 'r' | 'javascript' | 'sql'>('python');
+  const [targetLanguage, setTargetLanguage] = useState<Lang>('python');
   const [isTranslating, setIsTranslating] = useState(false);
 
   const handleTranslate = async () => {
@@ -47,16 +49,15 @@ export const TranslateDialog = ({
 
       if (error) throw error;
 
-      if (data?.translatedCode) {
-        onTranslated(data.translatedCode, targetLanguage);
-        toast.success(`Code translated to ${targetLanguage.toUpperCase()}!`);
-        onOpenChange(false);
-      } else {
-        throw new Error("No translated code received");
-      }
+      const translated = data?.translatedCode?.trim();
+      if (!translated) throw new Error('No translated code received');
+      
+      onTranslated(translated, targetLanguage);
+      toast.success(`Code translated to ${targetLanguage.toUpperCase()}!`);
+      onOpenChange(false);
     } catch (error: any) {
       console.error("Translation error:", error);
-      toast.error(error.message || "Failed to translate code");
+      toast.error(error?.message || "Failed to translate code");
     } finally {
       setIsTranslating(false);
     }
@@ -85,34 +86,39 @@ export const TranslateDialog = ({
 
             <div className="flex-1">
               <label className="text-sm font-medium">To</label>
-              <Select value={targetLanguage} onValueChange={(v: any) => setTargetLanguage(v)}>
+              <Select value={targetLanguage} onValueChange={(v: Lang) => setTargetLanguage(v)}>
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {sourceLanguage !== 'python' && <SelectItem value="python">Python</SelectItem>}
-                  {sourceLanguage !== 'r' && <SelectItem value="r">R</SelectItem>}
-                  {sourceLanguage !== 'javascript' && <SelectItem value="javascript">JavaScript</SelectItem>}
-                  {sourceLanguage !== 'sql' && <SelectItem value="sql">SQL</SelectItem>}
+                  {(['python', 'r', 'javascript', 'sql'] as Lang[])
+                    .filter(l => l !== sourceLanguage)
+                    .map(l => (
+                      <SelectItem key={l} value={l}>
+                        {l.toUpperCase()}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          <Button
-            onClick={handleTranslate}
-            disabled={isTranslating}
-            className="w-full"
-          >
-            {isTranslating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Translating...
-              </>
-            ) : (
-              'Translate Code'
-            )}
-          </Button>
+          <DialogFooter>
+            <Button
+              onClick={handleTranslate}
+              disabled={isTranslating}
+              className="w-full"
+            >
+              {isTranslating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Translating...
+                </>
+              ) : (
+                'Translate Code'
+              )}
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

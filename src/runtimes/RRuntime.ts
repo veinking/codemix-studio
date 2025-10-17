@@ -2,7 +2,7 @@ import { RuntimeExecutor, RuntimeConfig, ExecutionResult, CompatibilityResult } 
 import { checkLibraryCompatibility } from '@/utils/libraryCompatibility';
 
 export class RRuntime implements RuntimeExecutor {
-  private webR: any = null;
+  private webR: any | null = null;
   public isInitialized = false;
 
   public config: RuntimeConfig = {
@@ -17,15 +17,18 @@ export class RRuntime implements RuntimeExecutor {
   async initialize(isMobile: boolean): Promise<void> {
     if (this.isInitialized) return;
 
+    // Pin a version; "latest" can change/break
     // @ts-ignore - WebR loaded via CDN
-    const { WebR } = await import('https://webr.r-wasm.org/latest/webr.mjs');
+    const { WebR } = await import('https://webr.r-wasm.org/v0.3.3/webr.mjs');
     
     // Configure for mobile with reduced memory footprint
-    const config = isMobile ? {
-      baseUrl: 'https://webr.r-wasm.org/latest/',
-      serviceWorkerUrl: '',
-      channelType: 'PostMessage' as const,
-    } : {};
+    const config: any = isMobile
+      ? {
+          baseUrl: 'https://webr.r-wasm.org/v0.3.3/',
+          channelType: 'PostMessage' as const,
+          serviceWorkerUrl: '', // disable SW on iOS
+        }
+      : { baseUrl: 'https://webr.r-wasm.org/v0.3.3/' };
     
     this.webR = new WebR(config);
     await this.webR.init();
@@ -34,7 +37,7 @@ export class RRuntime implements RuntimeExecutor {
   }
 
   async execute(code: string, onOutput: (text: string) => void): Promise<ExecutionResult> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.webR) {
       throw new Error('R runtime not initialized');
     }
 
@@ -77,7 +80,7 @@ if (length(dev.list()) > 0) {
   }
 
   async installPackage(name: string): Promise<void> {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.webR) {
       throw new Error('R runtime not initialized');
     }
 

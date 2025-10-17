@@ -1,24 +1,31 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") {
+type Lang = 'python' | 'r' | 'javascript' | 'sql';
+
+serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { sourceLanguage, targetLanguage, code } = await req.json();
+    const { sourceLanguage, targetLanguage, code } = await req.json() as {
+      sourceLanguage: Lang;
+      targetLanguage: Lang;
+      code: string;
+    };
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const languageMap: Record<string, string> = {
+    const languageMap: Record<Lang, string> = {
       python: "Python",
       r: "R",
       javascript: "JavaScript",
@@ -80,7 +87,7 @@ Rules:
     // Clean up markdown code blocks if present
     let cleanCode = translatedCode.trim();
     if (cleanCode.startsWith("```")) {
-      cleanCode = cleanCode.replace(/^```[a-z]*\n/, "").replace(/\n```$/, "");
+      cleanCode = cleanCode.replace(/^```[a-z]*\n/i, "").replace(/\n```$/i, "");
     }
 
     console.log(`Translation completed successfully`);

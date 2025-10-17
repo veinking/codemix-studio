@@ -7,7 +7,13 @@ interface CodeEditorProps {
   isMobile?: boolean;
 }
 
+// Guard so we don't register providers more than once
+let providersRegistered = false;
+
 const registerCompletionProviders = (monaco: any) => {
+  if (providersRegistered) return;
+  providersRegistered = true;
+
   // Python completion items
   const pythonCompletions = [
     'print', 'input', 'len', 'range', 'type', 'str', 'int', 'float', 'list', 'dict',
@@ -50,8 +56,7 @@ const registerCompletionProviders = (monaco: any) => {
     'VARCHAR', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'REAL', 'BLOB'
   ];
 
-  // Register Python provider
-  monaco.languages.registerCompletionItemProvider('python', {
+  const mkProvider = (keywords: string[]) => ({
     provideCompletionItems: (model: any, position: any) => {
       const word = model.getWordUntilPosition(position);
       const range = {
@@ -60,83 +65,22 @@ const registerCompletionProviders = (monaco: any) => {
         startColumn: word.startColumn,
         endColumn: word.endColumn,
       };
-
       return {
-        suggestions: pythonCompletions.map((keyword) => ({
-          label: keyword,
+        suggestions: keywords.map((label) => ({
+          label,
           kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: keyword,
-          range: range,
+          insertText: label,
+          range,
         })),
       };
     },
   });
 
-  // Register R provider
-  monaco.languages.registerCompletionItemProvider('r', {
-    provideCompletionItems: (model: any, position: any) => {
-      const word = model.getWordUntilPosition(position);
-      const range = {
-        startLineNumber: position.lineNumber,
-        endLineNumber: position.lineNumber,
-        startColumn: word.startColumn,
-        endColumn: word.endColumn,
-      };
-
-      return {
-        suggestions: rCompletions.map((keyword) => ({
-          label: keyword,
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: keyword,
-          range: range,
-        })),
-      };
-    },
-  });
-
-  // Register JavaScript provider
-  monaco.languages.registerCompletionItemProvider('javascript', {
-    provideCompletionItems: (model: any, position: any) => {
-      const word = model.getWordUntilPosition(position);
-      const range = {
-        startLineNumber: position.lineNumber,
-        endLineNumber: position.lineNumber,
-        startColumn: word.startColumn,
-        endColumn: word.endColumn,
-      };
-
-      return {
-        suggestions: jsCompletions.map((keyword) => ({
-          label: keyword,
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: keyword,
-          range: range,
-        })),
-      };
-    },
-  });
-
-  // Register SQL provider
-  monaco.languages.registerCompletionItemProvider('sql', {
-    provideCompletionItems: (model: any, position: any) => {
-      const word = model.getWordUntilPosition(position);
-      const range = {
-        startLineNumber: position.lineNumber,
-        endLineNumber: position.lineNumber,
-        startColumn: word.startColumn,
-        endColumn: word.endColumn,
-      };
-
-      return {
-        suggestions: sqlCompletions.map((keyword) => ({
-          label: keyword,
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: keyword,
-          range: range,
-        })),
-      };
-    },
-  });
+  // Register all language providers
+  monaco.languages.registerCompletionItemProvider('python', mkProvider(pythonCompletions));
+  monaco.languages.registerCompletionItemProvider('r', mkProvider(rCompletions));
+  monaco.languages.registerCompletionItemProvider('javascript', mkProvider(jsCompletions));
+  monaco.languages.registerCompletionItemProvider('sql', mkProvider(sqlCompletions));
 };
 
 export const CodeEditor = ({ value, language, onChange, isMobile = false }: CodeEditorProps) => {
@@ -154,8 +98,8 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
       onMount={handleEditorMount}
       theme="vs-dark"
       options={{
-        minimap: { enabled: !isMobile }, // Disable minimap on mobile for memory
-        fontSize: isMobile ? 12 : 14, // Smaller font on mobile
+        minimap: { enabled: !isMobile },
+        fontSize: isMobile ? 13 : 14,
         fontFamily: 'JetBrains Mono, Fira Code, Consolas, Monaco, monospace',
         lineNumbers: 'on',
         renderWhitespace: 'selection',
@@ -172,7 +116,6 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
           showKeywords: true,
           showSnippets: true,
         },
-        // Enhanced selection for better touch/mouse interaction
         selectOnLineNumbers: true,
         selectionHighlight: true,
         occurrencesHighlight: 'multiFile',
