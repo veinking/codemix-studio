@@ -705,6 +705,9 @@ Jack,30,Miami,86`,
       // Handle plots
       if (result.plotUrl) {
         setPlotData(result.plotUrl);
+      } else if (result.output) {
+        const m = result.output.match(/data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+/);
+        if (m) setPlotData(m[0]);
       }
 
       // Handle datasets (for SQL queries)
@@ -884,6 +887,9 @@ Jack,30,Miami,86`,
     // Handle plot URLs
     if (result.plotUrl) {
       setPlotData(result.plotUrl);
+    } else if (result.output) {
+      const m = result.output.match(/data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+/);
+      if (m) setPlotData(m[0]);
     }
 
     return {

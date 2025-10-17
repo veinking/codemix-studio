@@ -18,12 +18,23 @@ import pyodide
 await pyodide.loadPackage(['pandas', 'matplotlib', 'seaborn'])
 
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 # Set style
 sns.set_style("whitegrid")
 plt.rcParams['figure.figsize'] = (10, 6)
+
+# Helper to emit plot as data URL
+import io, base64
+
+def _capture_plot_as_data_url():
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', bbox_inches='tight')
+    buf.seek(0)
+    return 'data:image/png;base64,' + base64.b64encode(buf.read()).decode('ascii')
 `;
 
   const loadData = `
@@ -45,7 +56,8 @@ plt.xlabel('${xLabel}')
 plt.ylabel('${yLabel}')
 plt.xticks(rotation=45, ha='right')
 plt.tight_layout()
-plt.show()
+print(_capture_plot_as_data_url())
+plt.close()
 `;
       break;
 
@@ -59,7 +71,8 @@ plt.xlabel('${xLabel}')
 plt.ylabel('${yLabel}')
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.show()
+print(_capture_plot_as_data_url())
+plt.close()
 `;
       break;
 
@@ -77,7 +90,8 @@ plt.ylabel('${yLabel}')
 ${colorColumn ? 'plt.legend()' : ''}
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
-plt.show()
+print(_capture_plot_as_data_url())
+plt.close()
 `;
       break;
 
@@ -91,7 +105,8 @@ plt.xlabel('${xLabel}')
 plt.ylabel('Frequency')
 plt.grid(True, alpha=0.3, axis='y')
 plt.tight_layout()
-plt.show()
+print(_capture_plot_as_data_url())
+plt.close()
 `;
       break;
 
@@ -104,7 +119,8 @@ plt.title('${title}')
 ${yColumn ? `plt.xlabel('${yLabel}')` : ''}
 plt.ylabel('${xLabel}')
 plt.tight_layout()
-plt.show()
+print(_capture_plot_as_data_url())
+plt.close()
 `;
       break;
 
@@ -117,7 +133,8 @@ correlation_matrix = df[numeric_cols].corr()
 sns.heatmap(correlation_matrix, annot=True, fmt='.2f', cmap='coolwarm', center=0)
 plt.title('${title}')
 plt.tight_layout()
-plt.show()
+print(_capture_plot_as_data_url())
+plt.close()
 `;
       break;
   }
