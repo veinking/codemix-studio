@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Wand2, CheckCircle, Lightbulb, X, Zap } from "lucide-react";
+import { Sparkles, Wand2, CheckCircle, Lightbulb, X, Zap, BookOpen } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -53,7 +53,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
     }
   };
 
-  const handleAIAction = async (action: "autofill" | "autocomplete" | "check" | "optimize") => {
+  const handleAIAction = async (action: "autofill" | "autocomplete" | "check" | "optimize" | "explain") => {
     if (action === "autofill" && !prompt.trim()) {
       toast.error("Please enter a goal or description");
       return;
@@ -98,9 +98,9 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
         );
         setPrompt("");
       } else {
-        // Show suggestions for check action
+        // Show suggestions for check/explain actions
         setSuggestion(result);
-        toast.success("Code analysis complete");
+        toast.success(action === "explain" ? "Code explained!" : "Code analysis complete");
       }
     } catch (error: any) {
       console.error("AI action error:", error);
@@ -152,6 +152,17 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
         >
           <Sparkles className="h-4 w-4" />
           Auto Complete
+        </Button>
+
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleAIAction("explain")}
+          disabled={isLoading || !selectedCode}
+          className="flex items-center gap-2"
+        >
+          <BookOpen className="h-4 w-4" />
+          Explain
         </Button>
 
         <Button

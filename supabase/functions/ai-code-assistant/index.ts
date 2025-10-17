@@ -47,6 +47,16 @@ Return ONLY the completed code, no explanations or markdown formatting.`;
           : `Complete this ${language} code based on context:\n\n${code}`;
         break;
 
+      case "explain":
+        systemPrompt = `You are an expert ${language} educator. Explain the selected code in plain English for a college student:
+1. What does this code do? (high-level purpose)
+2. How does it work? (step-by-step breakdown)
+3. Key concepts used (e.g., loops, functions, data structures)
+4. Common use cases for this pattern
+Be clear, educational, and encouraging.`;
+        userPrompt = `Explain this ${language} code:\n\n${selectedCode || code}`;
+        break;
+
       case "check":
         systemPrompt = `You are an expert ${language} code analyzer. Check the selected code for:
 1. Syntax errors
