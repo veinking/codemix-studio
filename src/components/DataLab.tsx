@@ -105,6 +105,13 @@ if (length(num_cols) > 0) {
     return rBoilerplate(filename);
   };
 
+  const clearData = () => {
+    setRows([]);
+    setAnalysis([]);
+    setFilename('');
+    setTarget('');
+  };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -118,26 +125,64 @@ if (length(num_cols) > 0) {
             onChange={(e) => e.target.files && handleFile(e.target.files[0])}
           />
           {columns.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm">Target (optional)</span>
-              <Select value={target} onValueChange={setTarget}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Pick column" />
-                </SelectTrigger>
-                <SelectContent>
-                  {columns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
+            <>
+              <div className="flex items-center gap-2">
+                <span className="text-sm">Target (optional)</span>
+                <Select value={target} onValueChange={setTarget}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Pick column" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {columns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button variant="secondary" onClick={() => onInsertCode(mkCode())}>
+                Insert Cleaning & Plots ({language.toUpperCase()})
+              </Button>
+              <Button variant="outline" onClick={clearData}>
+                Clear & Upload New
+              </Button>
+            </>
           )}
-          <Button variant="secondary" onClick={() => onInsertCode(mkCode())}>
-            Insert Cleaning & Plots ({language.toUpperCase()})
-          </Button>
         </div>
 
         {rows.length > 0 && (
           <div className="text-sm text-muted-foreground">
             <b>{filename}</b> • {rows.length.toLocaleString()} rows • {columns.length} columns
+          </div>
+        )}
+
+        {rows.length > 0 && (
+          <div className="space-y-2">
+            <div className="font-medium">Data Preview</div>
+            <div className="max-h-80 overflow-auto border rounded">
+              <table className="w-full text-sm">
+                <thead className="bg-muted/50 sticky top-0">
+                  <tr>
+                    {columns.map(c => (
+                      <th key={c} className="px-2 py-2 text-left font-medium">{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.slice(0, 100).map((r, i) => (
+                    <tr key={i} className="border-t">
+                      {columns.map(c => (
+                        <td key={c} className="px-2 py-1 whitespace-nowrap">
+                          {String(r[c] ?? '')}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {rows.length > 100 && (
+              <div className="text-xs text-muted-foreground text-center">
+                Showing first 100 rows of {rows.length.toLocaleString()}
+              </div>
+            )}
           </div>
         )}
 
