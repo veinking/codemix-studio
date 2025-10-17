@@ -18,6 +18,7 @@ import { PackageManager } from "@/components/PackageManager";
 import { FeatureDrawer } from "@/components/FeatureDrawer";
 import { SidePanel } from "@/components/SidePanel";
 import { TranslateDialog } from "@/components/TranslateDialog";
+import { ShareDialog } from "@/components/ShareDialog";
 import { Button } from "@/components/ui/button";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -59,6 +60,7 @@ const IDE = () => {
   const [initializedRuntimes, setInitializedRuntimes] = useState<Set<string>>(new Set());
   const [featureDrawerOpen, setFeatureDrawerOpen] = useState(false);
   const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
@@ -769,6 +771,7 @@ Jack,30,Miami,86`,
       onDownload={handleDownload}
       onSaveScratchAsFile={handleSaveScratchAsFile}
       onCopyAll={handleCopyAll}
+      onShare={() => setShareDialogOpen(true)}
       onOpenTranslate={() => setTranslateDialogOpen(true)}
       currentFile={activeFile}
       isRunning={isRunning}
@@ -1049,6 +1052,14 @@ Jack,30,Miami,86`,
         sourceCode={activeFile ? (currentFile?.content || '') : scratchCode}
         sourceLanguage={activeFile ? (currentFile?.language as any || 'python') : scratchLanguage}
         onTranslated={handleTranslatedCode}
+      />
+
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        code={activeFile ? (currentFile?.content || '') : scratchCode}
+        language={activeFile ? (currentFile?.language || 'python') : scratchLanguage}
+        fileName={activeFile ? currentFile?.name : undefined}
       />
     </>
   );

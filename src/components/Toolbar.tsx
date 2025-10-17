@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -9,6 +9,7 @@ interface ToolbarProps {
   onDownload: () => void;
   onSaveScratchAsFile: () => void;
   onCopyAll: () => void;
+  onShare?: () => void;
   onOpenTranslate?: () => void;
   currentFile: string | null;
   isRunning: boolean;
@@ -26,6 +27,7 @@ export const Toolbar = ({
   onDownload, 
   onSaveScratchAsFile,
   onCopyAll,
+  onShare,
   onOpenTranslate,
   currentFile, 
   isRunning,
@@ -101,6 +103,17 @@ export const Toolbar = ({
           <Copy className="w-4 h-4 mr-2" />
           Copy All
         </Button>
+
+        {onShare && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onShare}
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Share
+          </Button>
+        )}
         
         {!currentFile && (
           <Button

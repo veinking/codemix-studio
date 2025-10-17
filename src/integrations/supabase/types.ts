@@ -77,6 +77,42 @@ export type Database = {
         }
         Relationships: []
       }
+      shared_code: {
+        Row: {
+          code: string
+          created_at: string
+          expires_at: string | null
+          file_name: string | null
+          id: string
+          language: string
+          short_id: string
+          user_id: string | null
+          view_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          file_name?: string | null
+          id?: string
+          language: string
+          short_id: string
+          user_id?: string | null
+          view_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          file_name?: string | null
+          id?: string
+          language?: string
+          short_id?: string
+          user_id?: string | null
+          view_count?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
