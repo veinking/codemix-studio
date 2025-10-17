@@ -20,11 +20,12 @@ type Analysis = {
 interface Props {
   onLoadDataset: (rows: Row[], name: string) => void;
   onInsertCode?: (code: string) => void;
+  onOpenPlotBuilder?: () => void;
   language: 'python' | 'r';
   preloadedData?: { rows: Row[]; filename: string }; // Accept already-loaded CSV
 }
 
-export default function DataLab({ onLoadDataset, onInsertCode = () => {}, language, preloadedData }: Props) {
+export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpenPlotBuilder, language, preloadedData }: Props) {
   const [filename, setFilename] = useState<string>('');
   const [rows, setRows] = useState<Row[]>([]);
   const [analysis, setAnalysis] = useState<Analysis[]>([]);
@@ -204,10 +205,15 @@ if (length(num_cols) > 0) {
                   </SelectContent>
                 </Select>
               </div>
+              {onOpenPlotBuilder && (
+                <Button variant="default" onClick={onOpenPlotBuilder}>
+                  📊 Create Plot
+                </Button>
+              )}
               <Button variant="secondary" onClick={() => onInsertCode(mkCode())}>
                 Insert Cleaning & Plots ({language.toUpperCase()})
               </Button>
-              <Button variant="default" onClick={askAI} disabled={isLoadingAI}>
+              <Button variant="outline" onClick={askAI} disabled={isLoadingAI}>
                 {isLoadingAI ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />

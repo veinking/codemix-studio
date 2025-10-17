@@ -7,6 +7,7 @@ import { Toolbar } from "@/components/Toolbar";
 import { DatasetViewer } from "@/components/DatasetViewer";
 import DataLab from "@/components/DataLab";
 import { PlotViewer } from "@/components/PlotViewer";
+import { PlotBuilder } from "@/components/PlotBuilder";
 import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { DesktopLayout } from "@/components/layouts/DesktopLayout";
 import { AIAssistant } from "@/components/AIAssistant";
@@ -81,6 +82,7 @@ const IDE = () => {
   const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [portfolioExportOpen, setPortfolioExportOpen] = useState(false);
+  const [plotBuilderOpen, setPlotBuilderOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
@@ -863,6 +865,7 @@ Jack,30,Miami,86`,
       onShare={() => setShareDialogOpen(true)}
       onOpenTranslate={() => setTranslateDialogOpen(true)}
       onExportPortfolio={() => setPortfolioExportOpen(true)}
+      onOpenPlotBuilder={() => setPlotBuilderOpen(true)}
       currentFile={activeFile}
       isRunning={isRunning}
       scratchLanguage={scratchLanguage}
@@ -950,6 +953,7 @@ Jack,30,Miami,86`,
         toast.success(`Loaded ${name} dataset`);
       }}
       onInsertCode={handleInsertCode}
+      onOpenPlotBuilder={() => setPlotBuilderOpen(true)}
       language={scratchLanguage === 'r' ? 'r' : 'python'}
       preloadedData={preloadedFromCSV}
     />
@@ -987,6 +991,7 @@ Jack,30,Miami,86`,
                 <DatasetViewer
                   headers={currentDataset.headers}
                   data={currentDataset.data}
+                  onVisualize={() => setPlotBuilderOpen(true)}
                 />
               )}
               {dataLabComponent}
@@ -1005,6 +1010,7 @@ Jack,30,Miami,86`,
       <DatasetViewer
         headers={currentDataset.headers}
         data={currentDataset.data}
+        onVisualize={() => setPlotBuilderOpen(true)}
       />
     ) : (
       <CodeEditor
@@ -1161,6 +1167,14 @@ Jack,30,Miami,86`,
         datasets={datasets}
         plots={plotData}
         consoleOutput={consoleOutput}
+      />
+
+      <PlotBuilder
+        open={plotBuilderOpen}
+        onOpenChange={setPlotBuilderOpen}
+        datasets={datasets}
+        onInsertCode={handleInsertCode}
+        language={scratchLanguage === 'r' ? 'r' : 'python'}
       />
     </>
   );
