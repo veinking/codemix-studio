@@ -523,17 +523,27 @@ Jack,30,Miami,86`,
     setIsRunning(true);
 
     // Determine code and language
-    const code = activeFile 
-      ? (files.find(f => f.id === activeFile)?.content || '')
-      : scratchCode;
-    
-    const language = activeFile
-      ? (files.find(f => f.id === activeFile)?.language || 'python')
-      : scratchLanguage;
+    let code: string;
+    let language: 'python' | 'r' | 'javascript' | 'sql';
 
-    // Handle CSV files
-    if (language === 'csv' || language === 'plaintext') {
-      addToConsole("✗ Cannot run CSV or text files. Use the dataset viewer instead.");
+    if (currentFile && currentFile.language === 'csv') {
+      // When a CSV is active, allow running the scratch editor when in "Write Code" mode
+      if (csvViewMode === 'code') {
+        code = scratchCode;
+        language = scratchLanguage;
+      } else {
+        addToConsole("✗ This is a CSV preview. Switch to 'Write Code' to run Python or R.");
+        setIsRunning(false);
+        return;
+      }
+    } else {
+      code = activeFile ? (currentFile?.content || '') : scratchCode;
+      language = activeFile ? ((currentFile?.language as any) || 'python') : scratchLanguage;
+    }
+
+    // Block running plain text
+    if ((language as any) === 'plaintext') {
+      addToConsole("✗ Cannot run plain text files.");
       setIsRunning(false);
       return;
     }
