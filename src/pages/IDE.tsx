@@ -15,6 +15,7 @@ import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { PackageManager } from "@/components/PackageManager";
 import { FeatureDrawer } from "@/components/FeatureDrawer";
 import { SidePanel } from "@/components/SidePanel";
+import { TranslateDialog } from "@/components/TranslateDialog";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -54,6 +55,7 @@ const IDE = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const [initializedRuntimes, setInitializedRuntimes] = useState<Set<string>>(new Set());
   const [featureDrawerOpen, setFeatureDrawerOpen] = useState(false);
+  const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
   });
@@ -699,6 +701,23 @@ Jack,30,Miami,86`,
     }
   };
 
+  const handleTranslatedCode = (code: string, language: 'python' | 'r' | 'javascript' | 'sql') => {
+    if (activeFile) {
+      // If file is active, replace its content and update language
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === activeFile
+            ? { ...f, content: code, language: language }
+            : f
+        )
+      );
+    } else {
+      // If in scratch pad, replace scratch code and switch language
+      setScratchCode(code);
+      setScratchLanguage(language);
+    }
+  };
+
   const currentFile = files.find((f) => f.id === activeFile);
   const currentDataset = showDataset ? datasets.get(showDataset) : null;
 
@@ -709,6 +728,7 @@ Jack,30,Miami,86`,
       onDownload={handleDownload}
       onSaveScratchAsFile={handleSaveScratchAsFile}
       onCopyAll={handleCopyAll}
+      onOpenTranslate={() => setTranslateDialogOpen(true)}
       currentFile={activeFile}
       isRunning={isRunning}
       scratchLanguage={scratchLanguage}
@@ -770,6 +790,7 @@ Jack,30,Miami,86`,
         value={currentFile.content}
         language={currentFile.language}
         onChange={handleCodeChange}
+        isMobile={isMobile}
       />
     )
   ) : (
@@ -777,6 +798,7 @@ Jack,30,Miami,86`,
       value={scratchCode}
       language={scratchLanguage}
       onChange={handleCodeChange}
+      isMobile={isMobile}
     />
   );
 
@@ -886,6 +908,18 @@ Jack,30,Miami,86`,
       {plotData && (
         <PlotViewer plotData={plotData} onClose={() => setPlotData(null)} />
       )}
+
+      {showWelcome && (
+        <WelcomeOverlay onDismiss={() => setShowWelcome(false)} />
+      )}
+
+      <TranslateDialog
+        open={translateDialogOpen}
+        onOpenChange={setTranslateDialogOpen}
+        sourceCode={activeFile ? (currentFile?.content || '') : scratchCode}
+        sourceLanguage={activeFile ? (currentFile?.language as any || 'python') : scratchLanguage}
+        onTranslated={handleTranslatedCode}
+      />
     </>
   );
 };

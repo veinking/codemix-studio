@@ -2,3 +2,9 @@ project_id = "vlgrpycnkhjtqjkomvnk"
 
 [functions.ai-code-assistant]
 verify_jwt = false
+
+[functions.code-translator]
+verify_jwt = false
+
+[functions.lab-trainer]
+verify_jwt = false

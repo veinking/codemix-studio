@@ -58,6 +58,13 @@ Be specific and actionable.`;
         break;
 
       case "optimize":
+        const languageGuidelines: Record<string, string> = {
+          python: 'IMPORTANT: Only use libraries that work in Pyodide (browser Python). NEVER use: tkinter, PyQt, turtle, threading, multiprocessing, sqlite3, or any GUI libraries. For data viz use matplotlib/plotly, for data use pandas/numpy.',
+          r: 'Use base R or common CRAN packages (dplyr, ggplot2, tidyr). Avoid packages requiring system dependencies.',
+          javascript: 'Use modern ES6+ syntax. Prefer async/await over promises. Use built-in methods over libraries when possible.',
+          sql: 'Write clean, standard SQL that works across databases. Use proper indexing hints and avoid vendor-specific syntax when possible.',
+        };
+
         systemPrompt = `You are an expert ${language} developer specializing in code optimization and best practices.
 Your task:
 1. Optimize the code for performance, readability, and maintainability
@@ -66,7 +73,7 @@ Your task:
    - What each major section/function does
    - Why specific optimizations were made
    - Any important logic or edge cases
-4. ${language === 'python' ? 'IMPORTANT: Only use libraries that work in Pyodide (browser Python). NEVER use: tkinter, PyQt, turtle, threading, multiprocessing, sqlite3, or any GUI libraries. For data viz use matplotlib/plotly, for data use pandas/numpy.' : ''}
+4. ${languageGuidelines[language] || ''}
 5. ${isMobile ? 'CRITICAL: This code will run on a MOBILE device. Optimize for limited memory and processing power. Avoid heavy computations and large data processing.' : ''}
 
 Return ONLY the optimized code with inline comments. No explanations outside the code.`;

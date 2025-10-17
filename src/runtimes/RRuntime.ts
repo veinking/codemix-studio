@@ -11,19 +11,23 @@ export class RRuntime implements RuntimeExecutor {
     fileExtensions: ['.r', '.R'],
     color: 'hsl(var(--chart-2))',
     supportsPackages: true,
-    availableOn: 'desktop',
+    availableOn: 'all', // Now supports mobile with webR 0.3+
   };
 
   async initialize(isMobile: boolean): Promise<void> {
     if (this.isInitialized) return;
-    
-    if (isMobile) {
-      throw new Error('R runtime is not available on mobile devices');
-    }
 
     // @ts-ignore - WebR loaded via CDN
     const { WebR } = await import('https://webr.r-wasm.org/latest/webr.mjs');
-    this.webR = new WebR();
+    
+    // Configure for mobile with reduced memory footprint
+    const config = isMobile ? {
+      baseUrl: 'https://webr.r-wasm.org/latest/',
+      serviceWorkerUrl: '',
+      channelType: 'PostMessage' as const,
+    } : {};
+    
+    this.webR = new WebR(config);
     await this.webR.init();
     
     this.isInitialized = true;

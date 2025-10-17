@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -9,6 +9,7 @@ interface ToolbarProps {
   onDownload: () => void;
   onSaveScratchAsFile: () => void;
   onCopyAll: () => void;
+  onOpenTranslate?: () => void;
   currentFile: string | null;
   isRunning: boolean;
   scratchLanguage: 'python' | 'r' | 'javascript' | 'sql';
@@ -25,6 +26,7 @@ export const Toolbar = ({
   onDownload, 
   onSaveScratchAsFile,
   onCopyAll,
+  onOpenTranslate,
   currentFile, 
   isRunning,
   scratchLanguage,
@@ -48,7 +50,19 @@ export const Toolbar = ({
         )}
       </div>
       
-      <div className="flex items-center gap-2">{onOpenTools && (
+      <div className="flex items-center gap-2">
+        {onOpenTranslate && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onOpenTranslate}
+          >
+            <Languages className="w-4 h-4 mr-2" />
+            Translate
+          </Button>
+        )}
+        
+        {onOpenTools && (
           <Button
             variant="outline"
             size="sm"
