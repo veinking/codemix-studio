@@ -166,7 +166,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_stats: {
+        Args: { code_runs: number; lines: number }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Code2, Zap, Globe, Cpu, ArrowRight, Terminal, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ActivityStats } from "@/components/ActivityStats";
+import { RecentActivityFeed } from "@/components/RecentActivityFeed";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -42,6 +44,9 @@ const Landing = () => {
           </Button>
         </div>
 
+        {/* Activity Stats Banner */}
+        <ActivityStats />
+
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-6xl w-full mt-16 animate-slide-up" style={{ animationDelay: "0.2s" }}>
           <FeatureCard
@@ -78,6 +83,9 @@ const Landing = () => {
             <TechBadge icon={<Zap className="w-5 h-5" />} name="React" />
           </div>
         </div>
+
+        {/* Recent Activity Feed */}
+        <RecentActivityFeed />
 
         {/* Footer */}
         <div className="mt-20 text-center text-muted-foreground text-sm">

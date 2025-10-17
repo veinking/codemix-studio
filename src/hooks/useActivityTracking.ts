@@ -11,7 +11,7 @@ export const useActivityTracking = () => {
   const trackActivity = async (metrics: ActivityMetrics) => {
     try {
       // Increment global stats (no auth required - public table)
-      const { error: statsError } = await supabase.rpc('increment_stats', {
+      const { error: statsError } = await (supabase.rpc as any)('increment_stats', {
         code_runs: metrics.activityType === 'code_run' ? 1 : 0,
         lines: metrics.codeLines || 0
       });
