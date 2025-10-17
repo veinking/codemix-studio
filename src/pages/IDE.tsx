@@ -693,16 +693,25 @@ Jack,30,Miami,86`,
   };
 
   const handleInsertCode = (code: string) => {
+    // If viewing a CSV, always insert into scratch pad, not the CSV file
     if (activeFile) {
       const file = files.find((f) => f.id === activeFile);
-      if (file) {
+      if (file && file.language === 'csv') {
+        // Insert into scratch pad for CSV files
+        setScratchCode((prev) => prev + '\n\n' + code);
+        // Auto-switch to code view so user can see the inserted code
+        setCsvViewMode('code');
+        toast.success('Code inserted into editor');
+        return;
+      } else if (file) {
+        // Insert into regular code files
         const updatedContent = file.content + '\n\n' + code;
         handleCodeChange(updatedContent);
+        return;
       }
-    } else {
-      // Insert into scratch pad
-      setScratchCode((prev) => prev + '\n\n' + code);
     }
+    // Insert into scratch pad if no file
+    setScratchCode((prev) => prev + '\n\n' + code);
   };
 
   const handleTranslatedCode = (code: string, language: 'python' | 'r' | 'javascript' | 'sql') => {
@@ -783,6 +792,33 @@ Jack,30,Miami,86`,
     />
   );
 
+  const dataLabComponent = (
+    <DataLab
+      onLoadDataset={(rows, name) => {
+        const headers = Object.keys(rows[0] || {});
+        const data = rows.map(row => headers.map(h => String(row[h] ?? '')));
+        setDatasets(prev => new Map(prev).set(name, { headers, data }));
+        setShowDataset(name);
+        toast.success(`Loaded ${name} dataset`);
+      }}
+      onInsertCode={handleInsertCode}
+      language={scratchLanguage === 'r' ? 'r' : 'python'}
+      preloadedData={
+        currentFile?.language === 'csv' && currentDataset
+          ? {
+              rows: currentDataset.data.map((row, i) =>
+                currentDataset.headers.reduce((obj, header, j) => {
+                  obj[header] = row[j];
+                  return obj;
+                }, {} as Record<string, any>)
+              ),
+              filename: currentFile.name
+            }
+          : undefined
+      }
+    />
+  );
+
   const editorComponent = currentFile ? (
     currentFile.language === 'csv' ? (
       <div className="h-full flex flex-col">
@@ -808,17 +844,14 @@ Jack,30,Miami,86`,
         </div>
         
         {/* Content based on view mode */}
-        <div className="flex-1 overflow-hidden">
-          {csvViewMode === 'data' && currentDataset ? (
-            <DatasetViewer
-              headers={currentDataset.headers}
-              data={currentDataset.data}
-            />
+        <div className="flex-1 overflow-auto">
+          {csvViewMode === 'data' ? (
+            dataLabComponent
           ) : (
             <CodeEditor
               value={scratchCode}
               language={scratchLanguage}
-              onChange={handleCodeChange}
+              onChange={(value) => setScratchCode(value || '')}
               isMobile={isMobile}
             />
           )}
@@ -868,33 +901,6 @@ Jack,30,Miami,86`,
       onCodeUpdate={(value) => handleCodeChange(value)}
       selectedCode={selectedCode}
       isMobile={isMobile}
-    />
-  );
-
-  const dataLabComponent = (
-    <DataLab
-      onLoadDataset={(rows, name) => {
-        const headers = Object.keys(rows[0] || {});
-        const data = rows.map(row => headers.map(h => String(row[h] ?? '')));
-        setDatasets(prev => new Map(prev).set(name, { headers, data }));
-        setShowDataset(name);
-        toast.success(`Loaded ${name} dataset`);
-      }}
-      onInsertCode={handleInsertCode}
-      language={scratchLanguage === 'r' ? 'r' : 'python'}
-      preloadedData={
-        currentFile?.language === 'csv' && currentDataset
-          ? {
-              rows: currentDataset.data.map((row, i) =>
-                currentDataset.headers.reduce((obj, header, j) => {
-                  obj[header] = row[j];
-                  return obj;
-                }, {} as Record<string, any>)
-              ),
-              filename: currentFile.name
-            }
-          : undefined
-      }
     />
   );
 
