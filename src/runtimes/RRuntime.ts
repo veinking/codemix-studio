@@ -51,23 +51,36 @@ export class RRuntime implements RuntimeExecutor {
       result.output = outputStr;
       onOutput(outputStr);
 
-      // Check for plots
-      const plotCode = `
-if (length(dev.list()) > 0) {
-  tmp <- tempfile(fileext = '.png')
-  dev.copy(png, tmp, width=800, height=600)
-  dev.off()
-  base64enc::base64encode(tmp)
-} else {
-  NA
-}
-      `;
-      
-      const plotResult = await this.webR.evalR(plotCode);
-      const plotData = await plotResult.toJs();
-      
-      if (plotData && plotData !== 'NA') {
-        result.plotUrl = `data:image/png;base64,${plotData}`;
+      // Check for plots only if graphics devices are active
+      try {
+        const hasDevices = await this.webR.evalR('length(dev.list()) > 0');
+        const hasDevicesValue = await hasDevices.toJs();
+        
+        if (hasDevicesValue) {
+          // Only try to capture if base64enc is available
+          const plotCode = `
+tryCatch({
+  if (requireNamespace('base64enc', quietly = TRUE)) {
+    tmp <- tempfile(fileext = '.png')
+    dev.copy(png, tmp, width=800, height=600)
+    dev.off()
+    base64enc::base64encode(tmp)
+  } else {
+    NA
+  }
+}, error = function(e) NA)
+          `;
+          
+          const plotResult = await this.webR.evalR(plotCode);
+          const plotData = await plotResult.toJs();
+          
+          if (plotData && plotData !== 'NA' && typeof plotData === 'string') {
+            result.plotUrl = `data:image/png;base64,${plotData}`;
+          }
+        }
+      } catch (plotError) {
+        // Silently ignore plot capture errors - not critical
+        console.debug('Plot capture skipped:', plotError);
       }
 
     } catch (error: any) {
