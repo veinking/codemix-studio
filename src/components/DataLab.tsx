@@ -87,17 +87,29 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, langua
     return Array.from(new Set(s));
   };
 
-  const pythonBoilerplate = (csvName: string) => `
+  const pythonBoilerplate = (csvName: string) => `# Install required packages
+import micropip
+await micropip.install(['pandas', 'matplotlib'])
+
 import pandas as pd
 import matplotlib.pyplot as plt
+
+# Load and analyze dataset
 df = pd.read_csv('${csvName}')
+
 # Basic info
-print(df.shape); print(df.head()); print(df.isna().mean().sort_values(ascending=False))
-# Impute numerics with mean, drop rows if too many missing
+print(df.shape)
+print(df.head())
+print(df.isna().mean().sort_values(ascending=False))
+
+# Impute numerics with mean
 num_cols = df.select_dtypes(include='number').columns
 df[num_cols] = df[num_cols].fillna(df[num_cols].mean())
+
 # Example plot: histogram for numeric columns
-df[num_cols].hist(figsize=(10,6)); plt.tight_layout(); plt.show()
+df[num_cols].hist(figsize=(10,6))
+plt.tight_layout()
+plt.show()
 `;
 
   const rBoilerplate = (csvName: string) => `
