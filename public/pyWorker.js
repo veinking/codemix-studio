@@ -135,12 +135,55 @@ self.onmessage = async (e) => {
     return;
   }
 
+  // Helper: detect imports and map to Pyodide package names
+  const detectRequiredPackages = (code) => {
+    const pkgs = new Set();
+    const add = (name) => name && pkgs.add(name);
+
+    const lines = String(code).split(/\n|;/);
+    for (const raw of lines) {
+      const line = raw.trim();
+      if (!line || line.startsWith('#')) continue;
+      // import x as y, import x, y
+      const m1 = line.match(/^import\s+([^#]+)/);
+      if (m1) {
+        const names = m1[1].split(',').map(s => s.trim().split(' as ')[0]);
+        for (let n of names) {
+          if (n.startsWith('matplotlib')) add('matplotlib');
+          else if (n === 'sklearn') add('scikit-learn');
+          else if (n === 'bs4') add('beautifulsoup4');
+          else if (n === 'cv2') add('opencv-python');
+          else add(n);
+        }
+        continue;
+      }
+      // from x import y
+      const m2 = line.match(/^from\s+([\w\.]+)\s+import\s+/);
+      if (m2) {
+        let base = m2[1];
+        if (base.startsWith('matplotlib')) base = 'matplotlib';
+        if (base === 'sklearn') base = 'scikit-learn';
+        add(base.split('.')[0]);
+        continue;
+      }
+    }
+
+    // Only keep packages that Pyodide can load directly (common data-science set)
+    const supported = new Set([
+      'numpy','pandas','matplotlib','seaborn','scipy','statsmodels','scikit-learn','pyarrow'
+    ]);
+    return Array.from(pkgs).filter(p => supported.has(p));
+  };
+
   // =============== RUN PYTHON ===============
   if (msg.type === "run") {
     try {
       await initPyodideSafe();
-      await ensurePackage("micropip");
-      // eslint-disable-next-line no-undef
+      // Preload common packages if required by the code
+      const required = detectRequiredPackages(msg.code);
+      for (const pkg of required) {
+        await ensurePackage(pkg);
+      }
       const result = await pyodide.runPythonAsync(msg.code);
       self.postMessage({ type: "result", result });
     } catch (err) {
@@ -155,10 +198,7 @@ self.onmessage = async (e) => {
       await initPyodideSafe();
       await ensurePackage("micropip");
       // eslint-disable-next-line no-undef
-      await pyodide.runPythonAsync(`
-import micropip
-await micropip.install("${msg.name}")
-`);
+      await pyodide.runPythonAsync(`\nimport micropip\nawait micropip.install("${msg.name}")\n`);
       self.postMessage({
         type: "installed",
         name: msg.name,

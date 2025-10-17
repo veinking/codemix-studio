@@ -87,14 +87,13 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, langua
     return Array.from(new Set(s));
   };
 
-  const pythonBoilerplate = (csvName: string) => `# Install required packages
-import micropip
-await micropip.install(['pandas', 'matplotlib'])
+  const pythonBoilerplate = (csvName: string) => `# Load required packages from Pyodide (offline-friendly)
+import pyodide
+await pyodide.loadPackage(['pandas','matplotlib'])
 
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# Load and analyze dataset
 df = pd.read_csv('${csvName}')
 
 # Basic info
