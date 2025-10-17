@@ -14,7 +14,7 @@ const registerCompletionProviders = (monaco: any) => {
   if (providersRegistered) return;
   providersRegistered = true;
 
-  // Python completion items
+  // Python keywords
   const pythonCompletions = [
     'print', 'input', 'len', 'range', 'type', 'str', 'int', 'float', 'list', 'dict',
     'tuple', 'set', 'True', 'False', 'None', 'if', 'else', 'elif', 'for', 'while',
@@ -24,7 +24,17 @@ const registerCompletionProviders = (monaco: any) => {
     'max', 'min', 'abs', 'sum', 'all', 'any', 'round', 'pow', 'isinstance', 'hasattr'
   ];
 
-  // R completion items
+  // Python snippets for common patterns
+  const pythonSnippets = [
+    { label: 'import pandas as pd', text: 'import pandas as pd', detail: 'Import pandas' },
+    { label: 'import numpy as np', text: 'import numpy as np', detail: 'Import NumPy' },
+    { label: 'import matplotlib.pyplot as plt', text: 'import matplotlib.pyplot as plt', detail: 'Import Matplotlib' },
+    { label: 'pd.read_csv()', text: 'pd.read_csv("${1:file.csv}")', detail: 'Read CSV file' },
+    { label: 'df.head()', text: 'df.head(${1:5})', detail: 'View first rows' },
+    { label: 'for loop', text: 'for ${1:item} in ${2:items}:\n    ${3:pass}', detail: 'For loop' },
+  ];
+
+  // R keywords
   const rCompletions = [
     'print', 'cat', 'length', 'c', 'seq', 'rep', 'list', 'data.frame', 'matrix',
     'vector', 'factor', 'mean', 'sum', 'sd', 'var', 'min', 'max', 'range',
@@ -32,6 +42,16 @@ const registerCompletionProviders = (monaco: any) => {
     'TRUE', 'FALSE', 'NULL', 'NA', 'plot', 'ggplot', 'read.csv', 'write.csv',
     'head', 'tail', 'str', 'summary', 'nrow', 'ncol', 'dim', 'names', 'lapply',
     'sapply', 'apply', 'subset', 'merge', 'aggregate', 'lm', 'glm', 'predict'
+  ];
+
+  // R snippets for common patterns
+  const rSnippets = [
+    { label: 'library(ggplot2)', text: 'library(ggplot2)', detail: 'Load ggplot2' },
+    { label: 'library(dplyr)', text: 'library(dplyr)', detail: 'Load dplyr' },
+    { label: 'library(tidyr)', text: 'library(tidyr)', detail: 'Load tidyr' },
+    { label: 'read.csv()', text: 'read.csv("${1:file.csv}")', detail: 'Read CSV' },
+    { label: 'ggplot()', text: 'ggplot(${1:data}, aes(x=${2:x}, y=${3:y})) +\n  geom_${4:point}()', detail: 'Create ggplot' },
+    { label: 'for loop', text: 'for (${1:i} in ${2:1:10}) {\n  ${3}\n}', detail: 'For loop' },
   ];
 
   // JavaScript completion items
@@ -56,7 +76,7 @@ const registerCompletionProviders = (monaco: any) => {
     'VARCHAR', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'REAL', 'BLOB'
   ];
 
-  const mkProvider = (keywords: string[]) => ({
+  const mkProvider = (keywords: string[], snippets: Array<{label: string, text: string, detail: string}> = []) => ({
     provideCompletionItems: (model: any, position: any) => {
       const word = model.getWordUntilPosition(position);
       const range = {
@@ -65,20 +85,36 @@ const registerCompletionProviders = (monaco: any) => {
         startColumn: word.startColumn,
         endColumn: word.endColumn,
       };
-      return {
-        suggestions: keywords.map((label) => ({
+      
+      const keywordSuggestions = keywords
+        .filter(k => k.toLowerCase().includes(word.word.toLowerCase()))
+        .map((label) => ({
           label,
           kind: monaco.languages.CompletionItemKind.Keyword,
           insertText: label,
           range,
-        })),
+        }));
+
+      const snippetSuggestions = snippets
+        .filter(s => s.label.toLowerCase().includes(word.word.toLowerCase()))
+        .map((snippet) => ({
+          label: snippet.label,
+          kind: monaco.languages.CompletionItemKind.Snippet,
+          insertText: snippet.text,
+          insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+          detail: snippet.detail,
+          range,
+        }));
+
+      return {
+        suggestions: [...snippetSuggestions, ...keywordSuggestions],
       };
     },
   });
 
-  // Register all language providers
-  monaco.languages.registerCompletionItemProvider('python', mkProvider(pythonCompletions));
-  monaco.languages.registerCompletionItemProvider('r', mkProvider(rCompletions));
+  // Register all language providers with snippets
+  monaco.languages.registerCompletionItemProvider('python', mkProvider(pythonCompletions, pythonSnippets));
+  monaco.languages.registerCompletionItemProvider('r', mkProvider(rCompletions, rSnippets));
   monaco.languages.registerCompletionItemProvider('javascript', mkProvider(jsCompletions));
   monaco.languages.registerCompletionItemProvider('sql', mkProvider(sqlCompletions));
 };
