@@ -47,18 +47,32 @@ export class RRuntime implements RuntimeExecutor {
       const evalResult = await this.webR.evalR(code);
       const output = await evalResult.toJs();
       
-      const outputStr = JSON.stringify(output, null, 2);
-      result.output = outputStr;
-      onOutput(outputStr);
+      // Only print meaningful output (skip NULL/empty from assignments)
+      const isEmptyOutput =
+        output === null ||
+        typeof output === 'undefined' ||
+        (typeof output === 'object' && !Array.isArray(output) && Object.keys(output).length === 0) ||
+        (Array.isArray(output) && output.length === 0) ||
+        output === '';
+      
+      if (!isEmptyOutput) {
+        const outputStr = typeof output === 'string' ? output : JSON.stringify(output, null, 2);
+        result.output = outputStr;
+        onOutput(outputStr);
+      }
 
-      // Check for plots only if graphics devices are active
-      try {
-        const hasDevices = await this.webR.evalR('length(dev.list()) > 0');
-        const hasDevicesValue = await hasDevices.toJs();
-        
-        if (hasDevicesValue) {
-          // Only try to capture if base64enc is available
-          const plotCode = `
+      // Heuristic: only attempt plot capture if code likely produced a plot
+      const likelyPlots = /(\bplot\s*\(|ggplot|geom_|hist\s*\(|barplot\s*\(|boxplot\s*\(|image\s*\(|heatmap\s*\()/i.test(code);
+
+      // Check for plots only if code likely plots and graphics devices are active
+      if (likelyPlots) {
+        try {
+          const hasDevices = await this.webR.evalR('length(dev.list()) > 0');
+          const hasDevicesValue = await hasDevices.toJs();
+          
+          if (hasDevicesValue) {
+            // Only try to capture if base64enc is available
+            const plotCode = `
 tryCatch({
   if (requireNamespace('base64enc', quietly = TRUE)) {
     tmp <- tempfile(fileext = '.png')
@@ -69,18 +83,19 @@ tryCatch({
     NA
   }
 }, error = function(e) NA)
-          `;
-          
-          const plotResult = await this.webR.evalR(plotCode);
-          const plotData = await plotResult.toJs();
-          
-          if (plotData && plotData !== 'NA' && typeof plotData === 'string') {
-            result.plotUrl = `data:image/png;base64,${plotData}`;
+            `;
+            
+            const plotResult = await this.webR.evalR(plotCode);
+            const plotData = await plotResult.toJs();
+            
+            if (plotData && plotData !== 'NA' && typeof plotData === 'string') {
+              result.plotUrl = `data:image/png;base64,${plotData}`;
+            }
           }
+        } catch (plotError) {
+          // Silently ignore plot capture errors - not critical
+          console.debug('Plot capture skipped:', plotError);
         }
-      } catch (plotError) {
-        // Silently ignore plot capture errors - not critical
-        console.debug('Plot capture skipped:', plotError);
       }
 
     } catch (error: any) {
