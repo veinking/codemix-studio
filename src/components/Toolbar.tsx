@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3 } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -13,6 +13,8 @@ interface ToolbarProps {
   onOpenTranslate?: () => void;
   onExportPortfolio?: () => void;
   onOpenPlotBuilder?: () => void;
+  onToggleNotebook?: () => void;
+  isNotebookMode?: boolean;
   currentFile: string | null;
   isRunning: boolean;
   scratchLanguage: 'python' | 'r' | 'javascript' | 'sql';
@@ -33,6 +35,8 @@ export const Toolbar = ({
   onOpenTranslate,
   onExportPortfolio,
   onOpenPlotBuilder,
+  onToggleNotebook,
+  isNotebookMode = false,
   currentFile, 
   isRunning,
   scratchLanguage,
@@ -96,6 +100,17 @@ export const Toolbar = ({
           >
             <BarChart3 className="w-4 h-4 mr-2" />
             Plot Builder
+          </Button>
+        )}
+
+        {onToggleNotebook && !currentFile && (
+          <Button
+            variant={isNotebookMode ? "default" : "outline"}
+            size="sm"
+            onClick={onToggleNotebook}
+          >
+            <BookOpen className="w-4 h-4 mr-2" />
+            {isNotebookMode ? 'Exit' : 'Notebook'}
           </Button>
         )}
         

@@ -1,5 +1,31 @@
 # OpenIDE – Change Log (Latest Patch)
 
+## [2025-10-17 - Notebook Mode]
+
+### Added
+- **Notebook Mode**: Jupyter-style notebook interface with code and markdown cells
+  - Mix code execution and documentation in a single interface
+  - Execute cells independently with inline output
+  - Support for Python, R, JavaScript, and SQL
+  - Markdown rendering with GitHub Flavored Markdown support
+  - Cell management: add, delete, reorder, and move cells up/down
+  - Export to `.ipynb` (Jupyter) and `.Rmd` (R Markdown) formats
+  - Import existing notebook files (.ipynb, .Rmd)
+  - "Run All" button to execute all code cells sequentially
+  - Individual cell execution with Run button per cell
+  - Toggle between standard editor and notebook mode via toolbar
+  - Educational features with formatted markdown cells
+
+### Files Modified
+- src/components/NotebookMode.tsx (new)
+- src/components/NotebookCell.tsx (new)
+- src/components/Toolbar.tsx
+- src/pages/IDE.tsx
+
+---
+
+## [2025-10-17 - CSV Flow Improvements]
+
 Date: 2025-10-17
 
 Summary: Addressed CSV flow issues, restored data grid preview alongside DataLab, and stabilized Python (Pyodide) package loading. Improved robustness on mobile.

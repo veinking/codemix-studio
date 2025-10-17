@@ -8,6 +8,7 @@ import { DatasetViewer } from "@/components/DatasetViewer";
 import DataLab from "@/components/DataLab";
 import { PlotViewer } from "@/components/PlotViewer";
 import { PlotBuilder } from "@/components/PlotBuilder";
+import { NotebookMode } from "@/components/NotebookMode";
 import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { DesktopLayout } from "@/components/layouts/DesktopLayout";
 import { AIAssistant } from "@/components/AIAssistant";
@@ -83,6 +84,7 @@ const IDE = () => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [portfolioExportOpen, setPortfolioExportOpen] = useState(false);
   const [plotBuilderOpen, setPlotBuilderOpen] = useState(false);
+  const [isNotebookMode, setIsNotebookMode] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
@@ -852,6 +854,43 @@ Jack,30,Miami,86`,
     }
   };
 
+  const handleExecuteNotebookCell = async (code: string): Promise<{ output: string; error?: string }> => {
+    // Use the scratch language for notebook cells
+    const runtime = RuntimeRegistry.get(scratchLanguage);
+    if (!runtime) {
+      return { output: '', error: `Runtime for ${scratchLanguage} not found` };
+    }
+
+    if (!runtime.isInitialized) {
+      await runtime.initialize(isMobile);
+      setInitializedRuntimes((prev) => new Set([...prev, scratchLanguage]));
+    }
+
+    let capturedOutput = '';
+    const result = await runtime.execute(code, (text) => {
+      capturedOutput += text + '\n';
+    });
+
+    // Handle datasets from result
+    if (result.datasets && result.datasets.length > 0) {
+      const newDatasets = new Map(datasets);
+      result.datasets.forEach((ds) => {
+        newDatasets.set(ds.name, { headers: ds.headers, data: ds.data });
+      });
+      setDatasets(newDatasets);
+    }
+
+    // Handle plot URLs
+    if (result.plotUrl) {
+      setPlotData(result.plotUrl);
+    }
+
+    return {
+      output: result.output || capturedOutput,
+      error: result.error
+    };
+  };
+
   const currentFile = files.find((f) => f.id === activeFile);
   const currentDataset = showDataset ? datasets.get(showDataset) : null;
 
@@ -866,6 +905,8 @@ Jack,30,Miami,86`,
       onOpenTranslate={() => setTranslateDialogOpen(true)}
       onExportPortfolio={() => setPortfolioExportOpen(true)}
       onOpenPlotBuilder={() => setPlotBuilderOpen(true)}
+      onToggleNotebook={() => setIsNotebookMode(prev => !prev)}
+      isNotebookMode={isNotebookMode}
       currentFile={activeFile}
       isRunning={isRunning}
       scratchLanguage={scratchLanguage}
@@ -959,7 +1000,14 @@ Jack,30,Miami,86`,
     />
   );
 
-  const editorComponent = currentFile ? (
+  const editorComponent = isNotebookMode && !currentFile ? (
+    <NotebookMode
+      language={scratchLanguage}
+      onExecuteCell={handleExecuteNotebookCell}
+      isRunning={isRunning}
+      isMobile={isMobile}
+    />
+  ) : currentFile ? (
     currentFile.language === 'csv' ? (
       <div className="h-full flex flex-col">
         {/* CSV Toggle Bar */}

@@ -1,0 +1,302 @@
+import React, { useState, useCallback } from 'react';
+import { NotebookCell, NotebookCellData } from './NotebookCell';
+import { Button } from './ui/button';
+import { ScrollArea } from './ui/scroll-area';
+import { Play, Plus, Download, FileUp } from 'lucide-react';
+import { toast } from 'sonner';
+import { saveAs } from 'file-saver';
+
+interface NotebookModeProps {
+  language: 'python' | 'r' | 'javascript' | 'sql';
+  onExecuteCell: (code: string) => Promise<{ output: string; error?: string }>;
+  isRunning: boolean;
+  isMobile?: boolean;
+}
+
+export const NotebookMode: React.FC<NotebookModeProps> = ({
+  language,
+  onExecuteCell,
+  isRunning,
+  isMobile = false
+}) => {
+  const [cells, setCells] = useState<NotebookCellData[]>([
+    {
+      id: crypto.randomUUID(),
+      type: 'markdown',
+      content: '# My Notebook\n\nWelcome! This is a notebook where you can mix code and documentation.'
+    },
+    {
+      id: crypto.randomUUID(),
+      type: 'code',
+      content: language === 'python' 
+        ? '# Write your Python code here\nprint("Hello from notebook!")'
+        : language === 'r'
+        ? '# Write your R code here\nprint("Hello from notebook!")'
+        : language === 'javascript'
+        ? '// Write your JavaScript code here\nconsole.log("Hello from notebook!");'
+        : '-- Write your SQL code here\nSELECT "Hello from notebook!" AS message;'
+    }
+  ]);
+  const [runningCellId, setRunningCellId] = useState<string | null>(null);
+
+  const handleRunCell = useCallback(async (cellId: string) => {
+    const cell = cells.find(c => c.id === cellId);
+    if (!cell || cell.type !== 'code') return;
+
+    setRunningCellId(cellId);
+    
+    try {
+      const result = await onExecuteCell(cell.content);
+      setCells(prev => prev.map(c => 
+        c.id === cellId 
+          ? { ...c, output: result.output, isError: !!result.error }
+          : c
+      ));
+    } catch (error) {
+      setCells(prev => prev.map(c => 
+        c.id === cellId 
+          ? { ...c, output: error instanceof Error ? error.message : 'Execution failed', isError: true }
+          : c
+      ));
+    } finally {
+      setRunningCellId(null);
+    }
+  }, [cells, onExecuteCell]);
+
+  const handleRunAll = useCallback(async () => {
+    const codeCells = cells.filter(c => c.type === 'code');
+    
+    for (const cell of codeCells) {
+      await handleRunCell(cell.id);
+    }
+    
+    toast.success(`Ran ${codeCells.length} code cells`);
+  }, [cells, handleRunCell]);
+
+  const handleAddCell = useCallback((afterId: string | null, type: 'code' | 'markdown') => {
+    const newCell: NotebookCellData = {
+      id: crypto.randomUUID(),
+      type,
+      content: type === 'code' 
+        ? (language === 'python' ? '# New code cell\n' 
+           : language === 'r' ? '# New code cell\n'
+           : language === 'javascript' ? '// New code cell\n'
+           : '-- New code cell\n')
+        : '## New Section\n\nWrite your documentation here...'
+    };
+
+    setCells(prev => {
+      if (afterId === null) {
+        return [...prev, newCell];
+      }
+      const index = prev.findIndex(c => c.id === afterId);
+      return [
+        ...prev.slice(0, index + 1),
+        newCell,
+        ...prev.slice(index + 1)
+      ];
+    });
+  }, [language]);
+
+  const handleDeleteCell = useCallback((cellId: string) => {
+    setCells(prev => prev.filter(c => c.id !== cellId));
+    toast.success('Cell deleted');
+  }, []);
+
+  const handleContentChange = useCallback((cellId: string, content: string) => {
+    setCells(prev => prev.map(c => 
+      c.id === cellId ? { ...c, content } : c
+    ));
+  }, []);
+
+  const handleMoveUp = useCallback((cellId: string) => {
+    setCells(prev => {
+      const index = prev.findIndex(c => c.id === cellId);
+      if (index <= 0) return prev;
+      
+      const newCells = [...prev];
+      [newCells[index - 1], newCells[index]] = [newCells[index], newCells[index - 1]];
+      return newCells;
+    });
+  }, []);
+
+  const handleMoveDown = useCallback((cellId: string) => {
+    setCells(prev => {
+      const index = prev.findIndex(c => c.id === cellId);
+      if (index === -1 || index >= prev.length - 1) return prev;
+      
+      const newCells = [...prev];
+      [newCells[index], newCells[index + 1]] = [newCells[index + 1], newCells[index]];
+      return newCells;
+    });
+  }, []);
+
+  const handleExportNotebook = useCallback(() => {
+    const notebook = {
+      metadata: {
+        kernelspec: {
+          display_name: language === 'python' ? 'Python 3' : language === 'r' ? 'R' : language,
+          language: language,
+          name: language
+        }
+      },
+      nbformat: 4,
+      nbformat_minor: 5,
+      cells: cells.map(cell => ({
+        cell_type: cell.type === 'code' ? 'code' : 'markdown',
+        metadata: {},
+        source: cell.content.split('\n'),
+        ...(cell.type === 'code' && {
+          execution_count: null,
+          outputs: cell.output ? [{
+            output_type: cell.isError ? 'error' : 'stream',
+            name: cell.isError ? 'stderr' : 'stdout',
+            text: cell.output.split('\n')
+          }] : []
+        })
+      }))
+    };
+
+    const blob = new Blob([JSON.stringify(notebook, null, 2)], { type: 'application/json' });
+    const ext = language === 'python' ? 'ipynb' : language === 'r' ? 'Rmd' : 'ipynb';
+    saveAs(blob, `notebook.${ext}`);
+    toast.success('Notebook exported successfully');
+  }, [cells, language]);
+
+  const handleImportNotebook = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const notebook = JSON.parse(content);
+        
+        const importedCells: NotebookCellData[] = notebook.cells.map((cell: any) => ({
+          id: crypto.randomUUID(),
+          type: cell.cell_type === 'code' ? 'code' : 'markdown',
+          content: Array.isArray(cell.source) ? cell.source.join('\n') : cell.source,
+          output: cell.outputs?.[0]?.text ? 
+            (Array.isArray(cell.outputs[0].text) ? cell.outputs[0].text.join('\n') : cell.outputs[0].text)
+            : undefined,
+          isError: cell.outputs?.[0]?.output_type === 'error'
+        }));
+
+        setCells(importedCells);
+        toast.success('Notebook imported successfully');
+      } catch (error) {
+        toast.error('Failed to import notebook');
+      }
+    };
+    reader.readAsText(file);
+  }, []);
+
+  return (
+    <div className="h-full flex flex-col bg-background">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
+        <h2 className="text-lg font-semibold">Notebook Mode</h2>
+        <div className="flex items-center gap-2">
+          <input
+            type="file"
+            accept=".ipynb,.Rmd"
+            onChange={handleImportNotebook}
+            className="hidden"
+            id="notebook-import"
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => document.getElementById('notebook-import')?.click()}
+          >
+            <FileUp className="w-4 h-4 mr-2" />
+            Import
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExportNotebook}
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+          
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleRunAll}
+            disabled={isRunning}
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Run All
+          </Button>
+        </div>
+      </div>
+
+      {/* Cells */}
+      <ScrollArea className="flex-1 px-4 py-4">
+        {cells.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground">
+            <p className="mb-4">No cells yet. Add your first cell below!</p>
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleAddCell(null, 'code')}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Code Cell
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleAddCell(null, 'markdown')}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Markdown Cell
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {cells.map((cell, index) => (
+              <NotebookCell
+                key={cell.id}
+                cell={cell}
+                language={language}
+                isRunning={runningCellId === cell.id}
+                onRun={handleRunCell}
+                onDelete={handleDeleteCell}
+                onContentChange={handleContentChange}
+                onAddBelow={(cellId, type) => handleAddCell(cellId, type)}
+                onMoveUp={handleMoveUp}
+                onMoveDown={handleMoveDown}
+                canMoveUp={index > 0}
+                canMoveDown={index < cells.length - 1}
+                isMobile={isMobile}
+              />
+            ))}
+            
+            {/* Add cell at end */}
+            <div className="flex items-center justify-center gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => handleAddCell(null, 'code')}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Code Cell
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleAddCell(null, 'markdown')}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Markdown Cell
+              </Button>
+            </div>
+          </>
+        )}
+      </ScrollArea>
+    </div>
+  );
+};
