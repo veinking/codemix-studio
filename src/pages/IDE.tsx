@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Papa from 'papaparse';
 import { FileExplorer } from "@/components/FileExplorer";
 import { CodeEditor } from "@/components/CodeEditor";
@@ -810,7 +810,7 @@ Jack,30,Miami,86`,
     />
   );
 
-  const preloadedFromCSV = (() => {
+  const preloadedFromCSV = useMemo(() => {
     if (currentFile?.language !== 'csv') return undefined;
     if (currentDataset) {
       return {
@@ -818,7 +818,7 @@ Jack,30,Miami,86`,
           currentDataset.headers.reduce((obj, header, j) => {
             obj[header] = row[j];
             return obj;
-          }, {} as Record<string, any>)
+            }, {} as Record<string, any>)
         ),
         filename: currentFile.name,
       };
@@ -835,7 +835,7 @@ Jack,30,Miami,86`,
       }
     } catch {}
     return undefined;
-  })();
+  }, [currentFile, currentDataset]);
 
   const dataLabComponent = (
     <DataLab

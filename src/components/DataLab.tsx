@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -36,14 +36,15 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, langua
 
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
 
-  // Load preloaded data if provided or when it changes
-  useMemo(() => {
-    if (preloadedData && preloadedData.rows.length > 0) {
+  // Load preloaded data once per filename change to avoid loops
+  useEffect(() => {
+    if (!preloadedData || preloadedData.rows.length === 0) return;
+    if (preloadedData.filename !== filename) {
       setFilename(preloadedData.filename);
       setRows(preloadedData.rows);
       setAnalysis(analyzeDataset(preloadedData.rows));
     }
-  }, [preloadedData]);
+  }, [preloadedData, filename]);
 
   const handleFile = (file: File) => {
     setFilename(file.name);
