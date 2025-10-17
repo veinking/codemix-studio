@@ -29,7 +29,7 @@ const LANGUAGES = [
     label: 'R', 
     icon: '📊',
     color: 'hsl(var(--chart-2))',
-    availableOn: 'desktop'
+    availableOn: 'all'
   },
   { 
     value: 'javascript' as const, 
