@@ -47,71 +47,80 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
   const [isEditing, setIsEditing] = useState(cell.type === 'code' || cell.content === '');
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-card mb-3 shadow-sm">
+    <div className={cn(
+      "border border-border rounded-lg overflow-hidden bg-card shadow-sm",
+      isMobile ? "mb-2" : "mb-3"
+    )}>
       {/* Cell Header - Optimized for Mobile */}
-      <div className="flex items-center justify-between px-3 py-3 bg-muted/50 border-b border-border">
-        <div className="flex items-center gap-2">
-          {cell.type === 'code' ? (
-            <Code className={cn("text-primary", isMobile ? "w-5 h-5" : "w-4 h-4")} />
-          ) : (
-            <FileText className={cn("text-muted-foreground", isMobile ? "w-5 h-5" : "w-4 h-4")} />
-          )}
-          <span className={cn("font-medium text-muted-foreground uppercase", isMobile ? "text-sm" : "text-xs")}>
-            {cell.type === 'code' ? `${language} Code` : 'Markdown'}
-          </span>
-        </div>
+      <div className={cn(
+        "flex items-center justify-between bg-muted/50 border-b border-border",
+        isMobile ? "px-2 py-2" : "px-3 py-3"
+      )}>
+        {!isMobile && (
+          <div className="flex items-center gap-2">
+            {cell.type === 'code' ? (
+              <Code className="text-primary w-4 h-4" />
+            ) : (
+              <FileText className="text-muted-foreground w-4 h-4" />
+            )}
+            <span className="font-medium text-muted-foreground uppercase text-xs">
+              {cell.type === 'code' ? `${language} Code` : 'Markdown'}
+            </span>
+          </div>
+        )}
+        {isMobile && <div />}
 
-        <div className="flex items-center gap-1">
+        <div className={cn("flex items-center", isMobile ? "gap-0.5" : "gap-1")}>
           {cell.type === 'code' && (
             <Button
               variant="ghost"
-              size={isMobile ? "default" : "sm"}
+              size="sm"
               onClick={() => onRun(cell.id)}
               disabled={isRunning}
-              className={cn(isMobile ? "h-9 w-9" : "h-7 px-2")}
+              className={cn(isMobile ? "h-8 w-8 p-0" : "h-7 px-2")}
             >
-              <Play className={cn(isMobile ? "w-4 h-4" : "w-3 h-3")} />
+              <Play className={cn(isMobile ? "w-3.5 h-3.5" : "w-3 h-3")} />
             </Button>
           )}
           
           <Button
             variant="ghost"
-            size={isMobile ? "default" : "sm"}
+            size="sm"
             onClick={() => onMoveUp(cell.id)}
             disabled={!canMoveUp}
-            className={cn(isMobile ? "h-9 w-9" : "h-7 px-2")}
+            className={cn(isMobile ? "h-8 w-8 p-0" : "h-7 px-2")}
           >
-            <ChevronUp className={cn(isMobile ? "w-4 h-4" : "w-3 h-3")} />
+            <ChevronUp className={cn(isMobile ? "w-3.5 h-3.5" : "w-3 h-3")} />
           </Button>
           
           <Button
             variant="ghost"
-            size={isMobile ? "default" : "sm"}
+            size="sm"
             onClick={() => onMoveDown(cell.id)}
             disabled={!canMoveDown}
-            className={cn(isMobile ? "h-9 w-9" : "h-7 px-2")}
+            className={cn(isMobile ? "h-8 w-8 p-0" : "h-7 px-2")}
           >
-            <ChevronDown className={cn(isMobile ? "w-4 h-4" : "w-3 h-3")} />
+            <ChevronDown className={cn(isMobile ? "w-3.5 h-3.5" : "w-3 h-3")} />
           </Button>
           
           <Button
             variant="ghost"
-            size={isMobile ? "default" : "sm"}
+            size="sm"
             onClick={() => onDelete(cell.id)}
             className={cn(
               "text-destructive hover:text-destructive",
-              isMobile ? "h-9 w-9" : "h-7 px-2"
+              isMobile ? "h-8 w-8 p-0" : "h-7 px-2"
             )}
           >
-            <Trash2 className={cn(isMobile ? "w-4 h-4" : "w-3 h-3")} />
+            <Trash2 className={cn(isMobile ? "w-3.5 h-3.5" : "w-3 h-3")} />
           </Button>
         </div>
       </div>
 
       {/* Cell Content */}
-      <div className={cn("p-3", isMobile && "p-4")}>
+      <div className={cn("p-3", isMobile && "p-2")}>
         {cell.type === 'code' ? (
-          <div className={cn(isMobile ? "min-h-[120px]" : "min-h-[100px]")}>
+          <div className={cn(isMobile ? "h-[180px]" : "h-[200px]")}>
             <CodeEditor
               value={cell.content}
               language={language}
@@ -149,10 +158,10 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
 
       {/* Cell Output */}
       {cell.output && (
-        <div className={cn(isMobile ? "px-4 pb-4" : "px-3 pb-3")}>
+        <div className={cn(isMobile ? "px-2 pb-2" : "px-3 pb-3")}>
           <div className={cn(
             "rounded-md font-mono whitespace-pre-wrap",
-            isMobile ? "p-4 text-base" : "p-3 text-sm",
+            isMobile ? "p-2 text-sm" : "p-3 text-sm",
             cell.isError ? "bg-destructive/10 text-destructive border border-destructive/20" : "bg-muted"
           )}>
             {cell.output}
@@ -160,30 +169,29 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
         </div>
       )}
 
-      {/* Add Cell Buttons - Mobile Optimized */}
-      <div className={cn(
-        "flex items-center justify-center gap-2 border-t border-border/50 bg-muted/30",
-        isMobile ? "px-4 py-3" : "px-3 py-2"
-      )}>
-        <Button
-          variant="outline"
-          size={isMobile ? "default" : "sm"}
-          onClick={() => onAddBelow(cell.id, 'code')}
-          className={cn(isMobile ? "h-10 px-4" : "h-7")}
-        >
-          <Plus className={cn(isMobile ? "w-4 h-4 mr-2" : "w-3 h-3 mr-1")} />
-          Code
-        </Button>
-        <Button
-          variant="outline"
-          size={isMobile ? "default" : "sm"}
-          onClick={() => onAddBelow(cell.id, 'markdown')}
-          className={cn(isMobile ? "h-10 px-4" : "h-7")}
-        >
-          <Plus className={cn(isMobile ? "w-4 h-4 mr-2" : "w-3 h-3 mr-1")} />
-          Markdown
-        </Button>
-      </div>
+      {/* Add Cell Buttons - Hidden on mobile, shown at notebook end */}
+      {!isMobile && (
+        <div className="flex items-center justify-center gap-2 border-t border-border/50 bg-muted/30 px-3 py-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onAddBelow(cell.id, 'code')}
+            className="h-7"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Code
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onAddBelow(cell.id, 'markdown')}
+            className="h-7"
+          >
+            <Plus className="w-3 h-3 mr-1" />
+            Markdown
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

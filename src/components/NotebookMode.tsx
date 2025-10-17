@@ -198,10 +198,10 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
       {/* Toolbar - Mobile Optimized */}
       <div className={cn(
         "flex items-center justify-between border-b border-border bg-card",
-        isMobile ? "px-3 py-3" : "px-4 py-2"
+        isMobile ? "px-2 py-2" : "px-4 py-2"
       )}>
-        <h2 className={cn("font-semibold", isMobile ? "text-base" : "text-lg")}>Notebook Mode</h2>
-        <div className="flex items-center gap-1">
+        <h2 className={cn("font-semibold", isMobile ? "text-sm" : "text-lg")}>Notebook</h2>
+        <div className={cn("flex items-center", isMobile ? "gap-0.5" : "gap-1")}>
           <input
             type="file"
             accept=".ipynb,.Rmd"
@@ -243,15 +243,15 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
       </div>
 
       {/* Cells - Mobile Optimized Scrolling */}
-      <ScrollArea className={cn("flex-1", isMobile ? "px-3 py-3" : "px-4 py-4")}>
+      <ScrollArea className={cn("flex-1", isMobile ? "px-2 py-2" : "px-4 py-4")}>
         {cells.length === 0 ? (
           <div className={cn("text-center text-muted-foreground", isMobile ? "py-8" : "py-12")}>
-            <p className={cn("mb-4", isMobile ? "text-base" : "text-sm")}>No cells yet. Add your first cell below!</p>
-            <div className={cn("flex items-center justify-center", isMobile ? "flex-col gap-3" : "gap-2")}>
+            <p className={cn("mb-4", isMobile ? "text-sm" : "text-sm")}>No cells yet. Add your first cell below!</p>
+            <div className={cn("flex items-center justify-center", isMobile ? "flex-col gap-2" : "gap-2")}>
               <Button
                 variant="outline"
                 onClick={() => handleAddCell(null, 'code')}
-                className={cn(isMobile && "w-full max-w-xs h-11")}
+                className={cn(isMobile && "w-full max-w-xs h-10")}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Code Cell
@@ -259,7 +259,7 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
               <Button
                 variant="outline"
                 onClick={() => handleAddCell(null, 'markdown')}
-                className={cn(isMobile && "w-full max-w-xs h-11")}
+                className={cn(isMobile && "w-full max-w-xs h-10")}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Markdown Cell
@@ -287,11 +287,14 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
             ))}
             
             {/* Add cell at end - Mobile Optimized */}
-            <div className={cn("flex items-center justify-center mt-4", isMobile ? "flex-col gap-3" : "gap-2")}>
+            <div className={cn(
+              "flex items-center justify-center border-t border-border/30 pt-3 mt-2",
+              isMobile ? "flex-col gap-2" : "gap-2"
+            )}>
               <Button
                 variant="outline"
                 onClick={() => handleAddCell(null, 'code')}
-                className={cn(isMobile && "w-full max-w-xs h-11")}
+                className={cn(isMobile && "w-full h-10")}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Code Cell
@@ -299,7 +302,7 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
               <Button
                 variant="outline"
                 onClick={() => handleAddCell(null, 'markdown')}
-                className={cn(isMobile && "w-full max-w-xs h-11")}
+                className={cn(isMobile && "w-full h-10")}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Markdown Cell
