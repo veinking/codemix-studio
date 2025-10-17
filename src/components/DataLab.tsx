@@ -36,9 +36,9 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, langua
 
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
 
-  // Load preloaded data if provided
+  // Load preloaded data if provided or when it changes
   useMemo(() => {
-    if (preloadedData && preloadedData.rows.length > 0 && rows.length === 0) {
+    if (preloadedData && preloadedData.rows.length > 0) {
       setFilename(preloadedData.filename);
       setRows(preloadedData.rows);
       setAnalysis(analyzeDataset(preloadedData.rows));

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import Papa from 'papaparse';
 import { FileExplorer } from "@/components/FileExplorer";
 import { CodeEditor } from "@/components/CodeEditor";
 import { ConsolePanel } from "@/components/ConsolePanel";
@@ -368,18 +369,28 @@ Jack,30,Miami,86`,
   };
 
   const parseCSV = (content: string, fileName: string) => {
-    const lines = content.split('\n').filter(line => line.trim());
-    if (lines.length === 0) return;
-    
-    const headers = lines[0].split(',').map(h => h.trim());
-    const data = lines.slice(1).map(line => 
-      line.split(',').map(cell => cell.trim())
-    );
-    
-    setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
-    
-    // Log dataset stats
-    addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
+    try {
+      // Prefer Papa Parse for robustness
+      const res = Papa.parse<Record<string, any>>(content, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+      });
+      const headers = res.meta.fields || Object.keys(res.data[0] || {});
+      const data = (res.data as any[]).map(row => headers.map(h => String(row?.[h] ?? '')));
+      setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
+      addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
+    } catch (e) {
+      // Fallback to naive parser
+      const lines = content.split('\n').filter(line => line.trim());
+      if (lines.length === 0) return;
+      const headers = lines[0].split(',').map(h => h.trim());
+      const data = lines.slice(1).map(line => 
+        line.split(',').map(cell => cell.trim())
+      );
+      setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
+      addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
+    }
   };
 
   const handleFileSelect = (fileId: string) => {
@@ -393,6 +404,8 @@ Jack,30,Miami,86`,
       }
       setShowDataset(file.name);
       setCsvViewMode('data'); // Default to data view when opening CSV
+      // Ensure scratch editor cleared to avoid confusion
+      setScratchCode(prev => prev);
     } else {
       setShowDataset(null);
     }
@@ -797,6 +810,33 @@ Jack,30,Miami,86`,
     />
   );
 
+  const preloadedFromCSV = (() => {
+    if (currentFile?.language !== 'csv') return undefined;
+    if (currentDataset) {
+      return {
+        rows: currentDataset.data.map((row) =>
+          currentDataset.headers.reduce((obj, header, j) => {
+            obj[header] = row[j];
+            return obj;
+          }, {} as Record<string, any>)
+        ),
+        filename: currentFile.name,
+      };
+    }
+    try {
+      const res = Papa.parse<Record<string, any>>(currentFile.content, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+      });
+      const rows = (res.data as any[]).filter(r => r && Object.keys(r).length > 0);
+      if (rows.length > 0) {
+        return { rows, filename: currentFile.name };
+      }
+    } catch {}
+    return undefined;
+  })();
+
   const dataLabComponent = (
     <DataLab
       onLoadDataset={(rows, name) => {
@@ -808,19 +848,7 @@ Jack,30,Miami,86`,
       }}
       onInsertCode={handleInsertCode}
       language={scratchLanguage === 'r' ? 'r' : 'python'}
-      preloadedData={
-        currentFile?.language === 'csv' && currentDataset
-          ? {
-              rows: currentDataset.data.map((row, i) =>
-                currentDataset.headers.reduce((obj, header, j) => {
-                  obj[header] = row[j];
-                  return obj;
-                }, {} as Record<string, any>)
-              ),
-              filename: currentFile.name
-            }
-          : undefined
-      }
+      preloadedData={preloadedFromCSV}
     />
   );
 
