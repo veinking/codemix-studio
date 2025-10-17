@@ -21,9 +21,10 @@ interface Props {
   onLoadDataset: (rows: Row[], name: string) => void;
   onInsertCode?: (code: string) => void;
   language: 'python' | 'r';
+  preloadedData?: { rows: Row[]; filename: string }; // Accept already-loaded CSV
 }
 
-export default function DataLab({ onLoadDataset, onInsertCode = () => {}, language }: Props) {
+export default function DataLab({ onLoadDataset, onInsertCode = () => {}, language, preloadedData }: Props) {
   const [filename, setFilename] = useState<string>('');
   const [rows, setRows] = useState<Row[]>([]);
   const [analysis, setAnalysis] = useState<Analysis[]>([]);
@@ -34,6 +35,15 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, langua
   const [showAiSection, setShowAiSection] = useState(false);
 
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
+
+  // Load preloaded data if provided
+  useMemo(() => {
+    if (preloadedData && preloadedData.rows.length > 0 && rows.length === 0) {
+      setFilename(preloadedData.filename);
+      setRows(preloadedData.rows);
+      setAnalysis(analyzeDataset(preloadedData.rows));
+    }
+  }, [preloadedData]);
 
   const handleFile = (file: File) => {
     setFilename(file.name);
@@ -162,11 +172,13 @@ if (length(num_cols) > 0) {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3 flex-wrap">
-          <input
-            type="file"
-            accept=".csv,text/csv"
-            onChange={(e) => e.target.files && handleFile(e.target.files[0])}
-          />
+          {!preloadedData && (
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              onChange={(e) => e.target.files && handleFile(e.target.files[0])}
+            />
+          )}
           {columns.length > 0 && (
             <>
               <div className="flex items-center gap-2">

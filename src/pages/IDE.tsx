@@ -17,6 +17,7 @@ import { PackageManager } from "@/components/PackageManager";
 import { FeatureDrawer } from "@/components/FeatureDrawer";
 import { SidePanel } from "@/components/SidePanel";
 import { TranslateDialog } from "@/components/TranslateDialog";
+import { Button } from "@/components/ui/button";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -57,6 +58,7 @@ const IDE = () => {
   const [initializedRuntimes, setInitializedRuntimes] = useState<Set<string>>(new Set());
   const [featureDrawerOpen, setFeatureDrawerOpen] = useState(false);
   const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
+  const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
   });
@@ -385,6 +387,7 @@ Jack,30,Miami,86`,
     const file = files.find(f => f.id === fileId);
     if (file && file.language === 'csv') {
       setShowDataset(file.name);
+      setCsvViewMode('data'); // Default to data view when opening CSV
     } else {
       setShowDataset(null);
     }
@@ -781,22 +784,50 @@ Jack,30,Miami,86`,
   );
 
   const editorComponent = currentFile ? (
-    currentDataset ? (
+    currentFile.language === 'csv' ? (
+      <div className="h-full flex flex-col">
+        {/* CSV Toggle Bar */}
+        <div className="flex items-center gap-2 p-2 bg-toolbar border-b border-border">
+          <Button
+            variant={csvViewMode === 'data' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCsvViewMode('data')}
+          >
+            View Data
+          </Button>
+          <Button
+            variant={csvViewMode === 'code' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => setCsvViewMode('code')}
+          >
+            Write Code
+          </Button>
+          <span className="text-xs text-muted-foreground ml-auto">
+            {currentFile.name}
+          </span>
+        </div>
+        
+        {/* Content based on view mode */}
+        <div className="flex-1 overflow-hidden">
+          {csvViewMode === 'data' && currentDataset ? (
+            <DatasetViewer
+              headers={currentDataset.headers}
+              data={currentDataset.data}
+            />
+          ) : (
+            <CodeEditor
+              value={scratchCode}
+              language={scratchLanguage}
+              onChange={handleCodeChange}
+              isMobile={isMobile}
+            />
+          )}
+        </div>
+      </div>
+    ) : currentDataset ? (
       <DatasetViewer
         headers={currentDataset.headers}
         data={currentDataset.data}
-      />
-    ) : currentFile.language === 'csv' ? (
-      <DataLab
-        onLoadDataset={(rows, name) => {
-          // Convert rows to string array format
-          const headers = Object.keys(rows[0] || {});
-          const data = rows.map(row => headers.map(h => String(row[h] ?? '')));
-          setDatasets(prev => new Map(prev).set(name, { headers, data }));
-          setShowDataset(name);
-        }}
-        onInsertCode={handleInsertCode}
-        language={scratchLanguage === 'r' ? 'r' : 'python'}
       />
     ) : (
       <CodeEditor
@@ -851,6 +882,19 @@ Jack,30,Miami,86`,
       }}
       onInsertCode={handleInsertCode}
       language={scratchLanguage === 'r' ? 'r' : 'python'}
+      preloadedData={
+        currentFile?.language === 'csv' && currentDataset
+          ? {
+              rows: currentDataset.data.map((row, i) =>
+                currentDataset.headers.reduce((obj, header, j) => {
+                  obj[header] = row[j];
+                  return obj;
+                }, {} as Record<string, any>)
+              ),
+              filename: currentFile.name
+            }
+          : undefined
+      }
     />
   );
 
