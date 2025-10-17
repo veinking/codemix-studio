@@ -19,6 +19,7 @@ import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { PackageManager } from "@/components/PackageManager";
 import { FeatureDrawer } from "@/components/FeatureDrawer";
 import { SidePanel } from "@/components/SidePanel";
+import { AboutSection } from "@/components/AboutSection";
 import { TranslateDialog } from "@/components/TranslateDialog";
 import { ShareDialog } from "@/components/ShareDialog";
 import { PortfolioExporter } from "@/components/PortfolioExporter";
@@ -1159,6 +1160,7 @@ Jack,30,Miami,86`,
                 dataOperations={dataOpsComponent}
                 mlOperations={mlOpsComponent}
                 labTrainer={labTrainerComponent}
+                about={<AboutSection />}
               />
             }
           />
@@ -1179,6 +1181,7 @@ Jack,30,Miami,86`,
               dataOperations={dataOpsComponent}
               mlOperations={mlOpsComponent}
               labTrainer={labTrainerComponent}
+              about={<AboutSection />}
             />
           </>
         )}

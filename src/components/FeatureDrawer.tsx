@@ -8,7 +8,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Package, Database, BrainCircuit, GraduationCap, X } from "lucide-react";
+import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FeatureDrawerProps {
@@ -20,6 +20,7 @@ interface FeatureDrawerProps {
   dataOperations: ReactNode;
   mlOperations: ReactNode;
   labTrainer: ReactNode;
+  about: ReactNode;
 }
 
 export const FeatureDrawer = ({
@@ -31,6 +32,7 @@ export const FeatureDrawer = ({
   dataOperations,
   mlOperations,
   labTrainer,
+  about,
 }: FeatureDrawerProps) => {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -73,6 +75,10 @@ export const FeatureDrawer = ({
               <GraduationCap className="h-4 w-4" />
               <span className="hidden sm:inline">Learn</span>
             </TabsTrigger>
+            <TabsTrigger value="about" className="flex items-center gap-2">
+              <Coffee className="h-4 w-4" />
+              <span className="hidden sm:inline">About</span>
+            </TabsTrigger>
           </TabsList>
 
           <div className="flex-1 overflow-y-auto p-4">
@@ -94,6 +100,9 @@ export const FeatureDrawer = ({
             </TabsContent>
             <TabsContent value="learn" className="mt-0">
               {labTrainer}
+            </TabsContent>
+            <TabsContent value="about" className="mt-0">
+              {about}
             </TabsContent>
           </div>
         </Tabs>

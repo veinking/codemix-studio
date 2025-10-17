@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Package, Database, BrainCircuit, GraduationCap, X } from "lucide-react";
+import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -13,6 +13,7 @@ interface SidePanelProps {
   dataOperations: ReactNode;
   mlOperations: ReactNode;
   labTrainer: ReactNode;
+  about: ReactNode;
 }
 
 export const SidePanel = ({
@@ -24,6 +25,7 @@ export const SidePanel = ({
   dataOperations,
   mlOperations,
   labTrainer,
+  about,
 }: SidePanelProps) => {
   const [mounted, setMounted] = useState(false);
 
@@ -83,6 +85,10 @@ export const SidePanel = ({
                 <GraduationCap className="h-4 w-4" />
                 <span>Learn</span>
               </TabsTrigger>
+              <TabsTrigger value="about" className="flex items-center gap-2">
+                <Coffee className="h-4 w-4" />
+                <span>About</span>
+              </TabsTrigger>
             </TabsList>
 
             <div className="flex-1 overflow-y-auto p-4">
@@ -104,6 +110,9 @@ export const SidePanel = ({
               </TabsContent>
               <TabsContent value="learn" className="mt-0">
                 {labTrainer}
+              </TabsContent>
+              <TabsContent value="about" className="mt-0">
+                {about}
               </TabsContent>
             </div>
           </Tabs>

@@ -81,7 +81,7 @@ const Landing = () => {
 
         {/* Footer */}
         <div className="mt-20 text-center text-muted-foreground text-sm">
-          <p>Open source • MIT License • Built for developers who code anywhere</p>
+          <p>Built by a student, for students • Free forever • Code anywhere</p>
         </div>
       </div>
     </div>
