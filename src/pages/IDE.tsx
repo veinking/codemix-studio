@@ -386,6 +386,11 @@ Jack,30,Miami,86`,
     setActiveFile(fileId);
     const file = files.find(f => f.id === fileId);
     if (file && file.language === 'csv') {
+      // Ensure dataset exists when opening previously saved CSVs
+      const hasDataset = datasets.has(file.name);
+      if (!hasDataset) {
+        parseCSV(file.content, file.name);
+      }
       setShowDataset(file.name);
       setCsvViewMode('data'); // Default to data view when opening CSV
     } else {
