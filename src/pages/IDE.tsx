@@ -889,7 +889,15 @@ Jack,30,Miami,86`,
         {/* Content based on view mode */}
         <div className="flex-1 overflow-auto">
           {csvViewMode === 'data' ? (
-            dataLabComponent
+            <div className="h-full overflow-auto flex flex-col gap-4 p-2">
+              {currentDataset && (
+                <DatasetViewer
+                  headers={currentDataset.headers}
+                  data={currentDataset.data}
+                />
+              )}
+              {dataLabComponent}
+            </div>
           ) : (
             <CodeEditor
               value={scratchCode}

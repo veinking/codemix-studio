@@ -7,10 +7,8 @@ let pyodide = null;
 let isInitializing = false;
 
 const PYODIDE_URLS = [
-  // Primary CDN (fast, Safari-compatible)
-  "https://cdn.jsdelivr.net/npm/pyodide@0.24.1/",
-  // Backup CDN (always CORS-safe)
-  "https://pyodide-cdn2.iodide.io/v0.24.1/",
+  // Primary CDN (pin to 0.28.3 full build)
+  "https://cdn.jsdelivr.net/pyodide/v0.28.3/full/",
 ];
 
 // === Try loading from a specific CDN ===
@@ -49,6 +47,7 @@ async function tryLoadPyodide(url) {
 }
 
 // === Safari-safe Pyodide Loader with Retry ===
+let INDEX_OVERRIDE = null;
 async function initPyodideSafe() {
   if (pyodide) return pyodide;
   if (isInitializing) {
@@ -64,12 +63,13 @@ async function initPyodideSafe() {
   try {
     self.postMessage({
       type: "log",
-      text: `[PyWorker] Initializing Pyodide with retry logic
-Device: ${navigator.userAgent}`,
+      text: `[PyWorker] Initializing Pyodide with retry logic\nDevice: ${navigator.userAgent}`,
     });
 
+    const sources = INDEX_OVERRIDE ? [INDEX_OVERRIDE, ...PYODIDE_URLS] : PYODIDE_URLS;
+
     // Try each CDN URL until one succeeds
-    for (const url of PYODIDE_URLS) {
+    for (const url of sources) {
       const loaded = await tryLoadPyodide(url);
       if (loaded) {
         pyodide = loaded;
@@ -131,6 +131,7 @@ self.onmessage = async (e) => {
 
   // =============== INIT ===============
   if (msg.type === "init") {
+    if (msg.indexURL) INDEX_OVERRIDE = msg.indexURL;
     await initPyodideSafe();
     return;
   }
