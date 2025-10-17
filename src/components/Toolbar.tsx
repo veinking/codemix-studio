@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2 } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -11,6 +11,7 @@ interface ToolbarProps {
   onCopyAll: () => void;
   onShare?: () => void;
   onOpenTranslate?: () => void;
+  onExportPortfolio?: () => void;
   currentFile: string | null;
   isRunning: boolean;
   scratchLanguage: 'python' | 'r' | 'javascript' | 'sql';
@@ -29,6 +30,7 @@ export const Toolbar = ({
   onCopyAll,
   onShare,
   onOpenTranslate,
+  onExportPortfolio,
   currentFile, 
   isRunning,
   scratchLanguage,
@@ -112,6 +114,17 @@ export const Toolbar = ({
           >
             <Share2 className="w-4 h-4 mr-2" />
             Share
+          </Button>
+        )}
+
+        {onExportPortfolio && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExportPortfolio}
+          >
+            <FileDown className="w-4 h-4 mr-2" />
+            Export Portfolio
           </Button>
         )}
         

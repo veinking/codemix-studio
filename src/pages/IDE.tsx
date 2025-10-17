@@ -19,6 +19,7 @@ import { FeatureDrawer } from "@/components/FeatureDrawer";
 import { SidePanel } from "@/components/SidePanel";
 import { TranslateDialog } from "@/components/TranslateDialog";
 import { ShareDialog } from "@/components/ShareDialog";
+import { PortfolioExporter } from "@/components/PortfolioExporter";
 import { Button } from "@/components/ui/button";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -79,6 +80,7 @@ const IDE = () => {
   const [featureDrawerOpen, setFeatureDrawerOpen] = useState(false);
   const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [portfolioExportOpen, setPortfolioExportOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
@@ -860,6 +862,7 @@ Jack,30,Miami,86`,
       onCopyAll={handleCopyAll}
       onShare={() => setShareDialogOpen(true)}
       onOpenTranslate={() => setTranslateDialogOpen(true)}
+      onExportPortfolio={() => setPortfolioExportOpen(true)}
       currentFile={activeFile}
       isRunning={isRunning}
       scratchLanguage={scratchLanguage}
@@ -1149,6 +1152,15 @@ Jack,30,Miami,86`,
         code={activeFile ? (currentFile?.content || '') : scratchCode}
         language={activeFile ? (currentFile?.language || 'python') : scratchLanguage}
         fileName={activeFile ? currentFile?.name : undefined}
+      />
+
+      <PortfolioExporter
+        open={portfolioExportOpen}
+        onOpenChange={setPortfolioExportOpen}
+        files={files}
+        datasets={datasets}
+        plots={plotData}
+        consoleOutput={consoleOutput}
       />
     </>
   );
