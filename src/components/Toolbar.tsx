@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -15,6 +15,7 @@ interface ToolbarProps {
   onExportPortfolio?: () => void;
   onOpenPlotBuilder?: () => void;
   onToggleNotebook?: () => void;
+  onOpenTemplates?: () => void;
   isNotebookMode?: boolean;
   currentFile: string | null;
   isRunning: boolean;
@@ -37,6 +38,7 @@ export const Toolbar = ({
   onExportPortfolio,
   onOpenPlotBuilder,
   onToggleNotebook,
+  onOpenTemplates,
   isNotebookMode = false,
   currentFile, 
   isRunning,
@@ -118,6 +120,17 @@ export const Toolbar = ({
         ) : (
           <>
             {/* Desktop: Show all buttons with labels */}
+            {onOpenTemplates && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenTemplates}
+              >
+                <Library className="w-4 h-4 mr-2" />
+                Templates
+              </Button>
+            )}
+
             {onOpenTranslate && (
               <Button
                 variant="outline"

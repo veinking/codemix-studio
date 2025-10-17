@@ -23,6 +23,7 @@ import { AboutSection } from "@/components/AboutSection";
 import { TranslateDialog } from "@/components/TranslateDialog";
 import { ShareDialog } from "@/components/ShareDialog";
 import { PortfolioExporter } from "@/components/PortfolioExporter";
+import { TemplateLibrary } from "@/components/TemplateLibrary";
 import { Button } from "@/components/ui/button";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -86,6 +87,7 @@ const IDE = () => {
   const [portfolioExportOpen, setPortfolioExportOpen] = useState(false);
   const [plotBuilderOpen, setPlotBuilderOpen] = useState(false);
   const [isNotebookMode, setIsNotebookMode] = useState(false);
+  const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
@@ -858,6 +860,34 @@ Jack,30,Miami,86`,
     }
   };
 
+  const handleLoadTemplate = (template: any) => {
+    // If no active file, load into scratch pad
+    if (!activeFile) {
+      setScratchCode(template.code);
+      if (template.language !== scratchLanguage) {
+        handleLanguageChange(template.language);
+      }
+      toast.success(`Template "${template.title}" loaded!`);
+      addToConsole(`✓ Loaded template: ${template.title}`);
+    } else {
+      // If a file is active, update that file's content
+      setFiles((prev) =>
+        prev.map((f) => {
+          if (f.id === activeFile) {
+            const updated = { ...f, content: template.code };
+            if (dbReady) {
+              saveFile(updated);
+            }
+            return updated;
+          }
+          return f;
+        })
+      );
+      toast.success(`Template "${template.title}" loaded into ${currentFile?.name}!`);
+      addToConsole(`✓ Loaded template: ${template.title}`);
+    }
+  };
+
   const handleExecuteNotebookCell = async (code: string): Promise<{ output: string; error?: string }> => {
     // Use the scratch language for notebook cells
     const runtime = RuntimeRegistry.get(scratchLanguage);
@@ -913,6 +943,7 @@ Jack,30,Miami,86`,
       onExportPortfolio={() => setPortfolioExportOpen(true)}
       onOpenPlotBuilder={() => setPlotBuilderOpen(true)}
       onToggleNotebook={() => setIsNotebookMode(prev => !prev)}
+      onOpenTemplates={() => setTemplateLibraryOpen(true)}
       isNotebookMode={isNotebookMode}
       currentFile={activeFile}
       isRunning={isRunning}
@@ -1232,6 +1263,13 @@ Jack,30,Miami,86`,
         datasets={datasets}
         onInsertCode={handleInsertCode}
         language={scratchLanguage === 'r' ? 'r' : 'python'}
+      />
+
+      <TemplateLibrary
+        open={templateLibraryOpen}
+        onOpenChange={setTemplateLibraryOpen}
+        onSelectTemplate={handleLoadTemplate}
+        currentLanguage={activeFile ? (currentFile.language === 'python' || currentFile.language === 'r' ? currentFile.language : scratchLanguage) : scratchLanguage}
       />
     </>
   );
