@@ -5,6 +5,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Play, Plus, Download, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { saveAs } from 'file-saver';
+import { cn } from '@/lib/utils';
 
 interface NotebookModeProps {
   language: 'python' | 'r' | 'javascript' | 'sql';
@@ -194,10 +195,13 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card">
-        <h2 className="text-lg font-semibold">Notebook Mode</h2>
-        <div className="flex items-center gap-2">
+      {/* Toolbar - Mobile Optimized */}
+      <div className={cn(
+        "flex items-center justify-between border-b border-border bg-card",
+        isMobile ? "px-3 py-3" : "px-4 py-2"
+      )}>
+        <h2 className={cn("font-semibold", isMobile ? "text-base" : "text-lg")}>Notebook Mode</h2>
+        <div className="flex items-center gap-1">
           <input
             type="file"
             accept=".ipynb,.Rmd"
@@ -207,43 +211,47 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
           />
           <Button
             variant="outline"
-            size="sm"
+            size={isMobile ? "default" : "sm"}
             onClick={() => document.getElementById('notebook-import')?.click()}
+            className={cn(isMobile && "h-9 w-9 p-0")}
           >
-            <FileUp className="w-4 h-4 mr-2" />
-            Import
+            <FileUp className={cn(isMobile ? "w-4 h-4" : "w-4 h-4 mr-2")} />
+            {!isMobile && "Import"}
           </Button>
           
           <Button
             variant="outline"
-            size="sm"
+            size={isMobile ? "default" : "sm"}
             onClick={handleExportNotebook}
+            className={cn(isMobile && "h-9 w-9 p-0")}
           >
-            <Download className="w-4 h-4 mr-2" />
-            Export
+            <Download className={cn(isMobile ? "w-4 h-4" : "w-4 h-4 mr-2")} />
+            {!isMobile && "Export"}
           </Button>
           
           <Button
             variant="default"
-            size="sm"
+            size={isMobile ? "default" : "sm"}
             onClick={handleRunAll}
             disabled={isRunning}
+            className={cn(isMobile && "h-9 px-3")}
           >
-            <Play className="w-4 h-4 mr-2" />
-            Run All
+            <Play className="w-4 h-4" />
+            {!isMobile && <span className="ml-2">Run All</span>}
           </Button>
         </div>
       </div>
 
-      {/* Cells */}
-      <ScrollArea className="flex-1 px-4 py-4">
+      {/* Cells - Mobile Optimized Scrolling */}
+      <ScrollArea className={cn("flex-1", isMobile ? "px-3 py-3" : "px-4 py-4")}>
         {cells.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p className="mb-4">No cells yet. Add your first cell below!</p>
-            <div className="flex items-center justify-center gap-2">
+          <div className={cn("text-center text-muted-foreground", isMobile ? "py-8" : "py-12")}>
+            <p className={cn("mb-4", isMobile ? "text-base" : "text-sm")}>No cells yet. Add your first cell below!</p>
+            <div className={cn("flex items-center justify-center", isMobile ? "flex-col gap-3" : "gap-2")}>
               <Button
                 variant="outline"
                 onClick={() => handleAddCell(null, 'code')}
+                className={cn(isMobile && "w-full max-w-xs h-11")}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Code Cell
@@ -251,6 +259,7 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
               <Button
                 variant="outline"
                 onClick={() => handleAddCell(null, 'markdown')}
+                className={cn(isMobile && "w-full max-w-xs h-11")}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Markdown Cell
@@ -277,11 +286,12 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
               />
             ))}
             
-            {/* Add cell at end */}
-            <div className="flex items-center justify-center gap-2 mt-4">
+            {/* Add cell at end - Mobile Optimized */}
+            <div className={cn("flex items-center justify-center mt-4", isMobile ? "flex-col gap-3" : "gap-2")}>
               <Button
                 variant="outline"
                 onClick={() => handleAddCell(null, 'code')}
+                className={cn(isMobile && "w-full max-w-xs h-11")}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Code Cell
@@ -289,6 +299,7 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
               <Button
                 variant="outline"
                 onClick={() => handleAddCell(null, 'markdown')}
+                className={cn(isMobile && "w-full max-w-xs h-11")}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Markdown Cell

@@ -74,4 +74,19 @@ All colors MUST be HSL.
     bottom: max(16px, calc(env(safe-area-inset-bottom) + 16px));
     z-index: 1000;
   }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Touch-friendly mobile interactions */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
 }
