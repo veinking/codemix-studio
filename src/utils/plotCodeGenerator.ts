@@ -12,8 +12,12 @@ export interface PlotConfig {
   datasetContent?: string;
 }
 
-export function generatePythonPlot(config: PlotConfig): string {
+export function generatePythonPlot(config: PlotConfig, isMobile: boolean = false): string {
   const { dataset, datasetContent, chartType, xColumn, yColumn, colorColumn, title, xLabel, yLabel } = config;
+
+  // Mobile optimization: smaller figures, lower DPI
+  const figSize = isMobile ? '(8, 5)' : '(10, 6)';
+  const dpi = isMobile ? 72 : 100;
 
   const loadPackages = `# Imports only — packages are auto-loaded by the runtime
 import pandas as pd
@@ -22,123 +26,117 @@ matplotlib.use('module://matplotlib_pyodide.wasm_backend')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Set style
-sns.set_style("whitegrid")
-plt.rcParams['figure.figsize'] = (10, 6)
-
-# Helper to emit plot as data URL
-import io, base64
-
-def _capture_plot_as_data_url():
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', bbox_inches='tight')
-    buf.seek(0)
-    return 'data:image/png;base64,' + base64.b64encode(buf.read()).decode('ascii')
-`;
+# Set plot style
+sns.set_theme(style="whitegrid")`;
 
   const loadData = `
-# Load dataset
-df = pd.read_csv('${dataset}')
-print(f"Dataset loaded: {df.shape[0]} rows, {df.shape[1]} columns")
-`;
+# Load the dataset
+df = pd.read_csv("${dataset}")`;
 
-  let plotCode = "";
-
+  let plotCode = '';
+  
   switch (chartType) {
     case 'bar':
       plotCode = `
 # Create bar chart
-plt.figure(figsize=(10, 6))
-sns.barplot(data=df, x='${xColumn}', y='${yColumn}', ${colorColumn ? `hue='${colorColumn}'` : ''})
+plt.figure(figsize=${figSize})
+sns.barplot(data=df, x='${xColumn}', y='${yColumn}')
 plt.title('${title}')
 plt.xlabel('${xLabel}')
 plt.ylabel('${yLabel}')
-plt.xticks(rotation=45, ha='right')
-plt.tight_layout()
-print(_capture_plot_as_data_url())
-plt.close()
-`;
+plt.xticks(rotation=45)
+plt.tight_layout()`;
       break;
 
     case 'line':
       plotCode = `
 # Create line chart
-plt.figure(figsize=(10, 6))
-plt.plot(df['${xColumn}'], df['${yColumn}'], marker='o', linewidth=2)
+plt.figure(figsize=${figSize})
+sns.lineplot(data=df, x='${xColumn}', y='${yColumn}')
 plt.title('${title}')
 plt.xlabel('${xLabel}')
 plt.ylabel('${yLabel}')
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-print(_capture_plot_as_data_url())
-plt.close()
-`;
+plt.tight_layout()`;
       break;
 
     case 'scatter':
-      plotCode = `
-# Create scatter plot
-plt.figure(figsize=(10, 6))
-${colorColumn 
-  ? `sns.scatterplot(data=df, x='${xColumn}', y='${yColumn}', hue='${colorColumn}', s=100, alpha=0.7)`
-  : `plt.scatter(df['${xColumn}'], df['${yColumn}'], s=100, alpha=0.7, c='#a855f7')`
-}
+      plotCode = colorColumn ? `
+# Create scatter plot with color
+plt.figure(figsize=${figSize})
+sns.scatterplot(data=df, x='${xColumn}', y='${yColumn}', hue='${colorColumn}')
 plt.title('${title}')
 plt.xlabel('${xLabel}')
 plt.ylabel('${yLabel}')
-${colorColumn ? 'plt.legend()' : ''}
-plt.grid(True, alpha=0.3)
-plt.tight_layout()
-print(_capture_plot_as_data_url())
-plt.close()
-`;
+plt.legend(title='${colorColumn}')
+plt.tight_layout()` : `
+# Create scatter plot
+plt.figure(figsize=${figSize})
+sns.scatterplot(data=df, x='${xColumn}', y='${yColumn}')
+plt.title('${title}')
+plt.xlabel('${xLabel}')
+plt.ylabel('${yLabel}')
+plt.tight_layout()`;
       break;
 
     case 'histogram':
       plotCode = `
 # Create histogram
-plt.figure(figsize=(10, 6))
-plt.hist(df['${xColumn}'].dropna(), bins=30, edgecolor='black', alpha=0.7, color='#a855f7')
+plt.figure(figsize=${figSize})
+sns.histplot(data=df, x='${xColumn}', bins=30)
 plt.title('${title}')
 plt.xlabel('${xLabel}')
 plt.ylabel('Frequency')
-plt.grid(True, alpha=0.3, axis='y')
-plt.tight_layout()
-print(_capture_plot_as_data_url())
-plt.close()
-`;
+plt.tight_layout()`;
       break;
 
     case 'box':
       plotCode = `
 # Create box plot
-plt.figure(figsize=(10, 6))
-sns.boxplot(data=df, y='${xColumn}', ${yColumn ? `x='${yColumn}'` : ''})
+plt.figure(figsize=${figSize})
+sns.boxplot(data=df, y='${yColumn}')
 plt.title('${title}')
-${yColumn ? `plt.xlabel('${yLabel}')` : ''}
-plt.ylabel('${xLabel}')
-plt.tight_layout()
-print(_capture_plot_as_data_url())
-plt.close()
-`;
+plt.ylabel('${yLabel}')
+plt.tight_layout()`;
       break;
 
     case 'heatmap':
       plotCode = `
-# Create heatmap (correlation matrix)
-plt.figure(figsize=(10, 8))
-numeric_cols = df.select_dtypes(include=['number']).columns
-correlation_matrix = df[numeric_cols].corr()
-sns.heatmap(correlation_matrix, annot=True, fmt='.2f', cmap='coolwarm', center=0)
+# Create heatmap (requires numeric data)
+plt.figure(figsize=${figSize})
+numeric_cols = df.select_dtypes(include=['number'])
+sns.heatmap(numeric_cols.corr(), annot=True, cmap='coolwarm', center=0)
 plt.title('${title}')
-plt.tight_layout()
-print(_capture_plot_as_data_url())
-plt.close()
-`;
+plt.tight_layout()`;
       break;
+
+    default:
+      plotCode = `
+# Create scatter plot (default)
+plt.figure(figsize=${figSize})
+plt.scatter(df['${xColumn}'], df['${yColumn}'])
+plt.title('${title}')
+plt.xlabel('${xLabel}')
+plt.ylabel('${yLabel}')
+plt.tight_layout()`;
   }
 
-  return loadPackages + loadData + plotCode;
+  const captureCode = `
+# Capture the plot with enhanced error handling
+try:
+    import io
+    import base64
+    buf = io.BytesIO()
+    plt.savefig(buf, format='png', dpi=${dpi}, bbox_inches='tight')
+    buf.seek(0)
+    img_str = base64.b64encode(buf.read()).decode()
+    print(f"data:image/png;base64,{img_str}")
+    plt.close()
+except Exception as e:
+    plt.close()
+    print(f"⚠️ Plot created but couldn't capture image: {str(e)}")
+    print("📊 Plot code executed successfully. You can save and run this code in a local IDE to see the visualization.")`;
+
+  return loadPackages + loadData + plotCode + captureCode;
 }
 
 export function generateRPlot(config: PlotConfig): string {

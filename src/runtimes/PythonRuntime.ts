@@ -4,6 +4,7 @@ import { checkLibraryCompatibility } from '@/utils/libraryCompatibility';
 export class PythonRuntime implements RuntimeExecutor {
   private worker: Worker | null = null;
   private isReady = false;
+  private isMobileDevice = false;
   public isInitialized = false;
 
   public config: RuntimeConfig = {
@@ -17,6 +18,8 @@ export class PythonRuntime implements RuntimeExecutor {
 
   async initialize(isMobile: boolean): Promise<void> {
     if (this.isInitialized) return;
+    
+    this.isMobileDevice = isMobile;
 
     try {
       console.log('[PythonRuntime] Initializing Pyodide worker...');
@@ -112,7 +115,7 @@ export class PythonRuntime implements RuntimeExecutor {
       };
 
       this.worker!.addEventListener('message', listener);
-      this.worker!.postMessage({ type: 'run', code });
+      this.worker!.postMessage({ type: 'run', code, isMobile: this.isMobileDevice });
     });
   }
 

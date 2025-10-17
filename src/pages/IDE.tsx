@@ -75,6 +75,7 @@ const IDE = () => {
   const [datasets, setDatasets] = useState<Map<string, Dataset>>(new Map());
   const [showDataset, setShowDataset] = useState<string | null>(null);
   const [plotData, setPlotData] = useState<string | null>(null);
+  const [plotCode, setPlotCode] = useState<string | null>(null);
   const [installedPackages, setInstalledPackages] = useState<string[]>([]);
   const [isInstalling, setIsInstalling] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string>("");
@@ -617,6 +618,7 @@ Jack,30,Miami,86`,
   const handleRunCode = async () => {
     setConsoleOutput([]);
     setPlotData(null);
+    setPlotCode(null);
     setIsRunning(true);
 
     // Determine code and language
@@ -707,9 +709,13 @@ Jack,30,Miami,86`,
       // Handle plots
       if (result.plotUrl) {
         setPlotData(result.plotUrl);
+        setPlotCode(code);
       } else if (result.output) {
         const m = result.output.match(/data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+/);
-        if (m) setPlotData(m[0]);
+        if (m) {
+          setPlotData(m[0]);
+          setPlotCode(code);
+        }
       }
 
       // Handle datasets (for SQL queries)
@@ -917,9 +923,13 @@ Jack,30,Miami,86`,
     // Handle plot URLs
     if (result.plotUrl) {
       setPlotData(result.plotUrl);
+      setPlotCode(code);
     } else if (result.output) {
       const m = result.output.match(/data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+/);
-      if (m) setPlotData(m[0]);
+      if (m) {
+        setPlotData(m[0]);
+        setPlotCode(code);
+      }
     }
 
     return {
@@ -1225,7 +1235,14 @@ Jack,30,Miami,86`,
       </div>
       
       {plotData && (
-        <PlotViewer plotData={plotData} onClose={() => setPlotData(null)} />
+        <PlotViewer 
+          plotData={plotData} 
+          plotCode={plotCode || undefined}
+          onClose={() => {
+            setPlotData(null);
+            setPlotCode(null);
+          }} 
+        />
       )}
 
       {showWelcome && (

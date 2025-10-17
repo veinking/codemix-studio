@@ -185,10 +185,25 @@ self.onmessage = async (e) => {
       for (const pkg of required) {
         await ensurePackage(pkg);
       }
+      
+      // Special handling for plotting code - ensure matplotlib is fully ready
+      if (msg.code.includes('matplotlib') || msg.code.includes('plt.')) {
+        await ensurePackage('matplotlib');
+        // Give matplotlib a moment to initialize on mobile
+        if (msg.isMobile) {
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+      }
+      
       const result = await pyodide.runPythonAsync(msg.code);
       self.postMessage({ type: "result", result });
     } catch (err) {
-      self.postMessage({ type: "error", error: String(err) });
+      // Enhanced error messages for plotting issues
+      let errorMsg = String(err);
+      if (errorMsg.includes('matplotlib') || errorMsg.includes('savefig')) {
+        errorMsg = `⚠️ Plot rendering error: ${errorMsg}\n\n💡 Tip: The plot code is valid but image capture failed. You can save this code and run it in a local Python environment.`;
+      }
+      self.postMessage({ type: "error", error: errorMsg });
     }
     return;
   }

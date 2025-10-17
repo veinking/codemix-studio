@@ -17,6 +17,7 @@ import { BarChart3, LineChart, ScatterChart, BarChart, Activity, Grid3x3 } from 
 import { BarChart as RechartsBar, Bar, LineChart as RechartsLine, Line, ScatterChart as RechartsScatter, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { generatePythonPlot, generateRPlot, PlotConfig } from "@/utils/plotCodeGenerator";
 import { toast } from "sonner";
+import { useDeviceType } from "@/hooks/useDeviceType";
 
 interface Dataset {
   headers: string[];
@@ -34,6 +35,7 @@ interface PlotBuilderProps {
 type ChartType = 'bar' | 'line' | 'scatter' | 'histogram' | 'box' | 'heatmap';
 
 export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, language }: PlotBuilderProps) => {
+  const { isMobile } = useDeviceType();
   const [step, setStep] = useState(1);
   const [selectedDataset, setSelectedDataset] = useState<string>("");
   const [chartType, setChartType] = useState<ChartType>("bar");
@@ -137,7 +139,7 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
       theme: 'default',
     };
 
-    const code = language === 'python' ? generatePythonPlot(config) : generateRPlot(config);
+    const code = language === 'python' ? generatePythonPlot(config, isMobile) : generateRPlot(config);
     onInsertCode(code);
     toast.success(`${language.toUpperCase()} plot code inserted`);
     onOpenChange(false);
