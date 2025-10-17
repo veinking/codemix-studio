@@ -189,7 +189,7 @@ if (length(num_cols) > 0) {
                     <SelectValue placeholder="Pick column" />
                   </SelectTrigger>
                   <SelectContent>
-                    {columns.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    {columns.filter(c => c && c.trim()).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
