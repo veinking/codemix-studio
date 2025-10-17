@@ -30,6 +30,20 @@ import { PythonRuntime } from "@/runtimes/PythonRuntime";
 import { RRuntime } from "@/runtimes/RRuntime";
 import { JavaScriptRuntime } from "@/runtimes/JavaScriptRuntime";
 import { SQLRuntime } from "@/runtimes/SQLRuntime";
+import { supabase } from "@/integrations/supabase/client";
+
+interface ErrorExplanation {
+  what: string;
+  why: string;
+  fix: string;
+  concepts: string[];
+}
+
+interface ConsoleMessage {
+  text: string;
+  explanation?: ErrorExplanation;
+  isError?: boolean;
+}
 
 interface FileItem {
   id: string;
@@ -47,8 +61,12 @@ interface Dataset {
 const IDE = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [consoleOutput, setConsoleOutput] = useState<string[]>([]);
+  const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
   const [isRunning, setIsRunning] = useState(false);
+  const [plainEnglishMode, setPlainEnglishMode] = useState(() => {
+    return localStorage.getItem('plainEnglishMode') === 'true';
+  });
+  const [errorExplanationCache, setErrorExplanationCache] = useState<Map<string, ErrorExplanation>>(new Map());
   const [datasets, setDatasets] = useState<Map<string, Dataset>>(new Map());
   const [showDataset, setShowDataset] = useState<string | null>(null);
   const [plotData, setPlotData] = useState<string | null>(null);
@@ -276,8 +294,76 @@ Jack,30,Miami,86`,
     loadStoredFiles();
   }, [dbReady]);
 
-  const addToConsole = (message: string) => {
-    setConsoleOutput((prev) => [...prev, message]);
+  const addToConsole = (message: string, isError: boolean = false) => {
+    setConsoleOutput((prev) => [...prev, { text: message, isError }]);
+  };
+
+  const addErrorWithExplanation = async (errorMessage: string, code: string, language: string) => {
+    // Check cache first
+    if (errorExplanationCache.has(errorMessage)) {
+      const explanation = errorExplanationCache.get(errorMessage)!;
+      setConsoleOutput((prev) => [...prev, { 
+        text: errorMessage, 
+        isError: true, 
+        explanation 
+      }]);
+      return;
+    }
+
+    // Add error immediately with "analyzing" placeholder
+    setConsoleOutput((prev) => [...prev, { 
+      text: errorMessage, 
+      isError: true 
+    }]);
+
+    if (!plainEnglishMode) return;
+
+    try {
+      // Show analyzing message
+      const analyzingIndex = consoleOutput.length;
+      setConsoleOutput((prev) => [...prev, { text: "🔍 Analyzing error..." }]);
+
+      const { data, error } = await supabase.functions.invoke('explain-error', {
+        body: {
+          error: errorMessage,
+          code: code.substring(0, 1000), // Limit code context
+          language,
+        }
+      });
+
+      // Remove analyzing message
+      setConsoleOutput((prev) => prev.filter((_, i) => i !== analyzingIndex));
+
+      if (error) {
+        console.error('Error explaining error:', error);
+        return;
+      }
+
+      if (data?.explanation) {
+        // Cache the explanation
+        setErrorExplanationCache((prev) => new Map(prev).set(errorMessage, data.explanation));
+        
+        // Update the error message with explanation
+        setConsoleOutput((prev) => 
+          prev.map((msg, i) => 
+            i === analyzingIndex - 1 && msg.text === errorMessage
+              ? { ...msg, explanation: data.explanation }
+              : msg
+          )
+        );
+      }
+    } catch (err) {
+      console.error('Failed to get error explanation:', err);
+      // Remove analyzing message on error
+      setConsoleOutput((prev) => prev.filter(msg => msg.text !== "🔍 Analyzing error..."));
+    }
+  };
+
+  const togglePlainEnglishMode = () => {
+    const newMode = !plainEnglishMode;
+    setPlainEnglishMode(newMode);
+    localStorage.setItem('plainEnglishMode', String(newMode));
+    toast.success(newMode ? 'Plain English Mode enabled' : 'Plain English Mode disabled');
   };
 
   const getLanguageFromFileName = (fileName: string): 'python' | 'r' | 'javascript' | 'sql' | 'csv' | 'plaintext' => {
@@ -626,7 +712,8 @@ Jack,30,Miami,86`,
 
       addToConsole(">>> Execution completed ✓");
     } catch (error: any) {
-      addToConsole(`✗ Error: ${error.message}`);
+      const errorMessage = `✗ Error: ${error.message}`;
+      await addErrorWithExplanation(errorMessage, code, language);
     } finally {
       setIsRunning(false);
     }
@@ -937,6 +1024,8 @@ Jack,30,Miami,86`,
     <ConsolePanel
       output={consoleOutput}
       onClear={() => setConsoleOutput([])}
+      plainEnglishMode={plainEnglishMode}
+      onTogglePlainEnglish={togglePlainEnglishMode}
     />
   );
 

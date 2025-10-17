@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.lab-trainer]
 verify_jwt = false
+
+[functions.explain-error]
+verify_jwt = false
