@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+  
+  <!-- Landing Page -->
+  <url>
+    <loc>https://codemixapp.com/</loc>
+    <lastmod>2025-10-18</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://codemixapp.com/og-image.png</image:loc>
+      <image:title>OpenIDE - Free Python & R IDE for Students</image:title>
+      <image:caption>Browser-based code editor for Python and R with AI assistance</image:caption>
+    </image:image>
+  </url>
+
+  <!-- IDE Application -->
+  <url>
+    <loc>https://codemixapp.com/ide</loc>
+    <lastmod>2025-10-18</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Shared Code Base URL (dynamic routes handled by app) -->
+  <url>
+    <loc>https://codemixapp.com/share</loc>
+    <lastmod>2025-10-18</lastmod>
+    <changefreq>always</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+</urlset>
