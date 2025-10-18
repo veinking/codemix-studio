@@ -168,15 +168,43 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
       
       const domNode = editor.getDomNode();
       if (domNode) {
-        // iOS Safari requires this for clipboard access
+        // iOS Safari clipboard support
         domNode.setAttribute('contenteditable', 'true');
         
-        // Enable long-press for context menu
+        // Long-press for context menu (with proper cancellation)
+        let touchTimer: NodeJS.Timeout | null = null;
+        let touchMoved = false;
+        
         domNode.addEventListener('touchstart', (e: TouchEvent) => {
           if (e.touches.length === 1) {
-            setTimeout(() => {
-              editor.trigger('touch', 'editor.action.showContextMenu', null);
-            }, 500);
+            touchMoved = false;
+            touchTimer = setTimeout(() => {
+              if (!touchMoved) {
+                editor.trigger('touch', 'editor.action.showContextMenu', null);
+              }
+            }, 800); // Increased to 800ms for less aggressive triggering
+          }
+        });
+        
+        domNode.addEventListener('touchmove', () => {
+          touchMoved = true;
+          if (touchTimer) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+          }
+        });
+        
+        domNode.addEventListener('touchend', () => {
+          if (touchTimer) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
+          }
+        });
+        
+        domNode.addEventListener('touchcancel', () => {
+          if (touchTimer) {
+            clearTimeout(touchTimer);
+            touchTimer = null;
           }
         });
       }
