@@ -38,6 +38,42 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          page_context: string | null
+          status: Database["public"]["Enums"]["feedback_status"]
+          subject: string
+          type: Database["public"]["Enums"]["feedback_type"]
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          page_context?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          subject: string
+          type: Database["public"]["Enums"]["feedback_type"]
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          page_context?: string | null
+          status?: Database["public"]["Enums"]["feedback_status"]
+          subject?: string
+          type?: Database["public"]["Enums"]["feedback_type"]
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       labs_history: {
         Row: {
           completed: boolean
@@ -172,7 +208,8 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      feedback_status: "new" | "in_progress" | "resolved"
+      feedback_type: "bug" | "feature" | "question" | "general"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -299,6 +336,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      feedback_status: ["new", "in_progress", "resolved"],
+      feedback_type: ["bug", "feature", "question", "general"],
+    },
   },
 } as const
