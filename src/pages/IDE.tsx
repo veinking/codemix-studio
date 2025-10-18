@@ -37,6 +37,7 @@ import { RRuntime } from "@/runtimes/RRuntime";
 import { JavaScriptRuntime } from "@/runtimes/JavaScriptRuntime";
 import { SQLRuntime } from "@/runtimes/SQLRuntime";
 import { supabase } from "@/integrations/supabase/client";
+import { useActivityTracking } from "@/hooks/useActivityTracking";
 
 interface ErrorExplanation {
   what: string;
@@ -123,6 +124,7 @@ const IDE = () => {
   
   const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
   const { isMobile, deviceType } = useDeviceType();
+  const { trackActivity } = useActivityTracking();
 
   // Persist language code to sessionStorage
   useEffect(() => {
@@ -763,6 +765,14 @@ Jack,30,Miami,86`,
       }
 
       addToConsole(">>> Execution completed ✓");
+      
+      // Track activity for global stats
+      await trackActivity({
+        activityType: 'code_run',
+        activityDescription: 'ran code',
+        language: runtime.config.displayName,
+        codeLines: code.split('\n').length
+      });
     } catch (error: any) {
       const errorMessage = `✗ Error: ${error.message}`;
       await addErrorWithExplanation(errorMessage, code, language);

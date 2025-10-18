@@ -202,6 +202,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_recent_activity: {
+        Args: {
+          activity_description: string
+          activity_type: string
+          language: string
+        }
+        Returns: undefined
+      }
       increment_stats: {
         Args: { code_runs: number; lines: number }
         Returns: undefined
