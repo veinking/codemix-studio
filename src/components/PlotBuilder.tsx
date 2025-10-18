@@ -141,7 +141,14 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
 
     const code = language === 'python' ? generatePythonPlot(config, isMobile) : generateRPlot(config);
     onInsertCode(code);
-    toast.success(`${language.toUpperCase()} plot code inserted`);
+    
+    // Check if dataset is available and show appropriate message
+    if (datasets.has(selectedDataset)) {
+      toast.success(`${language.toUpperCase()} plot code inserted. Dataset "${selectedDataset}" will be loaded automatically.`);
+    } else {
+      toast.warning(`Plot code inserted, but dataset "${selectedDataset}" may not be available.`);
+    }
+    
     onOpenChange(false);
     
     // Reset state

@@ -701,6 +701,39 @@ Jack,30,Miami,86`,
     // Execute code
     addToConsole(`>>> Running ${runtime.config.displayName} code...`);
     
+    // If Python runtime, check for CSV references and write them to virtual FS
+    if (language === 'python' && runtime.config.name === 'python') {
+      const csvPattern = /pd\.read_csv\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+      const matches = [...code.matchAll(csvPattern)];
+      
+      if (matches.length > 0) {
+        addToConsole(`>>> Preparing ${matches.length} CSV file(s)...`);
+        
+        for (const match of matches) {
+          const csvFilename = match[1];
+          const dataset = datasets.get(csvFilename);
+          
+          if (dataset) {
+            // Convert dataset to CSV string
+            const csvContent = [
+              dataset.headers.join(','),
+              ...dataset.data.map(row => row.join(','))
+            ].join('\n');
+            
+            try {
+              // @ts-ignore - writeCSVToFS exists on PythonRuntime
+              await runtime.writeCSVToFS(csvFilename, csvContent);
+              addToConsole(`✓ ${csvFilename} loaded into Python environment`);
+            } catch (err: any) {
+              addToConsole(`✗ Failed to load ${csvFilename}: ${err.message}`);
+            }
+          } else {
+            addToConsole(`⚠ Warning: ${csvFilename} not found in uploaded datasets`);
+          }
+        }
+      }
+    }
+    
     try {
       const result = await runtime.execute(code, (output) => {
         addToConsole(output);

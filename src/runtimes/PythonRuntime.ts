@@ -145,6 +145,29 @@ export class PythonRuntime implements RuntimeExecutor {
     });
   }
 
+  async writeCSVToFS(filename: string, content: string): Promise<void> {
+    if (!this.isInitialized || !this.worker) {
+      throw new Error('Python runtime not initialized');
+    }
+
+    return new Promise((resolve, reject) => {
+      const listener = (evt: MessageEvent) => {
+        const msg = evt.data;
+        
+        if (msg.type === 'csv-written') {
+          this.worker?.removeEventListener('message', listener);
+          resolve();
+        } else if (msg.type === 'error') {
+          this.worker?.removeEventListener('message', listener);
+          reject(new Error(msg.error));
+        }
+      };
+
+      this.worker.addEventListener('message', listener);
+      this.worker.postMessage({ type: 'writeCSV', filename, content });
+    });
+  }
+
   checkCompatibility(code: string, isMobile: boolean): CompatibilityResult {
     const result = checkLibraryCompatibility(code, 'python', isMobile);
     return {

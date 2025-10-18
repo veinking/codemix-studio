@@ -225,4 +225,25 @@ self.onmessage = async (e) => {
     }
     return;
   }
+
+  // =============== WRITE CSV TO VIRTUAL FS ===============
+  if (msg.type === "writeCSV") {
+    try {
+      await initPyodideSafe();
+      const { filename, content } = msg;
+      
+      // Write file to Pyodide's virtual filesystem
+      pyodide.FS.writeFile(filename, content);
+      
+      self.postMessage({ 
+        type: "csv-written", 
+        filename,
+        text: `CSV written to virtual FS: ${filename}` 
+      });
+      self.postMessage({ type: "log", text: `[Worker] Wrote ${filename} (${content.length} bytes)` });
+    } catch (err) {
+      self.postMessage({ type: "error", error: String(err) });
+    }
+    return;
+  }
 };
