@@ -138,7 +138,7 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
       });
     });
     
-    // Quick line selection shortcuts
+    // Quick line selection shortcut (Ctrl/Cmd+L)
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
       const position = editor.getPosition();
       if (position) {
@@ -147,16 +147,6 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
           position.lineNumber, editor.getModel().getLineMaxColumn(position.lineNumber)
         ));
       }
-    });
-    
-    // Select multiple lines down (Shift+Down enhancement)
-    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.DownArrow, () => {
-      editor.trigger('keyboard', 'cursorDownSelect', null);
-    });
-    
-    // Select multiple lines up (Shift+Up enhancement)
-    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.UpArrow, () => {
-      editor.trigger('keyboard', 'cursorUpSelect', null);
     });
     
     // Mobile-specific adjustments
@@ -230,9 +220,9 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
         automaticLayout: true,
         tabSize: 4,
         wordWrap: 'on',
-        quickSuggestions: !isMobile,
+        quickSuggestions: true,
         suggestOnTriggerCharacters: true,
-        acceptSuggestionOnEnter: isMobile ? 'off' : 'on',
+        acceptSuggestionOnEnter: 'on',
         tabCompletion: 'on',
         wordBasedSuggestions: 'matchingDocuments',
         suggest: {
