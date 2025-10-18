@@ -122,6 +122,65 @@ const registerCompletionProviders = (monaco: any) => {
 export const CodeEditor = ({ value, language, onChange, isMobile = false }: CodeEditorProps) => {
   const handleEditorMount = (editor: any, monaco: any) => {
     registerCompletionProviders(monaco);
+    
+    // Custom clipboard handler for Safari/Mobile fix
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {
+      navigator.clipboard.readText().then(text => {
+        const selection = editor.getSelection();
+        editor.executeEdits("clipboard", [{
+          range: selection,
+          text: text,
+          forceMoveMarkers: true,
+        }]);
+      }).catch(() => {
+        // Fallback: Let Monaco handle it natively
+        editor.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
+      });
+    });
+    
+    // Quick line selection shortcuts
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
+      const position = editor.getPosition();
+      if (position) {
+        editor.setSelection(new monaco.Selection(
+          position.lineNumber, 1,
+          position.lineNumber, editor.getModel().getLineMaxColumn(position.lineNumber)
+        ));
+      }
+    });
+    
+    // Select multiple lines down (Shift+Down enhancement)
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.DownArrow, () => {
+      editor.trigger('keyboard', 'cursorDownSelect', null);
+    });
+    
+    // Select multiple lines up (Shift+Up enhancement)
+    editor.addCommand(monaco.KeyMod.Shift | monaco.KeyCode.UpArrow, () => {
+      editor.trigger('keyboard', 'cursorUpSelect', null);
+    });
+    
+    // Mobile-specific adjustments
+    if (isMobile) {
+      editor.updateOptions({
+        lineHeight: 24,
+        glyphMargin: false,
+      });
+      
+      const domNode = editor.getDomNode();
+      if (domNode) {
+        // iOS Safari requires this for clipboard access
+        domNode.setAttribute('contenteditable', 'true');
+        
+        // Enable long-press for context menu
+        domNode.addEventListener('touchstart', (e: TouchEvent) => {
+          if (e.touches.length === 1) {
+            setTimeout(() => {
+              editor.trigger('touch', 'editor.action.showContextMenu', null);
+            }, 500);
+          }
+        });
+      }
+    }
   };
 
   return (
@@ -143,9 +202,9 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
         automaticLayout: true,
         tabSize: 4,
         wordWrap: 'on',
-        quickSuggestions: true,
+        quickSuggestions: !isMobile,
         suggestOnTriggerCharacters: true,
-        acceptSuggestionOnEnter: 'on',
+        acceptSuggestionOnEnter: isMobile ? 'off' : 'on',
         tabCompletion: 'on',
         wordBasedSuggestions: 'matchingDocuments',
         suggest: {
@@ -157,6 +216,18 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
         occurrencesHighlight: 'multiFile',
         multiCursorModifier: 'ctrlCmd',
         wordSeparators: '`~!@#$%^&*()-=+[{]}\\|;:\'",.<>/?',
+        // Clipboard enhancements
+        copyWithSyntaxHighlighting: true,
+        emptySelectionClipboard: true,
+        contextmenu: true,
+        // Selection visibility
+        renderLineHighlight: 'all',
+        renderLineHighlightOnlyWhenFocus: false,
+        columnSelection: false,
+        // Mobile optimizations
+        ...(isMobile ? {
+          lineHeight: 24,
+        } : {}),
       }}
     />
   );
