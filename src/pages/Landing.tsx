@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Code2, Zap, Globe, Cpu, ArrowRight, Terminal, Sparkles } from "lucide-react";
+import { Code2, Zap, Globe, Cpu, ArrowRight, Terminal, Sparkles, BookOpen, Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ActivityStats } from "@/components/ActivityStats";
 import { RecentActivityFeed } from "@/components/RecentActivityFeed";
@@ -34,14 +34,25 @@ const Landing = () => {
             <span className="text-primary">No installation. No limits. Pure power.</span>
           </p>
           
-          <Button
-            size="lg"
-            onClick={() => navigate("/ide")}
-            className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-primary/50 transition-all duration-300 animate-glow-pulse group"
-          >
-            Launch IDE
-            <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Button>
+          <div className="flex gap-4 justify-center flex-wrap">
+            <Button
+              size="lg"
+              onClick={() => navigate("/ide")}
+              className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90 text-primary-foreground text-lg px-8 py-6 rounded-full shadow-lg hover:shadow-primary/50 transition-all duration-300 animate-glow-pulse group"
+            >
+              Launch IDE
+              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              onClick={() => navigate("/features")}
+              className="text-lg px-8 py-6 rounded-full group"
+            >
+              <Wrench className="mr-2 w-5 h-5" />
+              Explore Features
+            </Button>
+          </div>
         </div>
 
         {/* Activity Stats Banner */}
@@ -88,8 +99,22 @@ const Landing = () => {
         <RecentActivityFeed />
 
         {/* Footer */}
-        <div className="mt-20 text-center text-muted-foreground text-sm">
-          <p>Built by a student, for students • Free forever • Code anywhere</p>
+        <div className="mt-20 text-center">
+          <div className="flex justify-center gap-6 mb-6">
+            <Button variant="ghost" onClick={() => navigate("/features")}>
+              Features
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/tutorials")}>
+              <BookOpen className="w-4 h-4 mr-2" />
+              Tutorials
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/ide")}>
+              Launch IDE
+            </Button>
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Built by a student, for students • Free forever • Code anywhere
+          </p>
         </div>
       </div>
     </div>
