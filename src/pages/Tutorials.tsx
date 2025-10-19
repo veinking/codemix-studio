@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useNavigate } from "react-router-dom";
+import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
 import {
   Home, BookOpen, Code2, Play, Lightbulb, Database,
   BarChart3, FileCode, Brain, ChevronRight, Terminal,
@@ -11,6 +13,10 @@ import {
 
 const Tutorials = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    updatePageSEO(SEO_CONFIGS.tutorials);
+  }, []);
 
   const tutorials = [
     {

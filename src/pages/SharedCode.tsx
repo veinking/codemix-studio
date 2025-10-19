@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Copy, Download, Eye, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
 
 interface SharedCodeData {
   code: string;
@@ -20,6 +21,10 @@ export default function SharedCode() {
   const [codeData, setCodeData] = useState<SharedCodeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    updatePageSEO(SEO_CONFIGS.sharedCode);
+  }, []);
 
   useEffect(() => {
     const fetchSharedCode = async () => {

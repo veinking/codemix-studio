@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
+import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
 import {
   Code2, Zap, Brain, Database, FileCode, BarChart3, 
   Palette, Package, Globe, Sparkles, BookOpen, 
@@ -13,6 +15,10 @@ import {
 
 const Features = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    updatePageSEO(SEO_CONFIGS.features);
+  }, []);
 
   const features = [
     {

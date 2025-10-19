@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Code2, Zap, Globe, Cpu, ArrowRight, Terminal, Sparkles, BookOpen, Wrench, User, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -5,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AIUsageIndicator } from "@/components/AIUsageIndicator";
 import { ActivityStats } from "@/components/ActivityStats";
 import { RecentActivityFeed } from "@/components/RecentActivityFeed";
+import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,10 +21,14 @@ const Landing = () => {
   const navigate = useNavigate();
   const { user, profile, isGuest, signOut } = useAuth();
 
+  useEffect(() => {
+    updatePageSEO(SEO_CONFIGS.landing);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-purple-950/30 overflow-hidden relative">
       {/* Navigation */}
-      <nav className="absolute top-0 right-0 z-20 p-4 flex items-center gap-4">
+      <nav className="absolute top-0 right-0 z-20 p-4 flex items-center gap-2 md:gap-4">
         <AIUsageIndicator />
         
         {isGuest ? (
@@ -31,15 +37,17 @@ const Landing = () => {
               variant="outline"
               size="sm"
               onClick={() => navigate("/auth?mode=login")}
+              className="gap-1"
             >
-              <LogIn className="h-4 w-4 mr-2" />
-              Login
+              <LogIn className="h-4 w-4" />
+              <span className="hidden sm:inline">Login</span>
             </Button>
             <Button
               size="sm"
               onClick={() => navigate("/auth?mode=signup")}
             >
-              Sign Up
+              <span className="hidden sm:inline">Sign Up</span>
+              <span className="sm:hidden">Join</span>
             </Button>
           </>
         ) : (

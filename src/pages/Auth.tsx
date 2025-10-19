@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Code2, Loader2 } from 'lucide-react';
+import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -20,6 +21,10 @@ const Auth = () => {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    updatePageSEO(SEO_CONFIGS.auth);
+  }, []);
   
   // Redirect if already logged in
   useEffect(() => {

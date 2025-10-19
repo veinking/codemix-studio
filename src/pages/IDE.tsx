@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Papa from 'papaparse';
+import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
 import { FileExplorer } from "@/components/FileExplorer";
 import { CodeEditor } from "@/components/CodeEditor";
 import { ConsolePanel } from "@/components/ConsolePanel";
@@ -128,6 +129,11 @@ const IDE = () => {
   const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
   const { isMobile, deviceType } = useDeviceType();
   const { trackActivity } = useActivityTracking();
+
+  // SEO
+  useEffect(() => {
+    updatePageSEO(SEO_CONFIGS.ide);
+  }, []);
 
   // Persist language code to sessionStorage
   useEffect(() => {

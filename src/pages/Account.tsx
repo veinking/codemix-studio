@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,17 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, ArrowLeft, Crown, Loader2, LogOut, Sparkles, Zap } from 'lucide-react';
 import { format } from 'date-fns';
+import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
 
 const Account = () => {
   const { user, profile, aiUsage, signOut, isLoading } = useAuth();
   const [canceling, setCanceling] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  useEffect(() => {
+    updatePageSEO(SEO_CONFIGS.account);
+  }, []);
   
   if (isLoading) {
     return (

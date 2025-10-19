@@ -1,9 +1,15 @@
+import { useEffect } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
 
 const Privacy = () => {
   const navigate = useNavigate();
+  
+  useEffect(() => {
+    updatePageSEO(SEO_CONFIGS.privacy);
+  }, []);
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
