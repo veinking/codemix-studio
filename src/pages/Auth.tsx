@@ -24,6 +24,22 @@ const Auth = () => {
   
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.auth);
+    
+    // Add noindex meta tag to prevent indexing of auth pages
+    let metaRobots = document.querySelector('meta[name="robots"]') as HTMLMetaElement;
+    if (!metaRobots) {
+      metaRobots = document.createElement('meta');
+      metaRobots.setAttribute('name', 'robots');
+      document.head.appendChild(metaRobots);
+    }
+    metaRobots.setAttribute('content', 'noindex, nofollow');
+    
+    return () => {
+      // Clean up - restore default robots behavior
+      if (metaRobots) {
+        metaRobots.setAttribute('content', 'index, follow');
+      }
+    };
   }, []);
   
   // Redirect if already logged in

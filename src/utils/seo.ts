@@ -126,6 +126,12 @@ export const SEO_CONFIGS = {
     keywords: 'privacy policy, data protection, cookie policy, user privacy',
     canonical: 'https://codemixapp.com/privacy'
   },
+  support: {
+    title: 'Support - OpenIDE | Get Help & Contact Us',
+    description: 'Get help with OpenIDE. Contact our support team for technical assistance, billing questions, or general inquiries. We respond within 24-48 hours.',
+    keywords: 'openide support, contact support, help center, technical support, customer service',
+    canonical: 'https://codemixapp.com/support'
+  },
   sharedCode: {
     title: 'Shared Code - OpenIDE | View & Run Code Snippets',
     description: 'View and run shared code snippets on OpenIDE. Copy, modify, and learn from community-shared Python and R code.',

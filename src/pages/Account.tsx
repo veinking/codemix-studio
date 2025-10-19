@@ -20,6 +20,22 @@ const Account = () => {
   
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.account);
+    
+    // Add noindex meta tag to prevent indexing of account pages
+    let metaRobots = document.querySelector('meta[name="robots"]') as HTMLMetaElement;
+    if (!metaRobots) {
+      metaRobots = document.createElement('meta');
+      metaRobots.setAttribute('name', 'robots');
+      document.head.appendChild(metaRobots);
+    }
+    metaRobots.setAttribute('content', 'noindex, nofollow');
+    
+    return () => {
+      // Clean up - restore default robots behavior
+      if (metaRobots) {
+        metaRobots.setAttribute('content', 'index, follow');
+      }
+    };
   }, []);
   
   if (isLoading) {

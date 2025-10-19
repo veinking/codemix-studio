@@ -9,11 +9,7 @@ const Support = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    updatePageSEO({
-      title: "Support - OpenIDE | Get Help with Browser-Based Python & R Coding",
-      description: "Need help with OpenIDE? Contact our support team for assistance with Python and R coding in your browser.",
-      keywords: "OpenIDE support, help, contact, Python IDE support, R IDE support, coding help"
-    });
+    updatePageSEO(SEO_CONFIGS.support);
   }, []);
 
   return (
