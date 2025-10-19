@@ -44,7 +44,7 @@ const StatisticsR = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calculator className="h-6 w-6" />
-                Why Statistics Students Love OpenIDE
+                Why Statistics Students Love bIDE
               </CardTitle>
               <CardDescription>
                 Everything RStudio offers, right in your browser. Free forever.

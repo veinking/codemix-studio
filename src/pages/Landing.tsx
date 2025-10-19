@@ -102,7 +102,7 @@ const Landing = () => {
           </div>
           
           <h1 className="text-6xl md:text-8xl font-bold mb-6 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-neon-flicker">
-            OpenIDE
+            bIDE
           </h1>
           
           <p className="text-xl md:text-2xl text-foreground/80 max-w-2xl mx-auto mb-8">
@@ -207,7 +207,7 @@ const Landing = () => {
             <Button variant="link" size="sm" onClick={() => navigate("/use-cases/mobile-coding")}>
               Mobile Coding
             </Button>
-            <Button variant="link" size="sm" onClick={() => navigate("/comparisons/openide-vs-google-colab")}>
+            <Button variant="link" size="sm" onClick={() => navigate("/comparisons/bide-vs-google-colab")}>
               vs Google Colab
             </Button>
             <Button variant="link" size="sm" onClick={() => navigate("/testimonials")}>

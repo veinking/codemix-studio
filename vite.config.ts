@@ -17,8 +17,8 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['icon-192.png', 'icon-512.png'],
       manifest: {
-        name: 'OpenIDE - Python & R Browser IDE',
-        short_name: 'OpenIDE',
+        name: 'bIDE - Python & R Browser IDE',
+        short_name: 'bIDE',
         description: 'Run Python and R code directly in your browser',
         theme_color: '#00bcd4',
         background_color: '#1e1e1e',

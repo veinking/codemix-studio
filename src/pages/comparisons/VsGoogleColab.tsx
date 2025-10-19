@@ -11,10 +11,10 @@ const VsGoogleColab = () => {
 
   useEffect(() => {
     updatePageSEO({
-      title: 'OpenIDE vs Google Colab | Best Free Python IDE Comparison 2025',
-      description: 'Compare OpenIDE and Google Colab for students. Learn which free Python IDE is better for data science, machine learning, and coursework. Side-by-side feature comparison.',
-      keywords: 'openide vs colab, google colab alternative, free python ide comparison, best jupyter alternative, student coding tools',
-      canonical: 'https://codemixapp.com/comparisons/openide-vs-google-colab'
+      title: 'bIDE vs Google Colab | Best Free Python IDE Comparison 2025',
+      description: 'Compare bIDE and Google Colab for students. Learn which free Python IDE is better for data science, machine learning, and coursework. Side-by-side feature comparison.',
+      keywords: 'bide vs colab, google colab alternative, free python ide comparison, best jupyter alternative, student coding tools',
+      canonical: 'https://codemixapp.com/comparisons/bide-vs-google-colab'
     });
   }, []);
 
@@ -22,8 +22,8 @@ const VsGoogleColab = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://codemixapp.com/" },
-        { name: "Comparisons", url: "https://codemixapp.com/comparisons/openide-vs-google-colab" },
-        { name: "OpenIDE vs Google Colab", url: "https://codemixapp.com/comparisons/openide-vs-google-colab" }
+        { name: "Comparisons", url: "https://codemixapp.com/comparisons/bide-vs-google-colab" },
+        { name: "bIDE vs Google Colab", url: "https://codemixapp.com/comparisons/bide-vs-google-colab" }
       ]} />
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">
@@ -34,9 +34,9 @@ const VsGoogleColab = () => {
 
         <div className="space-y-8">
           <div>
-            <h1 className="text-4xl font-bold mb-4">OpenIDE vs Google Colab</h1>
+            <h1 className="text-4xl font-bold mb-4">bIDE vs Google Colab</h1>
             <p className="text-xl text-muted-foreground">
-              Which free Python IDE is better for students? Here's an honest comparison.
+              Which free Python IDE is better for students? Here&apos;s an honest comparison.
             </p>
           </div>
 
@@ -50,7 +50,7 @@ const VsGoogleColab = () => {
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-3 px-4">Feature</th>
-                      <th className="text-center py-3 px-4">OpenIDE</th>
+                      <th className="text-center py-3 px-4">bIDE</th>
                       <th className="text-center py-3 px-4">Google Colab</th>
                     </tr>
                   </thead>
@@ -109,14 +109,14 @@ const VsGoogleColab = () => {
           <div className="grid md:grid-cols-2 gap-6">
             <Card>
               <CardHeader>
-                <CardTitle>When to Use OpenIDE</CardTitle>
+                <CardTitle>When to Use bIDE</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 <p className="text-sm text-muted-foreground">✅ You need offline access</p>
                 <p className="text-sm text-muted-foreground">✅ You code on mobile devices</p>
                 <p className="text-sm text-muted-foreground">✅ You use R programming</p>
                 <p className="text-sm text-muted-foreground">✅ You want privacy-focused tools</p>
-                <p className="text-sm text-muted-foreground">✅ You don't have a Google account</p>
+                <p className="text-sm text-muted-foreground">✅ You don&apos;t have a Google account</p>
                 <p className="text-sm text-muted-foreground">✅ You prefer lightweight tools</p>
               </CardContent>
             </Card>
@@ -130,7 +130,7 @@ const VsGoogleColab = () => {
                 <p className="text-sm text-muted-foreground">✅ You work with large datasets (&gt;1GB)</p>
                 <p className="text-sm text-muted-foreground">✅ You train complex neural networks</p>
                 <p className="text-sm text-muted-foreground">✅ You need Google Drive integration</p>
-                <p className="text-sm text-muted-foreground">✅ You're doing heavy ML research</p>
+                <p className="text-sm text-muted-foreground">✅ You&apos;re doing heavy ML research</p>
               </CardContent>
             </Card>
           </div>
@@ -141,17 +141,17 @@ const VsGoogleColab = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
-                <strong>For most students:</strong> OpenIDE is better for coursework, quick coding, and learning. 
+                <strong>For most students:</strong> bIDE is better for coursework, quick coding, and learning. 
                 It works offline, on mobile, and doesn&apos;t require a Google account.
               </p>
               <p className="text-muted-foreground">
                 <strong>For ML researchers:</strong> Google Colab wins if you need GPU power for training large models.
               </p>
               <p className="text-muted-foreground">
-                <strong>Best approach:</strong> Use both! OpenIDE for daily coding and R work, Colab for GPU-intensive tasks.
+                <strong>Best approach:</strong> Use both! bIDE for daily coding and R work, Colab for GPU-intensive tasks.
               </p>
               <Button onClick={() => navigate("/ide")} size="lg" className="mt-4">
-                Try OpenIDE Free
+                Try bIDE Free
               </Button>
             </CardContent>
           </Card>

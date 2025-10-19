@@ -10,7 +10,7 @@
     <priority>1.0</priority>
     <image:image>
       <image:loc>https://codemixapp.com/og-image.png</image:loc>
-      <image:title>OpenIDE - Free Python & R IDE for Students</image:title>
+      <image:title>bIDE - Free Python & R IDE for Students</image:title>
       <image:caption>Browser-based code editor for Python and R with AI assistance</image:caption>
     </image:image>
   </url>

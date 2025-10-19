@@ -11,7 +11,7 @@ const DataScienceStudents = () => {
 
   useEffect(() => {
     updatePageSEO({
-      title: 'Free Python IDE for Data Science Students | OpenIDE',
+      title: 'Free Python IDE for Data Science Students | bIDE',
       description: 'Perfect Python IDE for data science students. Run pandas, numpy, matplotlib in your browser. Free Jupyter notebook alternative with AI assistance. Works on any device - no installation required.',
       keywords: 'python ide for students, data science ide, free jupyter alternative, pandas online, numpy browser, learn data science, student coding tools',
       canonical: 'https://codemixapp.com/use-cases/data-science-students'
@@ -44,7 +44,7 @@ const DataScienceStudents = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Code2 className="h-6 w-6" />
-                Why OpenIDE is Perfect for Data Science Students
+                Why bIDE is Perfect for Data Science Students
               </CardTitle>
               <CardDescription>
                 Built by a student, for students. No installation, no credit card, no limits.
@@ -150,7 +150,7 @@ const DataScienceStudents = () => {
                 Start Learning Data Science Today
               </CardTitle>
               <CardDescription>
-                Join thousands of students using OpenIDE for their data science courses
+                Join thousands of students using bIDE for their data science courses
               </CardDescription>
             </CardHeader>
             <CardContent>

@@ -54,6 +54,7 @@ const App = () => {
               <Route path="/use-cases/mobile-coding" element={<MobileCoding />} />
               
               {/* Comparison Pages */}
+              <Route path="/comparisons/bide-vs-google-colab" element={<VsGoogleColab />} />
               <Route path="/comparisons/openide-vs-google-colab" element={<VsGoogleColab />} />
               
               {/* Blog */}

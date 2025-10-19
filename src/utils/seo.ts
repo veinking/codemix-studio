@@ -73,74 +73,74 @@ const updateMetaTag = (attrName: string, attrValue: string, content: string) => 
  */
 export const SEO_CONFIGS = {
   landing: {
-    title: 'OpenIDE - Free Python & R IDE for Students | Browser-Based Code Editor',
-    description: 'OpenIDE: Free online Python & R IDE built by students, for students. Run code instantly in your browser with AI assistance, data science tools, and Jupyter-style notebooks. No installation required - works on mobile & desktop.',
+    title: 'bIDE - Free Python & R IDE for Students | Browser-Based Code Editor',
+    description: 'bIDE: Free online Python & R IDE built by students, for students. Run code instantly in your browser with AI assistance, data science tools, and Jupyter-style notebooks. No installation required - works on mobile & desktop.',
     keywords: 'free python ide, free r ide, online python editor, online r editor, student code editor, data science ide, mobile python ide, jupyter notebook alternative, browser ide, webassembly python, pyodide, webr, monaco editor',
     canonical: 'https://codemixapp.com/'
   },
   ide: {
-    title: 'IDE - OpenIDE | Code Python & R in Your Browser',
+    title: 'IDE - bIDE | Code Python & R in Your Browser',
     description: 'Start coding Python, R, JavaScript, and SQL instantly in your browser. Full-featured online IDE with AI assistance, data visualization, and offline support. No installation required.',
     keywords: 'python online ide, r programming online, javascript editor, sql editor, browser ide, online code editor, webassembly ide',
     canonical: 'https://codemixapp.com/ide'
   },
   features: {
-    title: 'Features - OpenIDE | Complete Browser-Based IDE Tools',
-    description: 'Explore OpenIDE features: Python & R execution, AI code assistant, data science tools, visualization builder, Jupyter-style notebooks, and more. All free, all in your browser.',
+    title: 'Features - bIDE | Complete Browser-Based IDE Tools',
+    description: 'Explore bIDE features: Python & R execution, AI code assistant, data science tools, visualization builder, Jupyter-style notebooks, and more. All free, all in your browser.',
     keywords: 'ide features, python tools, r programming tools, data science tools, code editor features, ai code assistant, data visualization tools',
     canonical: 'https://codemixapp.com/features'
   },
   tutorials: {
-    title: 'Tutorials - OpenIDE | Learn Python & R Programming',
-    description: 'Step-by-step tutorials for OpenIDE. Learn Python, R, data science, and AI-powered coding. From beginner to advanced guides for students and developers.',
+    title: 'Tutorials - bIDE | Learn Python & R Programming',
+    description: 'Step-by-step tutorials for bIDE. Learn Python, R, data science, and AI-powered coding. From beginner to advanced guides for students and developers.',
     keywords: 'python tutorial, r programming tutorial, data science tutorial, learn python online, learn r programming, coding tutorials for students',
     canonical: 'https://codemixapp.com/tutorials'
   },
   auth: {
-    title: 'Sign In - OpenIDE | Access Your Projects',
-    description: 'Sign in to OpenIDE to save your projects, sync across devices, and unlock unlimited AI assistance. Free account with Google sign-in or email.',
-    keywords: 'openide login, sign in, create account, student ide account',
+    title: 'Sign In - bIDE | Access Your Projects',
+    description: 'Sign in to bIDE to save your projects, sync across devices, and unlock unlimited AI assistance. Free account with Google sign-in or email.',
+    keywords: 'bide login, sign in, create account, student ide account',
     canonical: 'https://codemixapp.com/auth'
   },
   account: {
-    title: 'My Account - OpenIDE | Manage Profile & Subscription',
-    description: 'Manage your OpenIDE account, view AI usage, upgrade to Pro, and configure your profile settings.',
-    keywords: 'openide account, profile settings, subscription management, ai usage',
+    title: 'My Account - bIDE | Manage Profile & Subscription',
+    description: 'Manage your bIDE account, view AI usage, upgrade to Pro, and configure your profile settings.',
+    keywords: 'bide account, profile settings, subscription management, ai usage',
     canonical: 'https://codemixapp.com/account'
   },
   upgrade: {
-    title: 'Upgrade to Pro - OpenIDE | Unlimited AI & Premium Features',
-    description: 'Upgrade to OpenIDE Pro for unlimited AI assistance, priority support, and advanced features. Affordable plans for students and professionals.',
-    keywords: 'openide pro, upgrade subscription, unlimited ai, premium ide features',
+    title: 'Upgrade to Pro - bIDE | Unlimited AI & Premium Features',
+    description: 'Upgrade to bIDE Pro for unlimited AI assistance, priority support, and advanced features. Affordable plans for students and professionals.',
+    keywords: 'bide pro, upgrade subscription, unlimited ai, premium ide features',
     canonical: 'https://codemixapp.com/upgrade'
   },
   terms: {
-    title: 'Terms of Service - OpenIDE',
-    description: 'OpenIDE Terms of Service. Read our usage terms, acceptable use policy, and user agreement for our browser-based IDE platform.',
+    title: 'Terms of Service - bIDE',
+    description: 'bIDE Terms of Service. Read our usage terms, acceptable use policy, and user agreement for our browser-based IDE platform.',
     keywords: 'terms of service, user agreement, acceptable use policy',
     canonical: 'https://codemixapp.com/terms'
   },
   privacy: {
-    title: 'Privacy Policy - OpenIDE',
-    description: 'OpenIDE Privacy Policy. Learn how we protect your data, manage cookies, and respect your privacy while using our IDE.',
+    title: 'Privacy Policy - bIDE',
+    description: 'bIDE Privacy Policy. Learn how we protect your data, manage cookies, and respect your privacy while using our IDE.',
     keywords: 'privacy policy, data protection, cookie policy, user privacy',
     canonical: 'https://codemixapp.com/privacy'
   },
   support: {
-    title: 'Support - OpenIDE | Get Help & Contact Us',
-    description: 'Get help with OpenIDE. Contact our support team for technical assistance, billing questions, or general inquiries. We respond within 24-48 hours.',
-    keywords: 'openide support, contact support, help center, technical support, customer service',
+    title: 'Support - bIDE | Get Help & Contact Us',
+    description: 'Get help with bIDE. Contact our support team for technical assistance, billing questions, or general inquiries. We respond within 24-48 hours.',
+    keywords: 'bide support, contact support, help center, technical support, customer service',
     canonical: 'https://codemixapp.com/support'
   },
   sharedCode: {
-    title: 'Shared Code - OpenIDE | View & Run Code Snippets',
-    description: 'View and run shared code snippets on OpenIDE. Copy, modify, and learn from community-shared Python and R code.',
+    title: 'Shared Code - bIDE | View & Run Code Snippets',
+    description: 'View and run shared code snippets on bIDE. Copy, modify, and learn from community-shared Python and R code.',
     keywords: 'shared code, code snippets, python examples, r examples, community code',
     canonical: 'https://codemixapp.com/share'
   },
   notFound: {
-    title: '404 Not Found - OpenIDE',
-    description: 'Page not found. Return to OpenIDE homepage to start coding Python and R in your browser.',
+    title: '404 Not Found - bIDE',
+    description: 'Page not found. Return to bIDE homepage to start coding Python and R in your browser.',
     keywords: '404, page not found',
     canonical: 'https://codemixapp.com/'
   }
