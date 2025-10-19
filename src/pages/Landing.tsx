@@ -185,11 +185,30 @@ const Landing = () => {
               <BookOpen className="w-4 h-4 mr-2" />
               Tutorials
             </Button>
+            <Button variant="ghost" onClick={() => navigate("/blog")}>
+              Blog
+            </Button>
             <Button variant="ghost" onClick={() => navigate("/support")}>
               Support
             </Button>
             <Button variant="ghost" onClick={() => navigate("/ide")}>
               Launch IDE
+            </Button>
+          </div>
+          
+          {/* Use Case Links */}
+          <div className="flex justify-center gap-4 mb-6 flex-wrap text-sm">
+            <Button variant="link" size="sm" onClick={() => navigate("/use-cases/data-science-students")}>
+              For Data Science
+            </Button>
+            <Button variant="link" size="sm" onClick={() => navigate("/use-cases/statistics-r-programming")}>
+              For Statistics
+            </Button>
+            <Button variant="link" size="sm" onClick={() => navigate("/use-cases/mobile-coding")}>
+              Mobile Coding
+            </Button>
+            <Button variant="link" size="sm" onClick={() => navigate("/comparisons/openide-vs-google-colab")}>
+              vs Google Colab
             </Button>
           </div>
           <p className="text-muted-foreground text-sm">

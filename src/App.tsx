@@ -17,6 +17,11 @@ import Upgrade from "./pages/Upgrade";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Support from "./pages/Support";
+import DataScienceStudents from "./pages/use-cases/DataScienceStudents";
+import StatisticsR from "./pages/use-cases/StatisticsR";
+import MobileCoding from "./pages/use-cases/MobileCoding";
+import VsGoogleColab from "./pages/comparisons/VsGoogleColab";
+import BlogIndex from "./pages/blog/BlogIndex";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +45,18 @@ const App = () => {
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/support" element={<Support />} />
               <Route path="/share/:shortId" element={<SharedCode />} />
+              
+              {/* Use Case Pages */}
+              <Route path="/use-cases/data-science-students" element={<DataScienceStudents />} />
+              <Route path="/use-cases/statistics-r-programming" element={<StatisticsR />} />
+              <Route path="/use-cases/mobile-coding" element={<MobileCoding />} />
+              
+              {/* Comparison Pages */}
+              <Route path="/comparisons/openide-vs-google-colab" element={<VsGoogleColab />} />
+              
+              {/* Blog */}
+              <Route path="/blog" element={<BlogIndex />} />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
