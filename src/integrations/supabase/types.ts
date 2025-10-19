@@ -38,6 +38,36 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_usage: {
+        Row: {
+          action_type: string | null
+          date: string | null
+          feature_name: string
+          guest_fingerprint: string | null
+          id: string
+          used_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_type?: string | null
+          date?: string | null
+          feature_name: string
+          guest_fingerprint?: string | null
+          id?: string
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_type?: string | null
+          date?: string | null
+          feature_name?: string
+          guest_fingerprint?: string | null
+          id?: string
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           created_at: string
@@ -137,27 +167,78 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          email: string | null
+          full_name: string | null
+          id: string
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
+          subscription_period_end: string | null
+          subscription_status: string | null
+          subscription_tier: string
+          updated_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_period_end?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string
+          updated_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
+          subscription_period_end?: string | null
+          subscription_status?: string | null
+          subscription_tier?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       recent_activity: {
         Row: {
           activity_description: string
           activity_type: string
           created_at: string
           id: string
+          is_guest: boolean | null
           language: string | null
+          user_id: string | null
         }
         Insert: {
           activity_description: string
           activity_type: string
           created_at?: string
           id?: string
+          is_guest?: boolean | null
           language?: string | null
+          user_id?: string | null
         }
         Update: {
           activity_description?: string
           activity_type?: string
           created_at?: string
           id?: string
+          is_guest?: boolean | null
           language?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -210,8 +291,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      check_ai_usage_limit: {
+        Args: { p_guest_fingerprint?: string; p_user_id?: string }
+        Returns: Json
+      }
       increment_stats: {
         Args: { code_runs: number; lines: number }
+        Returns: undefined
+      }
+      record_ai_usage: {
+        Args: {
+          p_action_type?: string
+          p_feature_name: string
+          p_guest_fingerprint?: string
+          p_user_id?: string
+        }
         Returns: undefined
       }
     }
