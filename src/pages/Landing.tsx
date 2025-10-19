@@ -210,6 +210,9 @@ const Landing = () => {
             <Button variant="link" size="sm" onClick={() => navigate("/comparisons/openide-vs-google-colab")}>
               vs Google Colab
             </Button>
+            <Button variant="link" size="sm" onClick={() => navigate("/testimonials")}>
+              Reviews
+            </Button>
           </div>
           <p className="text-muted-foreground text-sm">
             Built by a student, for students • Free forever • Code anywhere

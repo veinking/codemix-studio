@@ -63,6 +63,14 @@
     <priority>0.6</priority>
   </url>
 
+  <!-- Testimonials Page -->
+  <url>
+    <loc>https://codemixapp.com/testimonials</loc>
+    <lastmod>2025-10-19</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
   <!-- Terms of Service -->
   <url>
     <loc>https://codemixapp.com/terms</loc>
