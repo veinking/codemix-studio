@@ -16,6 +16,7 @@ import Account from "./pages/Account";
 import Upgrade from "./pages/Upgrade";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
+import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => {
               <Route path="/upgrade" element={<Upgrade />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/privacy" element={<Privacy />} />
+              <Route path="/support" element={<Support />} />
               <Route path="/share/:shortId" element={<SharedCode />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

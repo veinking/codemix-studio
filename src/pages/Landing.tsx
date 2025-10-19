@@ -28,8 +28,10 @@ const Landing = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-purple-950/30 overflow-hidden relative">
       {/* Navigation */}
-      <nav className="absolute top-0 right-0 z-20 p-4 flex items-center gap-2 md:gap-4">
-        <AIUsageIndicator />
+      <nav className="absolute top-0 right-0 z-20 p-2 sm:p-4 flex items-center gap-1 sm:gap-2 md:gap-4">
+        <div className="hidden sm:block">
+          <AIUsageIndicator />
+        </div>
         
         {isGuest ? (
           <>
@@ -37,24 +39,24 @@ const Landing = () => {
               variant="outline"
               size="sm"
               onClick={() => navigate("/auth?mode=login")}
-              className="gap-1"
+              className="gap-1 text-xs sm:text-sm px-2 sm:px-4"
             >
-              <LogIn className="h-4 w-4" />
-              <span className="hidden sm:inline">Login</span>
+              <LogIn className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Login</span>
             </Button>
             <Button
               size="sm"
               onClick={() => navigate("/auth?mode=signup")}
+              className="text-xs sm:text-sm px-2 sm:px-4"
             >
-              <span className="hidden sm:inline">Sign Up</span>
-              <span className="sm:hidden">Join</span>
+              Sign Up
             </Button>
           </>
         ) : (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <Avatar>
+              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 sm:h-10 sm:w-10">
+                <Avatar className="h-7 w-7 sm:h-9 sm:w-9">
                   <AvatarFallback>
                     {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                   </AvatarFallback>
@@ -175,13 +177,16 @@ const Landing = () => {
 
         {/* Footer */}
         <div className="mt-20 text-center">
-          <div className="flex justify-center gap-6 mb-6">
+          <div className="flex justify-center gap-6 mb-6 flex-wrap">
             <Button variant="ghost" onClick={() => navigate("/features")}>
               Features
             </Button>
             <Button variant="ghost" onClick={() => navigate("/tutorials")}>
               <BookOpen className="w-4 h-4 mr-2" />
               Tutorials
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/support")}>
+              Support
             </Button>
             <Button variant="ghost" onClick={() => navigate("/ide")}>
               Launch IDE
