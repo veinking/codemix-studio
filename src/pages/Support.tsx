@@ -12,8 +12,46 @@ const Support = () => {
     updatePageSEO(SEO_CONFIGS.support);
   }, []);
 
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "How do I contact OpenIDE support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Email us at Support@proairesume.com for technical support, billing questions, or general inquiries. We're here to help you get the most out of OpenIDE."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "What is the expected response time for support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "We typically respond to support inquiries within 24-48 hours during business days."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Where can I find help before contacting support?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Check our Tutorials page for common solutions and the Features page to understand available capabilities. Include any error messages or screenshots in your support request for faster assistance."
+        }
+      }
+    ]
+  };
+
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted p-4">
+      {/* FAQ Schema for SEO */}
+      <script 
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      
       <div className="max-w-2xl mx-auto pt-12">
         <Button
           variant="ghost"

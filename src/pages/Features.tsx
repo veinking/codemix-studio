@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
 import {
   Code2, Zap, Brain, Database, FileCode, BarChart3, 
   Palette, Package, Globe, Sparkles, BookOpen, 
@@ -181,6 +182,12 @@ const Features = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
+      {/* Breadcrumb Schema for SEO */}
+      <BreadcrumbSchema items={[
+        { name: "Home", url: "https://codemixapp.com/" },
+        { name: "Features", url: "https://codemixapp.com/features" }
+      ]} />
+      
       {/* Header */}
       <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">

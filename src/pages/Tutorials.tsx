@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useNavigate } from "react-router-dom";
 import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
+import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
 import {
   Home, BookOpen, Code2, Play, Lightbulb, Database,
   BarChart3, FileCode, Brain, ChevronRight, Terminal,
@@ -135,6 +136,12 @@ const Tutorials = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10">
+      {/* Breadcrumb Schema for SEO */}
+      <BreadcrumbSchema items={[
+        { name: "Home", url: "https://codemixapp.com/" },
+        { name: "Tutorials", url: "https://codemixapp.com/tutorials" }
+      ]} />
+      
       {/* Header */}
       <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
