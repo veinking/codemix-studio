@@ -10,28 +10,34 @@ interface ActivityMetrics {
 export const useActivityTracking = () => {
   const trackActivity = async (metrics: ActivityMetrics) => {
     try {
+      console.log('[Activity Tracking] Starting track:', metrics);
+      
       // Increment global stats using the function
-      const { error: statsError } = await (supabase.rpc as any)('increment_stats', {
+      const { data: statsData, error: statsError } = await supabase.rpc('increment_stats', {
         code_runs: metrics.activityType === 'code_run' ? 1 : 0,
         lines: metrics.codeLines || 0
       });
 
       if (statsError) {
-        console.error('Error updating stats:', statsError);
+        console.error('[Activity Tracking] Error updating stats:', statsError);
+      } else {
+        console.log('[Activity Tracking] Stats updated successfully');
       }
 
       // Add to recent activity feed using the function
-      const { error: activityError } = await (supabase.rpc as any)('add_recent_activity', {
+      const { data: activityData, error: activityError } = await supabase.rpc('add_recent_activity', {
         activity_type: metrics.activityType,
         activity_description: metrics.activityDescription,
         language: metrics.language || null
       });
 
       if (activityError) {
-        console.error('Error adding activity:', activityError);
+        console.error('[Activity Tracking] Error adding activity:', activityError);
+      } else {
+        console.log('[Activity Tracking] Activity added successfully');
       }
     } catch (error) {
-      console.error('Error tracking activity:', error);
+      console.error('[Activity Tracking] Unexpected error:', error);
     }
   };
 
