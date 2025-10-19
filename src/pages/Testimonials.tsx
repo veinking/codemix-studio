@@ -174,6 +174,10 @@ const Testimonials = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <p className="text-center text-xs text-muted-foreground">
+            * Sample reviews for demonstration purposes
+          </p>
         </div>
       </div>
     </div>
