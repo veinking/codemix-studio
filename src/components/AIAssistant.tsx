@@ -4,7 +4,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Wand2, CheckCircle, Lightbulb, X, Zap, BookOpen } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { useAIFunction } from "@/hooks/useAIFunction";
+import { UpgradeDialog } from "@/components/UpgradeDialog";
 
 interface AIAssistantProps {
   code: string;
@@ -16,9 +17,13 @@ interface AIAssistantProps {
 
 export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobile = false }: AIAssistantProps) => {
   const [prompt, setPrompt] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  
+  const { invokeAI, isLoading } = useAIFunction({
+    onUpgradeRequired: () => setShowUpgradeDialog(true)
+  });
 
   // Auto-scan every 5 minutes
   useEffect(() => {
@@ -35,10 +40,14 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
     if (code.trim().length === 0) return;
     
     try {
-      const { data, error } = await supabase.functions.invoke("ai-code-assistant", {
-        body: { action: "scan", code, language, isMobile },
+      const { data, error, upgradeRequired } = await invokeAI("ai-code-assistant", {
+        action: "scan",
+        code,
+        language,
+        isMobile
       });
 
+      if (upgradeRequired) return;
       if (error) throw error;
 
       if (data?.result) {
@@ -64,21 +73,19 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
       return;
     }
 
-    setIsLoading(true);
     setSuggestion(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke("ai-code-assistant", {
-        body: {
-          action,
-          code,
-          prompt: prompt.trim(),
-          language,
-          selectedCode,
-          isMobile,
-        },
+      const { data, error, upgradeRequired } = await invokeAI("ai-code-assistant", {
+        action,
+        code,
+        prompt: prompt.trim(),
+        language,
+        selectedCode,
+        isMobile,
       });
 
+      if (upgradeRequired) return;
       if (error) throw error;
 
       if (data?.error) {
@@ -103,10 +110,8 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
         toast.success(action === "explain" ? "Code explained!" : "Code analysis complete");
       }
     } catch (error: any) {
-      console.error("AI action error:", error);
+      console.error("AI error:", error);
       toast.error(error.message || "AI request failed");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -229,6 +234,8 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
           </div>
         </div>
       )}
+      
+      <UpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </div>
   );
 };

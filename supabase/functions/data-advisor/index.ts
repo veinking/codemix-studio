@@ -1,9 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-guest-fingerprint',
 };
 
 serve(async (req) => {
@@ -13,6 +14,54 @@ serve(async (req) => {
 
   try {
     const { headers, sampleRows, targetColumn, language } = await req.json();
+    
+    // Initialize Supabase client for usage tracking
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    // Extract user info or guest fingerprint
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | null = null;
+    let guestFingerprint: string | null = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      userId = user?.id || null;
+    }
+    
+    if (!userId) {
+      guestFingerprint = req.headers.get('x-guest-fingerprint');
+    }
+    
+    console.log('[DATA-ADVISOR] Request from:', userId ? `user:${userId}` : `guest:${guestFingerprint}`);
+    
+    // Check usage limits
+    const { data: usageCheck, error: usageError } = await supabase.rpc('check_ai_usage_limit', {
+      p_user_id: userId,
+      p_guest_fingerprint: guestFingerprint
+    });
+    
+    if (usageError) {
+      console.error('[DATA-ADVISOR] Usage check error:', usageError);
+    } else if (usageCheck && !usageCheck.allowed) {
+      console.log('[DATA-ADVISOR] Usage limit reached');
+      return new Response(
+        JSON.stringify({
+          error: usageCheck.message,
+          remaining: usageCheck.remaining,
+          limit: usageCheck.limit,
+          tier: usageCheck.tier,
+          upgrade_required: true
+        }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
     
     console.log('Data advisor request:', { 
       headersCount: headers?.length, 
@@ -113,6 +162,16 @@ CODE:
       : ['Check for missing values', 'Explore data distributions', 'Validate data types'];
 
     const suggestedCode = codeMatch ? codeMatch[1].trim() : '';
+
+    console.log('[DATA-ADVISOR] Recommendations generated successfully');
+    
+    // Record usage (fire and forget)
+    supabase.rpc('record_ai_usage', {
+      p_feature_name: 'data-advisor',
+      p_user_id: userId,
+      p_guest_fingerprint: guestFingerprint,
+      p_action_type: language
+    }).then(() => console.log('[DATA-ADVISOR] Usage recorded'));
 
     return new Response(
       JSON.stringify({ recommendations, suggestedCode }),

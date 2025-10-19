@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-guest-fingerprint",
 };
 
 serve(async (req) => {
@@ -12,6 +13,54 @@ serve(async (req) => {
 
   try {
     const { action, code, prompt, language, selectedCode, isMobile } = await req.json();
+    
+    // Initialize Supabase client for usage tracking
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    // Extract user info or guest fingerprint
+    const authHeader = req.headers.get('Authorization');
+    let userId: string | null = null;
+    let guestFingerprint: string | null = null;
+    
+    if (authHeader) {
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user } } = await supabase.auth.getUser(token);
+      userId = user?.id || null;
+    }
+    
+    if (!userId) {
+      guestFingerprint = req.headers.get('x-guest-fingerprint');
+    }
+    
+    console.log('[AI-CODE-ASSISTANT] Request from:', userId ? `user:${userId}` : `guest:${guestFingerprint}`);
+    
+    // Check usage limits
+    const { data: usageCheck, error: usageError } = await supabase.rpc('check_ai_usage_limit', {
+      p_user_id: userId,
+      p_guest_fingerprint: guestFingerprint
+    });
+    
+    if (usageError) {
+      console.error('[AI-CODE-ASSISTANT] Usage check error:', usageError);
+    } else if (usageCheck && !usageCheck.allowed) {
+      console.log('[AI-CODE-ASSISTANT] Usage limit reached');
+      return new Response(
+        JSON.stringify({
+          error: usageCheck.message,
+          remaining: usageCheck.remaining,
+          limit: usageCheck.limit,
+          tier: usageCheck.tier,
+          upgrade_required: true
+        }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -135,6 +184,14 @@ Return ONLY the optimized code with inline comments. No explanations outside the
     const result = data.choices[0].message.content;
 
     console.log(`AI Assistant: ${action} completed successfully`);
+    
+    // Record usage (fire and forget)
+    supabase.rpc('record_ai_usage', {
+      p_feature_name: 'ai-code-assistant',
+      p_user_id: userId,
+      p_guest_fingerprint: guestFingerprint,
+      p_action_type: action
+    }).then(() => console.log('[AI-CODE-ASSISTANT] Usage recorded'));
 
     return new Response(
       JSON.stringify({ result, action }),

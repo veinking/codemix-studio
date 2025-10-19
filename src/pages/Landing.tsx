@@ -1,14 +1,81 @@
 import { Button } from "@/components/ui/button";
-import { Code2, Zap, Globe, Cpu, ArrowRight, Terminal, Sparkles, BookOpen, Wrench } from "lucide-react";
+import { Code2, Zap, Globe, Cpu, ArrowRight, Terminal, Sparkles, BookOpen, Wrench, User, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { AIUsageIndicator } from "@/components/AIUsageIndicator";
 import { ActivityStats } from "@/components/ActivityStats";
 import { RecentActivityFeed } from "@/components/RecentActivityFeed";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const Landing = () => {
   const navigate = useNavigate();
+  const { user, profile, isGuest, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-purple-950/30 overflow-hidden relative">
+      {/* Navigation */}
+      <nav className="absolute top-0 right-0 z-20 p-4 flex items-center gap-4">
+        <AIUsageIndicator />
+        
+        {isGuest ? (
+          <>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/auth?mode=login")}
+            >
+              <LogIn className="h-4 w-4 mr-2" />
+              Login
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => navigate("/auth?mode=signup")}
+            >
+              Sign Up
+            </Button>
+          </>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="rounded-full">
+                <Avatar>
+                  <AvatarFallback>
+                    {profile?.full_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/account")}>
+                <User className="mr-2 h-4 w-4" />
+                Account
+              </DropdownMenuItem>
+              {profile?.subscription_tier !== 'pro' && (
+                <DropdownMenuItem onClick={() => navigate("/upgrade")}>
+                  <Zap className="mr-2 h-4 w-4" />
+                  Upgrade to Pro
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>
+                <LogIn className="mr-2 h-4 w-4" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </nav>
+      
       {/* Animated grid background */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(280_50%_25%/0.1)_1px,transparent_1px),linear-gradient(to_bottom,hsl(280_50%_25%/0.1)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_70%,transparent_110%)]" />
       

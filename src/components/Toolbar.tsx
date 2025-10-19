@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { AIUsageIndicator } from "@/components/AIUsageIndicator";
 import { cn } from "@/lib/utils";
 
 interface ToolbarProps {
@@ -54,6 +55,8 @@ export const Toolbar = ({
     <div className="flex items-center justify-between w-full gap-2">
       {/* Left Side - Language Selector */}
       <div className="flex items-center gap-2 flex-shrink-0">
+        <AIUsageIndicator />
+        
         {!currentFile && (
           <LanguageSelector
             currentLanguage={scratchLanguage}
