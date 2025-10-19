@@ -33,6 +33,9 @@ interface MobileLayoutProps {
   onSaveScratchAsFile: () => void;
   dataOpsComponent?: ReactNode;
   featureDrawer?: ReactNode;
+  hasNewOutput?: boolean;
+  consoleOpen?: boolean;
+  onConsoleOpenChange?: (open: boolean) => void;
 }
 
 export const MobileLayout = ({
@@ -50,6 +53,9 @@ export const MobileLayout = ({
   onSaveScratchAsFile,
   dataOpsComponent,
   featureDrawer,
+  hasNewOutput = false,
+  consoleOpen = false,
+  onConsoleOpenChange,
 }: MobileLayoutProps) => {
   const navigate = useNavigate();
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -224,14 +230,23 @@ export const MobileLayout = ({
           </div>
 
           {/* Bottom Console Drawer - iOS Safe Area */}
-          <Drawer>
+          <Drawer open={consoleOpen} onOpenChange={onConsoleOpenChange}>
             <DrawerTrigger asChild>
               <div 
-                className="fixed bottom-0 left-0 right-0 z-30 bg-toolbar border-t border-border"
+                className="fixed bottom-0 left-0 right-0 z-30 bg-toolbar border-t transition-all"
                 style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}
               >
-                <button className="w-full py-3 flex items-center justify-center gap-2 active:bg-muted/50 transition-colors touch-manipulation">
-                  <div className="w-10 h-1 rounded-full bg-muted-foreground/40" />
+                <button className="w-full py-3 flex items-center justify-center gap-2 active:bg-muted/50 transition-colors touch-manipulation relative">
+                  <div className={`w-10 h-1 rounded-full transition-all ${
+                    hasNewOutput 
+                      ? 'bg-primary animate-pulse' 
+                      : 'bg-muted-foreground/40'
+                  }`} />
+                  {hasNewOutput && (
+                    <span className="absolute top-1 right-4 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full animate-pulse font-semibold">
+                      New Output
+                    </span>
+                  )}
                 </button>
               </div>
             </DrawerTrigger>

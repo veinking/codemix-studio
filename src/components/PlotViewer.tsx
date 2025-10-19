@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { X, AlertCircle, Download } from "lucide-react";
+import { X, AlertCircle, Download, ZoomIn, ZoomOut, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -15,6 +15,7 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (!plotData) return;
@@ -66,6 +67,15 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
     toast.success('Plot code downloaded!');
   };
 
+  const handleOpenInNewTab = () => {
+    if (!plotData || !plotData.startsWith('data:image')) return;
+    const win = window.open();
+    if (win) {
+      win.document.write(`<img src="${plotData}" style="max-width:100%; height:auto;" />`);
+      win.document.title = 'Plot';
+    }
+  };
+
   if (!plotData) return null;
 
   return (
@@ -80,6 +90,20 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
         <div className="flex items-center justify-between p-3 md:p-4 border-b border-border shrink-0">
           <h3 className="font-semibold text-foreground">Plot Output</h3>
           <div className="flex gap-2">
+            {plotData?.startsWith('data:image') && !error && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}>
+                  <ZoomOut className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setZoom(z => Math.min(3, z + 0.25))}>
+                  <ZoomIn className="w-4 h-4" />
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleOpenInNewTab}>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Open in Tab
+                </Button>
+              </>
+            )}
             {plotCode && (
               <Button variant="outline" size="sm" onClick={handleDownloadCode}>
                 <Download className="w-4 h-4 mr-2" />
@@ -115,8 +139,12 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
             ) : (
               <>
                 {plotData?.startsWith('data:image') && !isLoading && (
-                  <div className="flex justify-center">
-                    <canvas ref={canvasRef} className="max-w-full h-auto rounded border border-border" />
+                  <div className="flex justify-center overflow-auto">
+                    <canvas 
+                      ref={canvasRef} 
+                      className="max-w-full h-auto rounded border border-border" 
+                      style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+                    />
                   </div>
                 )}
                 {plotData && !plotData.startsWith('data:image') && !isLoading && (

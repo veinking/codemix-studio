@@ -95,6 +95,9 @@ const IDE = () => {
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
   });
+  const [hasNewOutput, setHasNewOutput] = useState(false);
+  const [mobileConsoleOpen, setMobileConsoleOpen] = useState(false);
+  const previousOutputLength = React.useRef(0);
   
   // Per-language code storage (scratch pad per language)
   const [languageCode, setLanguageCode] = useState<{
@@ -623,6 +626,8 @@ Jack,30,Miami,86`,
     setPlotData(null);
     setPlotCode(null);
     setIsRunning(true);
+    setHasNewOutput(false);
+    previousOutputLength.current = 0;
 
     // Determine code and language
     let code: string;
@@ -780,6 +785,18 @@ Jack,30,Miami,86`,
       setIsRunning(false);
     }
   };
+
+  // Auto-open mobile console and show notification on new output
+  React.useEffect(() => {
+    if (consoleOutput.length > previousOutputLength.current && consoleOutput.length > 0) {
+      setHasNewOutput(true);
+      // Auto-open mobile console drawer on new output
+      if (isMobile) {
+        setMobileConsoleOpen(true);
+      }
+    }
+    previousOutputLength.current = consoleOutput.length;
+  }, [consoleOutput.length, isMobile]);
 
 
   const handleDownload = () => {
@@ -1172,9 +1189,13 @@ Jack,30,Miami,86`,
   const consoleComponent = (
     <ConsolePanel
       output={consoleOutput}
-      onClear={() => setConsoleOutput([])}
+      onClear={() => {
+        setConsoleOutput([]);
+        setHasNewOutput(false);
+      }}
       plainEnglishMode={plainEnglishMode}
       onTogglePlainEnglish={togglePlainEnglishMode}
+      hasNewOutput={hasNewOutput}
     />
   );
 
@@ -1231,10 +1252,21 @@ Jack,30,Miami,86`,
             isRunning={isRunning}
             currentFile={activeFile}
             onDownload={handleDownload}
-            onClearConsole={() => setConsoleOutput([])}
+            onClearConsole={() => {
+              setConsoleOutput([]);
+              setHasNewOutput(false);
+            }}
             onCSVUpload={handleCSVUpload}
             onCopyAll={handleCopyAll}
             onSaveScratchAsFile={handleSaveScratchAsFile}
+            hasNewOutput={hasNewOutput}
+            consoleOpen={mobileConsoleOpen}
+            onConsoleOpenChange={(open) => {
+              setMobileConsoleOpen(open);
+              if (open) {
+                setHasNewOutput(false);
+              }
+            }}
             dataOpsComponent={
               <div className="flex gap-1">
                 {dataOpsComponent}

@@ -22,13 +22,35 @@ interface ConsolePanelProps {
   onClear: () => void;
   plainEnglishMode: boolean;
   onTogglePlainEnglish: () => void;
+  hasNewOutput?: boolean;
 }
 
-export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainEnglish }: ConsolePanelProps) => {
+export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainEnglish, hasNewOutput }: ConsolePanelProps) => {
   const [showRawError, setShowRawError] = React.useState<number | null>(null);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom on new output
+  React.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [output.length]);
+
+  const getOutputStyle = (message: ConsoleMessage) => {
+    if (message.isError) {
+      return "border-l-4 border-l-destructive bg-destructive/5 pl-3 py-2";
+    }
+    if (message.text.includes('✓') || message.text.toLowerCase().includes('success')) {
+      return "border-l-4 border-l-green-500 bg-green-500/5 pl-3 py-2";
+    }
+    if (message.text.includes('⚠️') || message.text.toLowerCase().includes('warning')) {
+      return "border-l-4 border-l-yellow-500 bg-yellow-500/5 pl-3 py-2";
+    }
+    return "py-1";
+  };
 
   return (
-    <div className="h-full bg-console border-t border-border flex flex-col">
+    <div className={`h-full bg-console border-t flex flex-col transition-all ${hasNewOutput ? 'border-primary shadow-[0_-2px_8px_rgba(168,85,247,0.3)]' : 'border-border'}`}>
       <div className="flex items-center justify-between p-2 border-b border-border">
         <div className="flex items-center gap-2">
           <Terminal className="w-4 h-4 text-primary" />
@@ -61,6 +83,7 @@ export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainE
         ) : (
           <div className="space-y-2">
             {output.map((message, index) => {
+              const outputStyle = getOutputStyle(message);
               const isExplainedError = message.isError && message.explanation && plainEnglishMode;
               const showingRaw = showRawError === index;
 
@@ -144,7 +167,7 @@ export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainE
               return (
                 <div 
                   key={index} 
-                  className={`font-mono text-sm whitespace-pre-wrap ${
+                  className={`font-mono text-sm whitespace-pre-wrap ${outputStyle} ${
                     message.isError ? 'text-destructive' : 'text-foreground'
                   }`}
                 >
@@ -152,6 +175,7 @@ export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainE
                 </div>
               );
             })}
+            <div ref={scrollRef} />
           </div>
         )}
       </ScrollArea>

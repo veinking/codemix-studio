@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
 interface DesktopLayoutProps {
   toolbar: ReactNode;
@@ -38,22 +39,26 @@ export const DesktopLayout = ({
       
       <div className="flex-1 flex overflow-hidden">
         {/* File Explorer Sidebar */}
-        <div className="w-64 flex-shrink-0">
+        <div className="w-64 flex-shrink-0 border-r border-border">
           {fileExplorer}
         </div>
         
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Editor */}
-          <div className="flex-1 bg-editor overflow-hidden">
-            {editor}
-          </div>
+        {/* Main Content Area - Resizable Editor & Console */}
+        <ResizablePanelGroup direction="vertical" className="flex-1">
+          <ResizablePanel defaultSize={65} minSize={30}>
+            <div className="h-full bg-editor overflow-hidden">
+              {editor}
+            </div>
+          </ResizablePanel>
           
-          {/* Console */}
-          <div className="h-64 flex-shrink-0">
-            {consolePanel}
-          </div>
-        </div>
+          <ResizableHandle withHandle />
+          
+          <ResizablePanel defaultSize={35} minSize={15} maxSize={70}>
+            <div className="h-full">
+              {consolePanel}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );

@@ -33,6 +33,18 @@ export class RRuntime implements RuntimeExecutor {
     this.webR = new WebR(config);
     await this.webR.init();
     
+    // Pre-load plot dependencies for better reliability
+    try {
+      await this.webR.evalR(`
+        if (!requireNamespace('base64enc', quietly = TRUE)) {
+          install.packages('base64enc', quiet = TRUE, repos = 'https://cran.r-project.org')
+        }
+      `);
+      console.log('[RRuntime] Plot dependencies loaded');
+    } catch (e) {
+      console.warn('[RRuntime] Could not pre-load plot dependencies:', e);
+    }
+    
     this.isInitialized = true;
   }
 
