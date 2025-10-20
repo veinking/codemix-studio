@@ -360,7 +360,7 @@ const Account = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">Current Plan</p>
-                    <p className="font-bold">Pro • $7.99/month</p>
+                    <p className="font-bold">Pro • $9.99/month</p>
                   </div>
                   <Badge variant="secondary">
                     {profile.subscription_status === 'active' ? 'Active' : profile.subscription_status}
