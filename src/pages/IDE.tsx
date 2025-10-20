@@ -138,6 +138,36 @@ const IDE = () => {
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.ide);
   }, []);
+  
+  // Handle URL parameters for "Open in IDE" from docs
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const codeParam = params.get('code');
+    const langParam = params.get('lang');
+    
+    if (codeParam && langParam) {
+      try {
+        const decodedCode = atob(codeParam);
+        const validLang = ['python', 'r', 'javascript', 'sql'].includes(langParam) 
+          ? langParam as 'python' | 'r' | 'javascript' | 'sql'
+          : 'python';
+        
+        setScratchCode(decodedCode);
+        setScratchLanguage(validLang);
+        setLanguageCode(prev => ({
+          ...prev,
+          [validLang]: decodedCode
+        }));
+        
+        // Clear URL params
+        window.history.replaceState({}, '', '/ide');
+        
+        toast.success('Code loaded from documentation!');
+      } catch (e) {
+        console.error('Failed to decode code from URL:', e);
+      }
+    }
+  }, []);
 
   // Persist language code to sessionStorage
   useEffect(() => {
@@ -1027,6 +1057,12 @@ Jack,30,Miami,86`,
       onOpenTemplates={() => setTemplateLibraryOpen(true)}
       onOpenRTemplates={() => setRTemplateLibraryOpen(true)}
       onOpenLabTrainer={() => setLabTrainerOpen(true)}
+      currentLanguage={
+        currentFile?.language === 'python' || currentFile?.language === 'r' || 
+        currentFile?.language === 'javascript' || currentFile?.language === 'sql'
+          ? currentFile.language
+          : scratchLanguage
+      }
       isNotebookMode={isNotebookMode}
       currentFile={activeFile}
       isRunning={isRunning}

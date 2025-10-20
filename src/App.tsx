@@ -23,6 +23,11 @@ import StatisticsR from "./pages/use-cases/StatisticsR";
 import MobileCoding from "./pages/use-cases/MobileCoding";
 import VsGoogleColab from "./pages/comparisons/VsGoogleColab";
 import BlogIndex from "./pages/blog/BlogIndex";
+import DocsIndex from "./pages/docs/DocsIndex";
+import PythonDocs from "./pages/docs/PythonDocs";
+import RDocs from "./pages/docs/RDocs";
+import JavaScriptDocs from "./pages/docs/JavaScriptDocs";
+import SQLDocs from "./pages/docs/SQLDocs";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +64,13 @@ const App = () => {
               
               {/* Blog */}
               <Route path="/blog" element={<BlogIndex />} />
+              
+              {/* Documentation */}
+              <Route path="/docs" element={<DocsIndex />} />
+              <Route path="/docs/python" element={<PythonDocs />} />
+              <Route path="/docs/r" element={<RDocs />} />
+              <Route path="/docs/javascript" element={<JavaScriptDocs />} />
+              <Route path="/docs/sql" element={<SQLDocs />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

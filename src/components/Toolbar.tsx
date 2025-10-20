@@ -89,6 +89,16 @@ export const Toolbar = ({
                 <Beaker className="w-4 h-4" />
               </Button>
             )}
+            
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => window.open(`/docs/${currentLanguage}`, '_blank')}
+              className="h-8 w-8 flex-shrink-0"
+              title="Language Reference"
+            >
+              <BookOpen className="w-4 h-4" />
+            </Button>
 
             {onShare && (
               <Button
@@ -187,6 +197,27 @@ export const Toolbar = ({
                 R Templates
               </Button>
             )}
+            
+            {onOpenLabTrainer && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenLabTrainer}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none hover:from-emerald-600 hover:to-teal-600"
+              >
+                <Beaker className="w-4 h-4 mr-2" />
+                Practice Labs
+              </Button>
+            )}
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open(`/docs/${currentLanguage}`, '_blank')}
+            >
+              <BookOpen className="w-4 h-4 mr-2" />
+              Docs
+            </Button>
 
             {onOpenTranslate && (
               <Button
