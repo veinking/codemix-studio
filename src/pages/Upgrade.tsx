@@ -155,7 +155,7 @@ const Upgrade = () => {
               </CardTitle>
               <CardDescription>For power users</CardDescription>
               <div className="mt-4">
-                <span className="text-3xl font-bold">$7.99</span>
+                <span className="text-3xl font-bold">$9.99</span>
                 <span className="text-muted-foreground">/month</span>
               </div>
             </CardHeader>
@@ -209,7 +209,7 @@ const Upgrade = () => {
           <Card className="p-8 text-center max-w-2xl mx-auto">
             <h2 className="text-2xl font-bold mb-2">Ready to upgrade?</h2>
             <p className="text-muted-foreground mb-6">
-              Start your Pro subscription today for just $7.99/month
+              Start your Pro subscription today for just $9.99/month
             </p>
             <Button size="lg" onClick={handleCheckout} disabled={loading}>
               <Zap className="h-5 w-5 mr-2" />

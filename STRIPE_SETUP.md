@@ -9,7 +9,7 @@ Your subscription system is ready! Follow these steps to complete the Stripe con
 3. Create a new product with these details:
    - **Name**: OpenIDE Pro
    - **Description**: Unlimited AI-powered code assistance, extended code sharing, and priority support
-   - **Pricing**: $7.99 USD / month (recurring)
+   - **Pricing**: $9.99 USD / month (recurring)
    - Set as a **Recurring subscription**
 4. Click **Save product**
 5. **Copy the Price ID** (starts with `price_...`)

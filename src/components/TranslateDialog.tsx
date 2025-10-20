@@ -93,7 +93,7 @@ export const TranslateDialog = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(['python', 'r', 'javascript', 'sql'] as Lang[])
+                  {(['python', 'r', 'javascript', 'sql', 'php', 'ruby', 'lua', 'typescript', 'java', 'cpp', 'c', 'rust', 'go', 'swift', 'kotlin', 'csharp'] as Lang[])
                     .filter(l => l !== sourceLanguage)
                     .map(l => (
                       <SelectItem key={l} value={l}>
