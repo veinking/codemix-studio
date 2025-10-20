@@ -108,6 +108,7 @@ serve(async (req) => {
           subscription_tier: 'free',
           subscription_status: 'canceled',
           cancel_at_period_end: false,
+          canceled_at: null,
           stripe_subscription_id: null,
         }).eq('id', profiles[0].id);
 

@@ -92,7 +92,7 @@ const Account = () => {
       
       toast({
         title: 'Subscription canceled',
-        description: 'Your Pro access will continue until the end of this billing period.',
+        description: `You'll keep Pro access until ${profile?.subscription_period_end ? format(new Date(profile.subscription_period_end), 'PP') : 'the end of your billing period'}.`,
       });
       
       // Refresh the page to update subscription status
@@ -280,11 +280,20 @@ const Account = () => {
                 {profile.cancel_at_period_end ? (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Subscription Canceling</AlertTitle>
+                    <AlertTitle>Subscription Canceled</AlertTitle>
                     <AlertDescription>
-                      Your Pro access will end on{' '}
-                      {profile.subscription_period_end && format(new Date(profile.subscription_period_end), 'PPP')}.
-                      You can reactivate anytime before then.
+                      {profile.canceled_at && (
+                        <p className="mb-2">
+                          Canceled on {format(new Date(profile.canceled_at), 'PPP')} at {format(new Date(profile.canceled_at), 'p')}
+                        </p>
+                      )}
+                      <p>
+                        Your Pro access will remain active until{' '}
+                        {profile.subscription_period_end && format(new Date(profile.subscription_period_end), 'PPP')}.
+                      </p>
+                      <p className="mt-2 text-sm">
+                        You can reactivate your subscription anytime before then by contacting support.
+                      </p>
                     </AlertDescription>
                   </Alert>
                 ) : (

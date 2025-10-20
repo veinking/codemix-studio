@@ -49,10 +49,13 @@ serve(async (req) => {
       cancel_at_period_end: true,
     });
 
-    // Update profile
+    // Update profile with cancellation timestamp
     await supabaseClient
       .from('profiles')
-      .update({ cancel_at_period_end: true })
+      .update({ 
+        cancel_at_period_end: true,
+        canceled_at: new Date().toISOString()
+      })
       .eq('id', user.id);
 
     console.log('[CANCEL-SUBSCRIPTION] Subscription will cancel at period end');
