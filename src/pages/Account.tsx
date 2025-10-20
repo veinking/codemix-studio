@@ -16,11 +16,26 @@ import { supabase } from '@/integrations/supabase/client';
 const Account = () => {
   const { user, profile, aiUsage, signOut, isLoading } = useAuth();
   const [canceling, setCanceling] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.account);
+    
+    // Check for success parameter from Stripe redirect
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true') {
+      toast({
+        title: 'Welcome to Pro! 🎉',
+        description: 'Your subscription is active. Refreshing your account...',
+      });
+      
+      // Refresh subscription status after a brief delay
+      setTimeout(() => {
+        window.location.href = '/account';
+      }, 2000);
+    }
     
     // Add noindex meta tag to prevent indexing of account pages
     let metaRobots = document.querySelector('meta[name="robots"]') as HTMLMetaElement;
@@ -94,6 +109,31 @@ const Account = () => {
     }
   };
   
+  const handleRefreshSubscription = async () => {
+    setRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription');
+      if (error) throw error;
+      
+      toast({
+        title: 'Subscription refreshed',
+        description: 'Your subscription status has been updated.',
+      });
+      
+      // Reload to update profile
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Refresh subscription error:', error);
+      toast({
+        title: 'Refresh failed',
+        description: 'Unable to refresh subscription status.',
+        variant: 'destructive',
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  
   const isPro = profile?.subscription_tier === 'pro';
   const isFreeTier = profile?.subscription_tier === 'free';
   
@@ -144,12 +184,23 @@ const Account = () => {
                     )}
                   </div>
                 </div>
-                {!isPro && (
-                  <Button onClick={() => navigate('/upgrade')} size="sm">
-                    <Zap className="h-4 w-4 mr-2" />
-                    Upgrade to Pro
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleRefreshSubscription} 
+                    variant="outline" 
+                    size="sm"
+                    disabled={refreshing}
+                  >
+                    {refreshing && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                    Refresh
                   </Button>
-                )}
+                  {!isPro && (
+                    <Button onClick={() => navigate('/upgrade')} size="sm">
+                      <Zap className="h-4 w-4 mr-2" />
+                      Upgrade to Pro
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
