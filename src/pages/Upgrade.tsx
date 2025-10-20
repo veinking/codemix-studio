@@ -68,7 +68,7 @@ const Upgrade = () => {
             Unlimited AI. Unlimited Potential.
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Never hit a daily limit again. Code smarter with AI by your side.
+            Never hit a limit again. Code smarter with AI by your side.
           </p>
         </div>
         

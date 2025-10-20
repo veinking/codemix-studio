@@ -56,8 +56,9 @@ const Terms = () => {
           
           <h2>5. AI Usage Limits</h2>
           <p>
-            AI usage limits reset daily at midnight UTC. Usage limits apply across all AI features including code assistance, 
-            error explanations, code translation, lab training, and data analysis.
+            AI usage limits use a 5-day rolling window. Usage is counted over the past 5 days from the current moment. 
+            Usage limits apply across all AI features including code assistance, error explanations, code translation, 
+            lab training, and data analysis.
           </p>
           
           <h2>6. User Content</h2>

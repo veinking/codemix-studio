@@ -41,7 +41,7 @@ const priceId = 'price_1234567890abcdef'; // Your actual Stripe price ID
 ✅ Stripe checkout integration
 ✅ Subscription status checking
 ✅ Profile tier management
-✅ AI usage limits (Guest: 3/day, Free: 6/day, Pro: unlimited)
+✅ AI usage limits (Guest: None, Free: 3 per 5 days, Pro: unlimited)
 
 ## 5. Verify Subscription System
 

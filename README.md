@@ -1,6 +1,6 @@
-# 🌐 OpenIDE — Browser-Based Python & R Environment
+# 🌐 bIDE — Browser-Based Python & R Environment
 
-**OpenIDE** is an open-source, browser-based IDE inspired by RStudio — built for Python and R.  
+**bIDE** is an open-source, browser-based IDE inspired by RStudio — built for Python and R.
 It runs code *entirely in your browser*, powered by WebAssembly (Pyodide & webR), with an optional lightweight backend for cloud sync and collaboration.
 
 > "Run data science anywhere — instantly, securely, and open source."
@@ -66,8 +66,8 @@ The backend only handles saving, sharing, and optional collaboration.
 
 ### 1. Clone the Repo
 ```bash
-git clone https://github.com/yourusername/openide.git
-cd openide
+git clone https://github.com/yourusername/bide.git
+cd bide
 ```
 
 ### 2. Run the Frontend

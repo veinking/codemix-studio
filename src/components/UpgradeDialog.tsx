@@ -32,19 +32,19 @@ export const UpgradeDialog = ({ open, onOpenChange }: UpgradeDialogProps) => {
             AI Usage Limit Reached
           </AlertDialogTitle>
           <AlertDialogDescription>
-            You've used all your AI features for today. Upgrade to continue!
+            You've used all your AI features for this 5-day period. Upgrade to continue!
           </AlertDialogDescription>
         </AlertDialogHeader>
         
         <Card className="p-6 border-2 border-primary">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-xl">OpenIDE Pro</h3>
+            <h3 className="font-bold text-xl">bIDE Pro</h3>
             <Badge variant="secondary">👑 PRO</Badge>
           </div>
           <ul className="space-y-2 text-sm mb-4">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-              <span><strong>Unlimited AI usage</strong> - No daily limits</span>
+              <span><strong>Unlimited AI usage</strong> - No limits ever</span>
             </li>
             <li className="flex items-start gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
@@ -81,7 +81,7 @@ export const UpgradeDialog = ({ open, onOpenChange }: UpgradeDialogProps) => {
               className="w-full"
             >
               Create Free Account
-              <Badge className="ml-2">6 uses/day</Badge>
+              <Badge className="ml-2">3/5 days</Badge>
             </Button>
           )}
           <Button 
