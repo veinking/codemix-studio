@@ -138,16 +138,6 @@ export const Toolbar = ({
               </Button>
             )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClearAll}
-              className="h-8 w-8 flex-shrink-0"
-              title="Clear All Code"
-            >
-              <Trash2 className="w-4 h-4" />
-            </Button>
-
             {onOpenFeatures && (
               <Button
                 variant="outline"
@@ -308,9 +298,10 @@ export const Toolbar = ({
               variant="ghost"
               size="sm"
               onClick={onClearAll}
+              title="Clear all code from editor"
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              Clear All
+              Clear
             </Button>
 
             {onShare && (
