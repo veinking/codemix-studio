@@ -200,18 +200,6 @@ export const Toolbar = ({
               </Button>
             )}
             
-            {onOpenLabTrainer && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onOpenLabTrainer}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none hover:from-emerald-600 hover:to-teal-600"
-              >
-                <Beaker className="w-4 h-4 mr-2" />
-                Practice Labs
-              </Button>
-            )}
-            
             <Button
               variant="outline"
               size="sm"
