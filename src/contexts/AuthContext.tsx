@@ -105,6 +105,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (data) {
         setProfile(data as Profile);
       }
+      
+      // Check subscription status after fetching profile
+      setTimeout(async () => {
+        try {
+          const { data: subData, error: subError } = await supabase.functions.invoke('check-subscription');
+          if (subError) {
+            console.error('Error checking subscription:', subError);
+          } else if (subData) {
+            console.log('[AUTH] Subscription status:', subData);
+          }
+        } catch (err) {
+          console.error('Failed to check subscription:', err);
+        }
+      }, 0);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }

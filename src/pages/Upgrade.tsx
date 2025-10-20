@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -23,9 +24,24 @@ const Upgrade = () => {
     }
     
     setLoading(true);
-    // TODO: Implement Stripe checkout
-    alert('Stripe checkout will be implemented next');
-    setLoading(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {}
+      });
+      
+      if (error) throw error;
+      
+      if (data?.url) {
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('No checkout URL returned');
+      }
+    } catch (error: any) {
+      console.error('Checkout error:', error);
+      alert(error.message || 'Failed to start checkout. Please ensure Stripe is configured with a valid Pro plan price.');
+    } finally {
+      setLoading(false);
+    }
   };
   
   const isPro = profile?.subscription_tier === 'pro';

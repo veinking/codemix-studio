@@ -30,7 +30,7 @@ serve(async (req) => {
     console.log('[CREATE-CHECKOUT] Creating checkout for user:', user.id, user.email);
 
     const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-08-27.basil',
     });
 
     // Check if customer exists
@@ -49,8 +49,10 @@ serve(async (req) => {
     }
 
     // For now, we'll use a placeholder price ID
-    // TODO: Create actual product in Stripe and update this
-    const priceId = 'price_PLACEHOLDER';
+    // IMPORTANT: Replace this with your actual Stripe price ID
+    // Create a product in Stripe dashboard: Products -> Add product
+    // Set price to $7.99/month, then copy the price ID (starts with price_)
+    const priceId = 'price_PLACEHOLDER'; // TODO: Replace with real price ID from Stripe
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({

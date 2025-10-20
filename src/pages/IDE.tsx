@@ -41,6 +41,7 @@ import { JavaScriptRuntime } from "@/runtimes/JavaScriptRuntime";
 import { SQLRuntime } from "@/runtimes/SQLRuntime";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
+import { GuestPrompt } from "@/components/GuestPrompt";
 
 interface ErrorExplanation {
   what: string;
@@ -1347,6 +1348,7 @@ Jack,30,Miami,86`,
   return (
     <>
       {showWelcome && <WelcomeOverlay onDismiss={() => setShowWelcome(false)} />}
+      <GuestPrompt />
       
       <div className="flex flex-col h-screen">
         {isMobile ? (
