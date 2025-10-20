@@ -6,7 +6,6 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "postbuild": "react-snap",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
@@ -94,37 +93,5 @@
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19"
-  },
-  "reactSnap": {
-    "inlineCss": true,
-    "minifyHtml": {
-      "collapseWhitespace": true,
-      "removeComments": true
-    },
-    "include": [
-      "/",
-      "/ide",
-      "/features",
-      "/docs",
-      "/docs/python",
-      "/docs/r",
-      "/docs/javascript",
-      "/docs/sql",
-      "/docs/php",
-      "/docs/ruby",
-      "/docs/lua",
-      "/docs/java",
-      "/docs/typescript",
-      "/docs/cpp",
-      "/docs/c",
-      "/docs/rust",
-      "/docs/go",
-      "/docs/swift",
-      "/docs/kotlin",
-      "/docs/csharp",
-      "/tutorials",
-      "/testimonials",
-      "/support"
-    ]
   }
 }
