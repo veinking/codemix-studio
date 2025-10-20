@@ -27,7 +27,7 @@ const Testimonials = () => {
       avatar: "",
       rating: 5,
       title: "Perfect for my data science course",
-      text: "OpenIDE saved me during finals week. No installation needed and works on my phone! The AI assistant helped me debug my pandas code at 2 AM when no one was available to help.",
+      text: "bIDE saved me during finals week. No installation needed and works on my phone! The AI assistant helped me debug my pandas code at 2 AM when no one was available to help.",
       date: "2025-10-15",
       verified: true
     },
@@ -47,7 +47,7 @@ const Testimonials = () => {
       avatar: "",
       rating: 5,
       title: "Recommended to all my students",
-      text: "I recommend OpenIDE to all my intro programming students. It removes the installation barrier that often frustrates beginners. Students can start coding immediately.",
+      text: "I recommend bIDE to all my intro programming students. It removes the installation barrier that often frustrates beginners. Students can start coding immediately.",
       date: "2025-10-08",
       verified: true
     },
@@ -57,7 +57,7 @@ const Testimonials = () => {
       avatar: "",
       rating: 5,
       title: "Game changer for mobile coding",
-      text: "I code on my commute using OpenIDE on my phone. The mobile interface is actually usable, unlike other IDEs. Perfect for practicing Python during my 1-hour train ride.",
+      text: "I code on my commute using bIDE on my phone. The mobile interface is actually usable, unlike other IDEs. Perfect for practicing Python during my 1-hour train ride.",
       date: "2025-10-05",
       verified: true
     },
@@ -67,7 +67,7 @@ const Testimonials = () => {
       avatar: "",
       rating: 4,
       title: "Great for quick data analysis",
-      text: "I use OpenIDE for quick data analysis when I'm away from my workstation. The CSV upload feature and pandas support are exactly what I need for exploratory analysis.",
+      text: "I use bIDE for quick data analysis when I'm away from my workstation. The CSV upload feature and pandas support are exactly what I need for exploratory analysis.",
       date: "2025-09-28",
       verified: true
     },
@@ -77,7 +77,7 @@ const Testimonials = () => {
       avatar: "",
       rating: 5,
       title: "Perfect for teaching Python",
-      text: "My students can access OpenIDE from school computers without admin privileges. No more spending class time on installation issues. We can focus on learning to code!",
+      text: "My students can access bIDE from school computers without admin privileges. No more spending class time on installation issues. We can focus on learning to code!",
       date: "2025-09-25",
       verified: true
     }
@@ -103,7 +103,7 @@ const Testimonials = () => {
 
         <div className="space-y-8">
           <div className="text-center">
-            <h1 className="text-4xl font-bold mb-4">What Students Say About OpenIDE</h1>
+            <h1 className="text-4xl font-bold mb-4">What Students Say About bIDE</h1>
             <div className="flex items-center justify-center gap-2 mb-4">
               <div className="flex">
                 {[1, 2, 3, 4, 5].map((star) => (
@@ -117,7 +117,7 @@ const Testimonials = () => {
               <span className="text-muted-foreground">({testimonials.length} reviews)</span>
             </div>
             <p className="text-xl text-muted-foreground">
-              Real feedback from students and educators using OpenIDE
+              Real feedback from students and educators using bIDE
             </p>
           </div>
 
@@ -170,7 +170,7 @@ const Testimonials = () => {
                 Start coding Python and R in your browser today
               </p>
               <Button onClick={() => navigate("/ide")} size="lg">
-                Try OpenIDE Free
+                Try bIDE Free
               </Button>
             </CardContent>
           </Card>

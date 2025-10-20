@@ -1,6 +1,6 @@
-# 🚀 OpenIDE Launch & Marketing Guide
+# 🚀 bIDE Launch & Marketing Guide
 
-This guide provides step-by-step instructions for submitting OpenIDE to web directories, building backlinks, and increasing discoverability.
+This guide provides step-by-step instructions for submitting bIDE to web directories, building backlinks, and increasing discoverability.
 
 ---
 
@@ -33,7 +33,7 @@ This guide provides step-by-step instructions for submitting OpenIDE to web dire
 **Preparation:**
 - [ ] Create account at https://news.ycombinator.com/
 - [ ] Build karma by commenting on other posts first (aim for 5-10 karma)
-- [ ] Write clear, honest title: "Show HN: OpenIDE – Free Python/R IDE that runs in your browser"
+- [ ] Write clear, honest title: "Show HN: bIDE – Free Python/R IDE that runs in your browser"
 - [ ] Write first comment explaining: why you built it, tech stack, what's unique
 - [ ] Be ready to answer technical questions
 
@@ -54,12 +54,12 @@ This guide provides step-by-step instructions for submitting OpenIDE to web dire
 
 **Preparation:**
 - [ ] Create account at https://alternativeto.net/
-- [ ] List OpenIDE as alternative to: Replit, Google Colab, Jupyter, PyCharm Online
+- [ ] List bIDE as alternative to: Replit, Google Colab, Jupyter, PyCharm Online
 - [ ] Add detailed description with features
 - [ ] Upload screenshots and logo
 - [ ] Tag appropriately: Python, R, IDE, Browser-based, Student Tools
 
-**Submission Link:** https://alternativeto.net/software/openide/about/
+**Submission Link:** https://alternativeto.net/software/bide/about/
 
 **Tips:**
 - Fill out every field completely
@@ -156,7 +156,7 @@ Hi Professor [Name],
 
 I'm [Your Name], a [Year] student at [University]. I noticed your [Course Name] course requires Python/R programming.
 
-I built OpenIDE (codemixapp.com) - a free, browser-based IDE specifically for students. Key features:
+I built bIDE (codemixapp.com) - a free, browser-based IDE specifically for students. Key features:
 
 - Works on any device (including phones/tablets)
 - No installation required
@@ -164,7 +164,7 @@ I built OpenIDE (codemixapp.com) - a free, browser-based IDE specifically for st
 - AI code assistance included
 - Supports Python, R, JavaScript, SQL
 
-Many students struggle with installing RStudio/Anaconda on school computers or personal devices. OpenIDE removes that barrier entirely.
+Many students struggle with installing RStudio/Anaconda on school computers or personal devices. bIDE removes that barrier entirely.
 
 Would you be open to sharing this with your students? Happy to demo if helpful.
 
@@ -187,7 +187,7 @@ Best,
 - [ ] Record 3-5 minute walkthrough
 - [ ] Show: loading Python, running code, CSV upload, data visualization, AI assistant
 - [ ] Edit with captions
-- [ ] Upload with SEO-friendly title: "OpenIDE Tutorial: Free Python & R IDE in Your Browser"
+- [ ] Upload with SEO-friendly title: "bIDE Tutorial: Free Python & R IDE in Your Browser"
 - [ ] Add timestamps in description
 - [ ] Include link to codemixapp.com
 
@@ -228,7 +228,7 @@ Best,
 - [ ] Add testimonials section to landing page
 - [ ] Create "Wall of Love" page
 - [ ] Add review schema for SEO (already implemented!)
-- [ ] Display user count: "Join 1,000+ students coding with OpenIDE"
+- [ ] Display user count: "Join 1,000+ students coding with bIDE"
 
 ---
 
@@ -297,7 +297,7 @@ These require minimal effort but high ROI:
 
 ## 📧 Press Kit Assets
 
-Keep these ready for journalists/bloggers who want to write about OpenIDE:
+Keep these ready for journalists/bloggers who want to write about bIDE:
 
 - Logo (PNG, transparent background)
 - Screenshots (1920x1080)

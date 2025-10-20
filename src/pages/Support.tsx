@@ -18,10 +18,10 @@ const Support = () => {
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "How do I contact OpenIDE support?",
+        "name": "How do I contact bIDE support?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Email us at Support@proairesume.com for technical support, billing questions, or general inquiries. We're here to help you get the most out of OpenIDE."
+          "text": "Email us at Support@proairesume.com for technical support, billing questions, or general inquiries. We're here to help you get the most out of bIDE."
         }
       },
       {
@@ -66,7 +66,7 @@ const Support = () => {
           <CardHeader>
             <CardTitle className="text-3xl">Support</CardTitle>
             <CardDescription>
-              We're here to help you get the most out of OpenIDE
+              We're here to help you get the most out of bIDE
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">

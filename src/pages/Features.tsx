@@ -295,7 +295,7 @@ const Features = () => {
       {/* Footer */}
       <footer className="border-t border-border mt-20 py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
-          <p>OpenIDE • Built by students, for students • Free forever</p>
+          <p>bIDE • Built by students, for students • Free forever</p>
         </div>
       </footer>
     </div>

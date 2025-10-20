@@ -68,7 +68,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
 
       toast({
         title: "Account created!",
-        description: "Welcome to OpenIDE. You're now signed in.",
+        description: "Welcome to bIDE. You're now signed in.",
       });
       
       onOpenChange(false);
@@ -279,7 +279,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         <DrawerContent>
           <DrawerHeader>
             <DrawerTitle>
-              {activeTab === "reset" ? "Reset Password" : "Welcome to OpenIDE"}
+              {activeTab === "reset" ? "Reset Password" : "Welcome to bIDE"}
             </DrawerTitle>
             <DrawerDescription>
               {activeTab === "reset"
@@ -302,7 +302,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {activeTab === "reset" ? "Reset Password" : "Welcome to OpenIDE"}
+            {activeTab === "reset" ? "Reset Password" : "Welcome to bIDE"}
           </DialogTitle>
           <DialogDescription>
             {activeTab === "reset" 

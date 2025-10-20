@@ -28,7 +28,7 @@ const Tutorials = () => {
       topics: [
         {
           question: "How do I run my first code?",
-          answer: `1. Launch the IDE from the homepage\n2. Choose your language (Python or R) from the selector\n3. Write your code in the editor\n4. Click the "Run" button or press Ctrl+Enter (Cmd+Enter on Mac)\n5. View your output in the console below\n\nExample Python code to try:\nprint("Hello, OpenIDE!")\nfor i in range(5):\n    print(f"Count: {i}")`
+          answer: `1. Launch the IDE from the homepage\n2. Choose your language (Python or R) from the selector\n3. Write your code in the editor\n4. Click the "Run" button or press Ctrl+Enter (Cmd+Enter on Mac)\n5. View your output in the console below\n\nExample Python code to try:\nprint("Hello, bIDE!")\nfor i in range(5):\n    print(f"Count: {i}")`
         },
         {
           question: "What's 'Scratch Mode'?",
@@ -92,7 +92,7 @@ const Tutorials = () => {
         },
         {
           question: "How do I install packages?",
-          answer: `OpenIDE supports many Python packages through Pyodide:\n\n1. Click "Package Manager" in the toolbar\n2. Search for a package (e.g., "scikit-learn")\n3. Click "Install"\n4. Wait for installation (can take 30s - 2min)\n5. Use in your code immediately\n\n**Pre-included packages:**\n• numpy, pandas, matplotlib\n• scipy, scikit-learn\n• statsmodels, seaborn\n\n**Note:** Not all PyPI packages work in the browser. If a package fails, check the console for compatibility info.`
+          answer: `bIDE supports many Python packages through Pyodide:\n\n1. Click "Package Manager" in the toolbar\n2. Search for a package (e.g., "scikit-learn")\n3. Click "Install"\n4. Wait for installation (can take 30s - 2min)\n5. Use in your code immediately\n\n**Pre-included packages:**\n• numpy, pandas, matplotlib\n• scipy, scikit-learn\n• statsmodels, seaborn\n\n**Note:** Not all PyPI packages work in the browser. If a package fails, check the console for compatibility info.`
         },
         {
           question: "What are ML Operations?",
@@ -120,7 +120,7 @@ const Tutorials = () => {
         },
         {
           question: "Performance Tips",
-          answer: `Make OpenIDE run faster:\n\n**On Mobile:**\n• Limit CSV files to < 5MB\n• Close unused panels\n• Clear console regularly (trash icon)\n• Avoid large loops (> 100k iterations)\n• Use smaller datasets for practice\n\n**On Desktop:**\n• CSV files up to 20MB work well\n• Install packages once, reuse them\n• Clear browser cache if slow\n• Use latest Chrome, Firefox, or Edge\n\n**For All Devices:**\n• Code incrementally and test often\n• Use Plain English Mode only when needed\n• Close Plot Viewer after saving plots`
+          answer: `Make bIDE run faster:\n\n**On Mobile:**\n• Limit CSV files to < 5MB\n• Close unused panels\n• Clear console regularly (trash icon)\n• Avoid large loops (> 100k iterations)\n• Use smaller datasets for practice\n\n**On Desktop:**\n• CSV files up to 20MB work well\n• Install packages once, reuse them\n• Clear browser cache if slow\n• Use latest Chrome, Firefox, or Edge\n\n**For All Devices:**\n• Code incrementally and test often\n• Use Plain English Mode only when needed\n• Close Plot Viewer after saving plots`
         },
         {
           question: "Data Persistence",
@@ -156,7 +156,7 @@ const Tutorials = () => {
               </Button>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">Tutorials & Guides</h1>
-                <p className="text-sm text-muted-foreground">Learn how to use every feature in OpenIDE</p>
+                <p className="text-sm text-muted-foreground">Learn how to use every feature in bIDE</p>
               </div>
             </div>
             <Button onClick={() => navigate("/ide")} size="lg" className="gap-2">
@@ -176,7 +176,7 @@ const Tutorials = () => {
             Complete Learning Path
           </Badge>
           <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            Master OpenIDE
+            Master bIDE
           </h2>
           <p className="text-xl text-muted-foreground">
             Step-by-step guides for beginners to advanced users. 
@@ -203,7 +203,7 @@ const Tutorials = () => {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">3.</span>
-                  <span>Type: <code className="px-2 py-1 rounded bg-muted">print("Hello, OpenIDE!")</code></span>
+                  <span>Type: <code className="px-2 py-1 rounded bg-muted">print("Hello, bIDE!")</code></span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="font-bold text-primary">4.</span>
@@ -285,7 +285,7 @@ const Tutorials = () => {
       {/* Footer */}
       <footer className="border-t border-border mt-20 py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
-          <p>Have questions? Submit feedback from the IDE • OpenIDE © 2025</p>
+          <p>Have questions? Submit feedback from the IDE • bIDE © 2025</p>
         </div>
       </footer>
     </div>

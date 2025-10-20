@@ -36,7 +36,7 @@ export const ReviewSchema = ({ reviews, aggregateRating }: ReviewSchemaProps) =>
     },
     "reviewBody": review.text,
     "datePublished": review.date,
-    ...(review.verified && { "publisher": { "@type": "Organization", "name": "OpenIDE" } })
+    ...(review.verified && { "publisher": { "@type": "Organization", "name": "bIDE" } })
   }));
 
   const aggregateSchema = aggregateRating ? {
@@ -50,7 +50,7 @@ export const ReviewSchema = ({ reviews, aggregateRating }: ReviewSchemaProps) =>
   const schema = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
-    "name": "OpenIDE",
+    "name": "bIDE",
     "applicationCategory": "DeveloperApplication",
     "operatingSystem": "Any (Web-based)",
     ...(aggregateSchema && { "aggregateRating": aggregateSchema }),
@@ -73,7 +73,7 @@ export const ReviewSchema = ({ reviews, aggregateRating }: ReviewSchemaProps) =>
  *     author: "Sarah Chen",
  *     rating: 5,
  *     title: "Perfect for my data science course",
- *     text: "OpenIDE saved me during finals week. No installation needed and works on my phone!",
+ *     text: "bIDE saved me during finals week. No installation needed and works on my phone!",
  *     date: "2025-10-15",
  *     verified: true
  *   }

@@ -12,8 +12,8 @@ const BlogIndex = () => {
 
   useEffect(() => {
     updatePageSEO({
-      title: 'OpenIDE Blog | Python & R Tutorials, Data Science Tips',
-      description: 'Learn Python, R, and data science with OpenIDE tutorials. Free coding guides, tips, and best practices for students. Updated weekly.',
+      title: 'bIDE Blog | Python & R Tutorials, Data Science Tips',
+      description: 'Learn Python, R, and data science with bIDE tutorials. Free coding guides, tips, and best practices for students. Updated weekly.',
       keywords: 'python tutorials, r programming tutorials, data science blog, coding tips for students, learn programming',
       canonical: 'https://codemixapp.com/blog'
     });
@@ -22,27 +22,27 @@ const BlogIndex = () => {
   const posts = [
     {
       title: "How to Run Python in Your Browser Without Installation",
-      description: "Learn how WebAssembly makes it possible to run Python directly in your browser with OpenIDE. No downloads required.",
+      description: "Learn how WebAssembly makes it possible to run Python directly in your browser with bIDE. No downloads required.",
       date: "2025-10-15",
       readTime: "5 min",
       category: "Tutorial",
       slug: "run-python-browser-webassembly"
     },
     {
-      title: "5 Data Science Projects You Can Build with OpenIDE",
+      title: "5 Data Science Projects You Can Build with bIDE",
       description: "Beginner-friendly data science projects using Python and pandas. Perfect for building your portfolio.",
       date: "2025-10-10",
       readTime: "8 min",
       category: "Projects",
-      slug: "5-data-science-projects-openide"
+      slug: "5-data-science-projects-bide"
     },
     {
-      title: "OpenIDE vs Jupyter Notebook: Which is Better for Students?",
-      description: "A detailed comparison of OpenIDE and Jupyter Notebook for student use cases. Find out which tool fits your needs.",
+      title: "bIDE vs Jupyter Notebook: Which is Better for Students?",
+      description: "A detailed comparison of bIDE and Jupyter Notebook for student use cases. Find out which tool fits your needs.",
       date: "2025-10-05",
       readTime: "6 min",
       category: "Comparison",
-      slug: "openide-vs-jupyter-notebook"
+      slug: "bide-vs-jupyter-notebook"
     }
   ];
 
@@ -61,7 +61,7 @@ const BlogIndex = () => {
 
         <div className="space-y-8">
           <div>
-            <h1 className="text-4xl font-bold mb-4">OpenIDE Blog</h1>
+            <h1 className="text-4xl font-bold mb-4">bIDE Blog</h1>
             <p className="text-xl text-muted-foreground">
               Python, R, and data science tutorials for students
             </p>

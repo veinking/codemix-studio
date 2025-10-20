@@ -29,12 +29,12 @@ const Terms = () => {
           
           <h2>1. Acceptance of Terms</h2>
           <p>
-            By accessing and using OpenIDE, you accept and agree to be bound by the terms and provision of this agreement.
+            By accessing and using bIDE, you accept and agree to be bound by the terms and provision of this agreement.
           </p>
           
           <h2>2. Use License</h2>
           <p>
-            OpenIDE grants you a personal, non-exclusive, non-transferable license to use the service for your personal or commercial projects,
+            bIDE grants you a personal, non-exclusive, non-transferable license to use the service for your personal or commercial projects,
             subject to these Terms of Service.
           </p>
           
@@ -46,7 +46,7 @@ const Terms = () => {
           
           <h2>4. Subscription Tiers</h2>
           <p>
-            OpenIDE offers different subscription tiers:
+            bIDE offers different subscription tiers:
           </p>
           <ul>
             <li><strong>Guest:</strong> No AI access, no account required</li>
@@ -63,7 +63,7 @@ const Terms = () => {
           
           <h2>6. User Content</h2>
           <p>
-            You retain all rights to the code and content you create using OpenIDE. By using our service, you grant us the right 
+            You retain all rights to the code and content you create using bIDE. By using our service, you grant us the right 
             to store and process your code for the purpose of providing the service.
           </p>
           
@@ -101,7 +101,7 @@ const Terms = () => {
           
           <h2>9. Prohibited Uses</h2>
           <p>
-            You may not use OpenIDE to:
+            You may not use bIDE to:
           </p>
           <ul>
             <li>Violate any laws or regulations</li>
@@ -119,13 +119,13 @@ const Terms = () => {
           
           <h2>11. Limitation of Liability</h2>
           <p>
-            OpenIDE is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of 
+            bIDE is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of 
             the service, including but not limited to loss of data, loss of profits, or service interruptions.
           </p>
           
           <h2>12. Privacy</h2>
           <p>
-            Your use of OpenIDE is also governed by our Privacy Policy. Please review our Privacy Policy to understand our practices.
+            Your use of bIDE is also governed by our Privacy Policy. Please review our Privacy Policy to understand our practices.
           </p>
           
           <h2>13. Changes to Terms</h2>

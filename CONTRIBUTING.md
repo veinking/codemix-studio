@@ -1,6 +1,6 @@
-# 🤝 Contributing to OpenIDE
+# 🤝 Contributing to bIDE
 
-First off — **thank you** for your interest in contributing to **OpenIDE**! ❤️  
+First off — **thank you** for your interest in contributing to **bIDE**! ❤️  
 This project thrives because of developers, data scientists, and tinkerers like you.
 
 Whether you're fixing a typo, improving docs, adding a new feature, or suggesting ideas — every contribution counts.
@@ -43,8 +43,8 @@ New contributors: look for issues labeled
 ### Clone and Run Locally
 ```bash
 # Fork and clone
-git clone https://github.com/YOUR_USERNAME/openide.git
-cd openide
+git clone https://github.com/YOUR_USERNAME/bide.git
+cd bide
 
 # Run frontend
 cd client
@@ -267,7 +267,7 @@ We follow the [Contributor Covenant](https://www.contributor-covenant.org/).
 
 ## 🙏 Thank You!
 
-Your contributions make OpenIDE better for everyone.  
+Your contributions make bIDE better for everyone.  
 We're excited to see what you build! 🚀
 
 ---

@@ -13,7 +13,7 @@ export const WelcomeOverlay = ({ onDismiss }: WelcomeOverlayProps) => {
   const steps = [
     {
       icon: <FileCode className="w-12 h-12 text-primary" />,
-      title: "Welcome to OpenIDE",
+      title: "Welcome to bIDE",
       description: "Your browser-based Python & R IDE. Everything runs locally on your device.",
     },
     {

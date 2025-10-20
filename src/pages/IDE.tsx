@@ -214,10 +214,10 @@ const IDE = () => {
 
   // First-run experience
   useEffect(() => {
-    const isFirstVisit = !localStorage.getItem('openide_visited');
+    const isFirstVisit = !localStorage.getItem('bide_visited');
     if (isFirstVisit) {
       setShowWelcome(true);
-      localStorage.setItem('openide_visited', 'true');
+      localStorage.setItem('bide_visited', 'true');
       
       // Create demo files
       const demoFiles: FileItem[] = [
@@ -226,7 +226,7 @@ const IDE = () => {
           name: 'demo.py',
           type: 'file',
           language: 'python',
-          content: `# Welcome to OpenIDE!
+          content: `# Welcome to bIDE!
 # This is a simple Python demo
 
 import matplotlib.pyplot as plt
@@ -254,10 +254,10 @@ print("✓ Demo complete! Try editing this code or create your own files.")`,
           name: 'demo.js',
           type: 'file',
           language: 'javascript',
-          content: `// JavaScript Demo - Welcome to OpenIDE!
+          content: `// JavaScript Demo - Welcome to bIDE!
 
 const greet = (name) => {
-  return \`Hello, \${name}! Welcome to OpenIDE.\`;
+  return \`Hello, \${name}! Welcome to bIDE.\`;
 };
 
 console.log(greet("World"));
@@ -284,7 +284,7 @@ console.log("✓ JavaScript demo complete!");`,
           name: 'demo.sql',
           type: 'file',
           language: 'sql',
-          content: `-- SQL Demo - Welcome to OpenIDE!
+          content: `-- SQL Demo - Welcome to bIDE!
 
 CREATE TABLE users (
   id INTEGER PRIMARY KEY,

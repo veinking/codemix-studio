@@ -1,4 +1,4 @@
-# OpenIDE – Change Log (Latest Patch)
+# bIDE – Change Log (Latest Patch)
 
 ## [2025-10-17 - Notebook Mode]
 

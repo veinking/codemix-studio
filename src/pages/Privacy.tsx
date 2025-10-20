@@ -41,7 +41,7 @@ const Privacy = () => {
           
           <h3>1.2 Usage Data</h3>
           <p>
-            We automatically collect information about how you use OpenIDE:
+            We automatically collect information about how you use bIDE:
           </p>
           <ul>
             <li>AI feature usage (number of uses, feature types)</li>
@@ -75,7 +75,7 @@ const Privacy = () => {
             We use your information to:
           </p>
           <ul>
-            <li>Provide and maintain the OpenIDE service</li>
+            <li>Provide and maintain the bIDE service</li>
             <li>Process subscriptions and payments</li>
             <li>Track AI usage limits per tier</li>
             <li>Improve our AI features and user experience</li>
@@ -164,7 +164,7 @@ const Privacy = () => {
           
           <h2>9. Children's Privacy</h2>
           <p>
-            OpenIDE is not intended for users under 13 years old. We do not knowingly collect information from children under 13.
+            bIDE is not intended for users under 13 years old. We do not knowingly collect information from children under 13.
           </p>
           
           <h2>10. Cookies and Tracking</h2>
@@ -190,7 +190,7 @@ const Privacy = () => {
           
           <h2>12. International Users</h2>
           <p>
-            OpenIDE is operated in the United States. By using our service, you consent to the transfer and processing of your data 
+            bIDE is operated in the United States. By using our service, you consent to the transfer and processing of your data 
             in the United States.
           </p>
           

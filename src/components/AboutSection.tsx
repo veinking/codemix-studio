@@ -10,7 +10,7 @@ export const AboutSection = () => {
         <CardHeader>
           <div className="flex items-center gap-2 mb-2">
             <Heart className="h-5 w-5 text-primary" />
-            <CardTitle>Why OpenIDE Exists</CardTitle>
+            <CardTitle>Why bIDE Exists</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -25,10 +25,10 @@ export const AboutSection = () => {
               accounts, had paywalls, or just didn't work well.
             </p>
             <p className="font-semibold text-foreground">
-              So I built OpenIDE.
+              So I built bIDE.
             </p>
             <p>
-              OpenIDE is <strong>100% free for students</strong> because I know what it's 
+              bIDE is <strong>100% free for students</strong> because I know what it's 
               like to need tools but not have the budget.
             </p>
           </div>

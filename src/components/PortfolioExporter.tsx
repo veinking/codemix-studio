@@ -40,8 +40,8 @@ export const PortfolioExporter = ({
   consoleOutput,
 }: PortfolioExporterProps) => {
   const [options, setOptions] = useState<PortfolioOptions>({
-    title: "My OpenIDE Project",
-    description: "A project created with OpenIDE",
+    title: "My bIDE Project",
+    description: "A project created with bIDE",
     author: "",
     includeCode: true,
     includeDatasets: true,

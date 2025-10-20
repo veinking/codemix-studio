@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const DB_NAME = "OpenIDE";
+const DB_NAME = "bIDE";
 const STORE_NAME = "files";
 const DB_VERSION = 1;
 

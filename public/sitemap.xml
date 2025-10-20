@@ -247,6 +247,13 @@
 
   <!-- Comparison Pages -->
   <url>
+    <loc>https://codemixapp.com/comparisons/bide-vs-google-colab</loc>
+    <lastmod>2025-01-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <url>
     <loc>https://codemixapp.com/comparisons/openide-vs-google-colab</loc>
     <lastmod>2025-01-25</lastmod>
     <changefreq>monthly</changefreq>
