@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { AlertCircle, ArrowLeft, Crown, Loader2, LogOut, Sparkles, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
+import { supabase } from '@/integrations/supabase/client';
 
 const Account = () => {
   const { user, profile, aiUsage, signOut, isLoading } = useAuth();
@@ -66,12 +67,31 @@ const Account = () => {
     }
     
     setCanceling(true);
-    // TODO: Implement cancel subscription
-    toast({
-      title: 'Not implemented yet',
-      description: 'Subscription cancellation will be available soon',
-    });
-    setCanceling(false);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('cancel-subscription', {
+        method: 'POST',
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Subscription canceled',
+        description: 'Your Pro access will continue until the end of this billing period.',
+      });
+      
+      // Refresh the page to update subscription status
+      window.location.reload();
+    } catch (error: any) {
+      console.error('Cancel subscription error:', error);
+      toast({
+        title: 'Cancellation failed',
+        description: error.message || 'Unable to cancel subscription. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setCanceling(false);
+    }
   };
   
   const isPro = profile?.subscription_tier === 'pro';
