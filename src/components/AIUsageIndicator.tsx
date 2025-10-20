@@ -40,7 +40,7 @@ export const AIUsageIndicator = () => {
           <p>{aiUsage.message}</p>
           {isLimited && (
             <p className="text-xs text-muted-foreground mt-1">
-              Resets at midnight
+              Resets every 5 days
             </p>
           )}
         </TooltipContent>

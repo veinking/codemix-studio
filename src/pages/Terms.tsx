@@ -49,8 +49,8 @@ const Terms = () => {
             OpenIDE offers different subscription tiers:
           </p>
           <ul>
-            <li><strong>Guest:</strong> Limited to 3 AI uses per day, no account required</li>
-            <li><strong>Free Account:</strong> 6 AI uses per day, includes code sharing and progress tracking</li>
+            <li><strong>Guest:</strong> No AI access, no account required</li>
+            <li><strong>Free Account:</strong> 3 AI uses every 5 days, includes code sharing and progress tracking</li>
             <li><strong>Pro Account:</strong> Unlimited AI usage, priority processing, and advanced features for $7.99/month</li>
           </ul>
           

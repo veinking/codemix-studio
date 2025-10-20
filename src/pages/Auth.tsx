@@ -112,7 +112,7 @@ const Auth = () => {
       
       toast({
         title: 'Account created!',
-        description: 'Welcome to OpenIDE. You now have 6 AI uses per day.',
+        description: 'Welcome to bIDE. You now have 3 AI uses every 5 days.',
       });
       
       navigate('/ide');

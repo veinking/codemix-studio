@@ -95,7 +95,7 @@ const Upgrade = () => {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-muted-foreground mt-0.5" />
-                  <span className="font-bold">3 AI uses per day</span>
+                  <span className="font-bold">No AI access</span>
                 </li>
               </ul>
             </CardContent>
@@ -118,7 +118,7 @@ const Upgrade = () => {
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />
-                  <span className="font-bold">6 AI uses per day</span>
+                  <span className="font-bold">3 AI uses every 5 days</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="h-4 w-4 text-primary mt-0.5" />

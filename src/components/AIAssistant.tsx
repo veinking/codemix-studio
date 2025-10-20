@@ -141,7 +141,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
             <Link to="/auth" className="font-semibold underline">
               Sign up
             </Link>{" "}
-            to get 1 free AI request per day!
+            to get 3 free AI requests every 5 days!
           </AlertDescription>
         </Alert>
       )}

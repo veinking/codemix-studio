@@ -303,7 +303,7 @@ const Account = () => {
                 AI Usage
               </CardTitle>
               <CardDescription>
-                {isPro ? 'Unlimited AI usage' : `${aiUsage?.limit || 6} AI uses per day`}
+                {isPro ? 'Unlimited AI usage' : `${aiUsage?.limit || 3} AI uses every 5 days`}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -323,9 +323,9 @@ const Account = () => {
                   </div>
                   <div className="text-center p-4 bg-secondary rounded-lg">
                     <p className="text-2xl font-bold">
-                      {isPro ? '∞' : aiUsage?.limit || 6}
+                      {isPro ? '∞' : aiUsage?.limit || 3}
                     </p>
-                    <p className="text-sm text-muted-foreground">Daily Limit</p>
+                    <p className="text-sm text-muted-foreground">5-Day Limit</p>
                   </div>
                 </div>
                 

@@ -90,7 +90,7 @@ const Privacy = () => {
           </p>
           <ul>
             <li>Stored locally in your browser</li>
-            <li>Used only to enforce the 3 AI uses per day limit</li>
+            <li>Used only for guest session identification (guests have no AI access)</li>
             <li>Not tied to your personal identity</li>
             <li>Reset if you clear your browser data</li>
           </ul>
