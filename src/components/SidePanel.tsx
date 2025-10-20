@@ -97,7 +97,7 @@ export const SidePanel = ({
               </TabsTrigger>
             </TabsList>
 
-            <div className="flex-1 overflow-y-auto p-4">
+            <div className="flex-1 overflow-y-auto p-4 tools-scrollbar">
               <TabsContent value="ai" className="mt-0">
                 {aiAssistant}
               </TabsContent>

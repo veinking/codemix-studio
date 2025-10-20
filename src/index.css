@@ -85,6 +85,32 @@ All colors MUST be HSL.
     display: none;
   }
 
+  /* Custom scrollbar for Tools panel - subtle and themed */
+  .tools-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .tools-scrollbar::-webkit-scrollbar-track {
+    background: hsl(var(--muted) / 0.3);
+    border-radius: 4px;
+  }
+
+  .tools-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--primary) / 0.4);
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .tools-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--primary) / 0.6);
+  }
+
+  /* Firefox scrollbar */
+  .tools-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.4) hsl(var(--muted) / 0.3);
+  }
+
   /* Touch-friendly mobile interactions */
   .touch-manipulation {
     touch-action: manipulation;

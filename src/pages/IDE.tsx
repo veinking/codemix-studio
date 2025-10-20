@@ -1003,7 +1003,12 @@ Jack,30,Miami,86`,
         )
       );
     } else {
-      // If in scratch pad, replace scratch code and switch language
+      // If in scratch pad, save current language code first, then switch
+      setLanguageCode(prev => ({
+        ...prev,
+        [scratchLanguage]: scratchCode, // Save current code
+        [language]: code // Save translated code to target language
+      }));
       setScratchCode(code);
       setScratchLanguage(language);
     }
