@@ -21,6 +21,7 @@ import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { PackageManager } from "@/components/PackageManager";
 import { AboutSection } from "@/components/AboutSection";
 import { SidePanel } from "@/components/SidePanel";
+import { FeatureDrawer } from "@/components/FeatureDrawer";
 
 import { FeedbackForm } from "@/components/FeedbackForm";
 import { TranslateDialog } from "@/components/TranslateDialog";
@@ -89,6 +90,7 @@ const IDE = () => {
   const [labTrainerOpen, setLabTrainerOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [initializedRuntimes, setInitializedRuntimes] = useState<Set<string>>(new Set());
+  const [featureDrawerOpen, setFeatureDrawerOpen] = useState(false);
   const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [portfolioExportOpen, setPortfolioExportOpen] = useState(false);
@@ -1126,6 +1128,7 @@ Jack,30,Miami,86`,
       scratchLanguage={scratchLanguage}
       onScratchLanguageChange={handleLanguageChange}
       onInsertCode={handleInsertCode}
+      onOpenFeatures={() => setFeatureDrawerOpen(true)}
       onOpenTools={() => setSidePanelOpen(prev => !prev)}
       onAuthClick={() => setAuthDialogOpen(true)}
       initializedRuntimes={initializedRuntimes}
@@ -1413,6 +1416,19 @@ Jack,30,Miami,86`,
         )}
       </div>
       
+      {isMobile && (
+        <FeatureDrawer
+          open={featureDrawerOpen}
+          onOpenChange={setFeatureDrawerOpen}
+          aiAssistant={aiAssistantComponent}
+          packageManager={packageManagerComponent}
+          dataLab={dataLabComponent}
+          dataOperations={dataOpsComponent}
+          mlOperations={mlOpsComponent}
+          labTrainer={labTrainerComponent}
+          about={<AboutSection />}
+        />
+      )}
       {plotData && (
         <PlotViewer 
           plotData={plotData} 
