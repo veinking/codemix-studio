@@ -1388,19 +1388,6 @@ Jack,30,Miami,86`,
                 {mlOpsComponent}
               </div>
             }
-            featureDrawer={
-              <FeatureDrawer
-                open={featureDrawerOpen}
-                onOpenChange={setFeatureDrawerOpen}
-                aiAssistant={aiAssistantComponent}
-                packageManager={packageManagerComponent}
-                dataLab={dataLabComponent}
-                dataOperations={dataOpsComponent}
-                mlOperations={mlOpsComponent}
-                labTrainer={labTrainerComponent}
-                about={<AboutSection />}
-              />
-            }
           />
         ) : (
           <div className="flex h-screen overflow-hidden w-full">

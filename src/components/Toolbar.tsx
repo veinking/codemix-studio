@@ -145,18 +145,6 @@ export const Toolbar = ({
                 <span className="text-xs font-medium">Tools</span>
               </Button>
             )}
-
-            {onOpenTools && (
-              <Button
-                variant="outline"
-                size="default"
-                onClick={onOpenTools}
-                className="h-8 px-2.5 flex-shrink-0"
-              >
-                <Settings className="w-4 h-4 mr-1" />
-                <span className="text-xs font-medium">Features</span>
-              </Button>
-            )}
             {/* Account (mobile) */}
             {isGuest ? (
               <Button

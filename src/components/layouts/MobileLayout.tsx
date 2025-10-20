@@ -35,7 +35,6 @@ interface MobileLayoutProps {
   onRedo: () => void;
   onSaveScratchAsFile: () => void;
   dataOpsComponent?: ReactNode;
-  featureDrawer?: ReactNode;
   hasNewOutput?: boolean;
   consoleOpen?: boolean;
   onConsoleOpenChange?: (open: boolean) => void;
@@ -58,7 +57,6 @@ export const MobileLayout = ({
   onRedo,
   onSaveScratchAsFile,
   dataOpsComponent,
-  featureDrawer,
   hasNewOutput = false,
   consoleOpen = false,
   onConsoleOpenChange,
@@ -351,9 +349,6 @@ export const MobileLayout = ({
           </div>
         </>
       )}
-      
-      {/* Feature Drawer */}
-      {featureDrawer}
     </div>
   );
 };
