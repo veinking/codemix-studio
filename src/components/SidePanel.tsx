@@ -115,7 +115,26 @@ export const SidePanel = ({
                 {mlOperations}
               </TabsContent>
               <TabsContent value="learn" className="mt-0">
-                {labTrainer}
+                <div className="space-y-4">
+                  <div className="p-4 bg-muted/50 rounded-lg border border-border">
+                    <h3 className="font-semibold mb-2 flex items-center gap-2">
+                      <GraduationCap className="h-5 w-5" />
+                      Practice Labs
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Interactive coding challenges to improve your skills
+                    </p>
+                    <Button 
+                      onClick={() => {
+                        const event = new CustomEvent('openLabTrainer');
+                        window.dispatchEvent(event);
+                      }}
+                      className="w-full"
+                    >
+                      Open Practice Labs
+                    </Button>
+                  </div>
+                </div>
               </TabsContent>
               <TabsContent value="feedback" className="mt-0">
                 {feedback}

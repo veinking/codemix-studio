@@ -1081,6 +1081,13 @@ Jack,30,Miami,86`,
     };
   };
 
+  // Listen for practice labs event from side panel
+  useEffect(() => {
+    const handleOpenLabTrainer = () => setLabTrainerOpen(true);
+    window.addEventListener('openLabTrainer', handleOpenLabTrainer);
+    return () => window.removeEventListener('openLabTrainer', handleOpenLabTrainer);
+  }, []);
+
   const currentFile = files.find((f) => f.id === activeFile);
   const currentDataset = showDataset ? datasets.get(showDataset) : null;
 
@@ -1403,7 +1410,7 @@ Jack,30,Miami,86`,
               dataLab={dataLabComponent}
               dataOperations={dataOpsComponent}
               mlOperations={mlOpsComponent}
-              labTrainer={labTrainerComponent}
+              labTrainer={<div />}
               feedback={<FeedbackForm />}
               about={<AboutSection />}
             />
