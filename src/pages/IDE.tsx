@@ -1242,6 +1242,7 @@ Jack,30,Miami,86`,
   const mlOpsComponent = (
     <MLOperations 
       onInsertCode={handleInsertCode}
+      onOpenMLWizard={() => setMlWizardOpen(true)}
     />
   );
 
