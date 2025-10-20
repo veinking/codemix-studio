@@ -123,21 +123,6 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
   const handleEditorMount = (editor: any, monaco: any) => {
     registerCompletionProviders(monaco);
     
-    // Custom clipboard handler for Safari/Mobile fix
-    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => {
-      navigator.clipboard.readText().then(text => {
-        const selection = editor.getSelection();
-        editor.executeEdits("clipboard", [{
-          range: selection,
-          text: text,
-          forceMoveMarkers: true,
-        }]);
-      }).catch(() => {
-        // Fallback: Let Monaco handle it natively
-        editor.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
-      });
-    });
-    
     // Quick line selection shortcut (Ctrl/Cmd+L)
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
       const position = editor.getPosition();
@@ -148,6 +133,29 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false }: Code
         ));
       }
     });
+    
+    const domNode = editor.getDomNode();
+    if (domNode) {
+      // Enhanced paste support using native paste event
+      const textarea = domNode.querySelector('textarea');
+      if (textarea) {
+        textarea.addEventListener('paste', (e: ClipboardEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          const text = e.clipboardData?.getData('text/plain');
+          if (text) {
+            const selection = editor.getSelection();
+            editor.executeEdits('paste', [{
+              range: selection,
+              text: text,
+              forceMoveMarkers: true
+            }]);
+            editor.trigger('paste', 'type', { text: '' }); // Trigger change detection
+          }
+        });
+      }
+    }
     
     // Mobile-specific adjustments
     if (isMobile) {
