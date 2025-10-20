@@ -48,11 +48,8 @@ serve(async (req) => {
         .eq('id', user.id);
     }
 
-    // For now, we'll use a placeholder price ID
-    // IMPORTANT: Replace this with your actual Stripe price ID
-    // Create a product in Stripe dashboard: Products -> Add product
-    // Set price to $7.99/month, then copy the price ID (starts with price_)
-    const priceId = 'price_PLACEHOLDER'; // TODO: Replace with real price ID from Stripe
+    // OpenIDE Pro subscription - $9.99/month
+    const priceId = 'price_1SK9P0RsjT8BPnD7HlOmT2be';
 
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
