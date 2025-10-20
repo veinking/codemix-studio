@@ -24,6 +24,12 @@ verify_jwt = false
 [functions.cancel-subscription]
 verify_jwt = false
 
+[functions.reactivate-subscription]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false
+
 [functions.sync-subscription]
 verify_jwt = false
 

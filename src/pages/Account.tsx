@@ -4,11 +4,21 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { AlertCircle, ArrowLeft, Crown, Loader2, LogOut, Sparkles, Zap } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Crown, Loader2, LogOut, Sparkles, Trash2, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,6 +27,9 @@ const Account = () => {
   const { user, profile, aiUsage, signOut, isLoading } = useAuth();
   const [canceling, setCanceling] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [reactivating, setReactivating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -141,6 +154,60 @@ const Account = () => {
       });
     } finally {
       setRefreshing(false);
+    }
+  };
+  
+  const handleReactivateSubscription = async () => {
+    setReactivating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('reactivate-subscription');
+      if (error) throw error;
+      
+      toast({
+        title: 'Subscription reactivated! 🎉',
+        description: 'Your Pro subscription has been reactivated.',
+      });
+      
+      // Reload to update profile
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } catch (error: any) {
+      console.error('Reactivate subscription error:', error);
+      toast({
+        title: 'Reactivation failed',
+        description: error.message || 'Unable to reactivate subscription. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setReactivating(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-account');
+      if (error) throw error;
+      
+      toast({
+        title: 'Account deleted',
+        description: 'Your account has been permanently deleted.',
+      });
+      
+      // Sign out and redirect to home
+      await signOut();
+      navigate('/');
+    } catch (error: any) {
+      console.error('Delete account error:', error);
+      toast({
+        title: 'Deletion failed',
+        description: error.message || 'Unable to delete account. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
   
@@ -291,7 +358,7 @@ const Account = () => {
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Subscription Canceled</AlertTitle>
-                    <AlertDescription>
+                    <AlertDescription className="space-y-3">
                       {profile.canceled_at && (
                         <p className="mb-2">
                           Canceled on {format(new Date(profile.canceled_at), 'PPP')} at {format(new Date(profile.canceled_at), 'p')}
@@ -301,8 +368,17 @@ const Account = () => {
                         Your Pro access will remain active until{' '}
                         {profile.subscription_period_end && format(new Date(profile.subscription_period_end), 'PPP')}.
                       </p>
-                      <p className="mt-2 text-sm">
-                        You can reactivate your subscription anytime before then by contacting support.
+                      <Button 
+                        variant="default" 
+                        onClick={handleReactivateSubscription}
+                        disabled={reactivating}
+                        className="mt-3"
+                      >
+                        {reactivating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Reactivate Subscription
+                      </Button>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Click to keep your Pro subscription active
                       </p>
                     </AlertDescription>
                   </Alert>
@@ -332,9 +408,9 @@ const Account = () => {
             </Card>
           )}
           
-          {/* Sign Out */}
+          {/* Sign Out & Delete Account */}
           <Card>
-            <CardContent className="pt-6">
+            <CardContent className="pt-6 space-y-3">
               <Button 
                 variant="outline" 
                 onClick={handleSignOut}
@@ -343,10 +419,54 @@ const Account = () => {
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
+              
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteDialog(true)}
+                className="w-full"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Account
+              </Button>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* Delete Account Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Delete Account Permanently?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p className="font-semibold text-destructive">
+                This action cannot be undone. This will permanently:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>Delete your account and profile</li>
+                <li>Remove all your data from our database</li>
+                <li>Cancel any active subscriptions</li>
+                <li>Delete your email from our system</li>
+                <li>Remove all your saved code and projects</li>
+              </ul>
+              <p className="font-semibold mt-4">
+                Are you absolutely sure you want to delete your account?
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Yes, Delete My Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
