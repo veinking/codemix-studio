@@ -196,11 +196,14 @@ if (length(num_cols) > 0) {
             <>
               <div className="flex items-center gap-2">
                 <span className="text-sm">Target (optional)</span>
-                <Select value={target} onValueChange={setTarget}>
+                <Select value={target || "none"} onValueChange={(val) => setTarget(val === "none" ? "" : val)}>
                   <SelectTrigger className="w-48">
                     <SelectValue placeholder="Pick column" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none" className="text-muted-foreground italic">
+                      None (Clear Selection)
+                    </SelectItem>
                     {columns.filter(c => c && c.trim()).map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                   </SelectContent>
                 </Select>

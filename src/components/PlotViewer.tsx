@@ -67,6 +67,34 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
     toast.success('Plot code downloaded!');
   };
 
+  const handleDownloadImage = () => {
+    if (!plotData || !plotData.startsWith('data:image')) return;
+    
+    try {
+      // Convert base64 to blob
+      const base64Data = plotData.split(',')[1];
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'image/png' });
+      
+      // Trigger download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `plot_${Date.now()}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success('Plot image downloaded!');
+    } catch (err) {
+      console.error('Download failed:', err);
+      toast.error('Failed to download plot image');
+    }
+  };
+
   const handleOpenInNewTab = () => {
     if (!plotData || !plotData.startsWith('data:image')) return;
     const win = window.open();
@@ -130,10 +158,23 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <p className="font-semibold mb-2">{error}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mb-3">
                     💡 The plot code is valid and has been generated successfully. 
-                    {plotCode && ' Click "Download Code" above to save it and run in your local Python environment (Jupyter, VSCode, etc.) to see the visualization.'}
                   </p>
+                  <div className="flex gap-2 flex-wrap">
+                    {plotData?.startsWith('data:image') && (
+                      <Button onClick={handleDownloadImage} variant="default" size="sm">
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Plot Image
+                      </Button>
+                    )}
+                    {plotCode && (
+                      <Button onClick={handleDownloadCode} variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Code
+                      </Button>
+                    )}
+                  </div>
                 </AlertDescription>
               </Alert>
             ) : (

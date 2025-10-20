@@ -72,6 +72,18 @@ export const Toolbar = ({
         {isMobile ? (
           <>
             {/* Mobile: Show only essential buttons */}
+            {onShare && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onShare}
+                className="h-9 w-9 flex-shrink-0"
+                title="Share Code"
+              >
+                <Share2 className="w-5 h-5" />
+              </Button>
+            )}
+            
             {onOpenTranslate && (
               <Button
                 variant="ghost"
@@ -209,9 +221,10 @@ export const Toolbar = ({
 
             {onShare && (
               <Button
-                variant="ghost"
+                variant="default"
                 size="sm"
                 onClick={onShare}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
                 <Share2 className="w-4 h-4 mr-2" />
                 Share

@@ -115,7 +115,7 @@ export default function SharedCode() {
           <Link to="/">
             <Button className="w-full">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Go to OpenIDE
+              Go to bIDE
             </Button>
           </Link>
         </Card>
