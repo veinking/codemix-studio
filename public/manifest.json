@@ -1,6 +1,6 @@
 {
-  "name": "OpenIDE - Python & R Browser IDE",
-  "short_name": "OpenIDE",
+  "name": "bIDE - Python & R Browser IDE",
+  "short_name": "bIDE",
   "description": "Run Python and R code directly in your browser. Works offline, no installation required.",
   "start_url": "/?source=pwa",
   "display": "standalone",
