@@ -231,26 +231,6 @@ export const Toolbar = ({
                 Translate
               </Button>
             )}
-            
-            {onOpenTools && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onOpenTools}
-              >
-                Tools ⚙️
-              </Button>
-            )}
-            
-            {onOpenFeatures && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onOpenFeatures}
-              >
-                Features ✨
-              </Button>
-            )}
 
             {onOpenPlotBuilder && (
               <Button

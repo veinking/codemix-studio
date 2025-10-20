@@ -31,7 +31,7 @@ export default function JavaScriptDocs() {
         description="Free online JavaScript IDE with modern ES6+ support. Run JavaScript code directly in your browser. Perfect for learning web development and testing code snippets."
       />
       
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-background via-slate-50 to-yellow-50 dark:from-background dark:via-slate-900 dark:to-yellow-950">
         <div className="border-b border-border bg-card sticky top-0 z-10">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">

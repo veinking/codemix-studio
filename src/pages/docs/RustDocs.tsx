@@ -26,7 +26,7 @@ export default function RustDocs() {
         description="Free online Rust code editor. Learn Rust for systems programming with memory safety. Perfect for WebAssembly and blockchain development."
       />
       
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-background via-slate-50 to-orange-50 dark:from-background dark:via-slate-900 dark:to-orange-950">
         <div className="border-b border-border bg-card sticky top-0 z-10">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">

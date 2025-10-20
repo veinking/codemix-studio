@@ -28,7 +28,7 @@ export default function LuaDocs() {
         description="Free online Lua IDE with browser execution. Learn Lua scripting for games and embedded systems. Perfect for Roblox developers and game modders."
       />
       
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-background via-slate-50 to-blue-50 dark:from-background dark:via-slate-900 dark:to-blue-950">
         <div className="border-b border-border bg-card sticky top-0 z-10">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">

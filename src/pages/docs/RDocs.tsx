@@ -31,7 +31,7 @@ export default function RDocs() {
         description="Free online R IDE for statistics and data science. Run R code with webR in your browser. Includes ggplot2, dplyr, and statistical analysis tools."
       />
       
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-gradient-to-br from-background via-slate-50 to-purple-50 dark:from-background dark:via-slate-900 dark:to-purple-950">
         <div className="border-b border-border bg-card sticky top-0 z-10">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
