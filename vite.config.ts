@@ -15,7 +15,7 @@ export default defineConfig(({ mode }) => ({
     mode === "development" && componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.png', 'icon-512.png'],
+      includeAssets: ['icon-512.png'],
       manifest: {
         name: 'bIDE - Python & R Browser IDE',
         short_name: 'bIDE',
@@ -23,11 +23,6 @@ export default defineConfig(({ mode }) => ({
         theme_color: '#00bcd4',
         background_color: '#1e1e1e',
         icons: [
-          {
-            src: '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
           {
             src: '/icon-512.png',
             sizes: '512x512',
