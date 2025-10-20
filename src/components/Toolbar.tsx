@@ -19,6 +19,7 @@ interface ToolbarProps {
   onOpenTemplates?: () => void;
   onOpenRTemplates?: () => void;
   onOpenLabTrainer?: () => void;
+  currentLanguage?: string;
   isNotebookMode?: boolean;
   currentFile: string | null;
   isRunning: boolean;
@@ -44,6 +45,7 @@ export const Toolbar = ({
   onOpenTemplates,
   onOpenRTemplates,
   onOpenLabTrainer,
+  currentLanguage = 'python',
   isNotebookMode = false,
   currentFile, 
   isRunning,
