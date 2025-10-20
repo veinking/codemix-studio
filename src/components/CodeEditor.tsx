@@ -77,6 +77,194 @@ const registerCompletionProviders = (monaco: any) => {
     'VARCHAR', 'TEXT', 'DATE', 'TIMESTAMP', 'BOOLEAN', 'REAL', 'BLOB'
   ];
 
+  // PHP keywords
+  const phpCompletions = [
+    'echo', 'print', 'var_dump', 'print_r', 'die', 'exit', 'if', 'else', 'elseif',
+    'switch', 'case', 'default', 'while', 'do', 'for', 'foreach', 'break', 'continue',
+    'function', 'return', 'class', 'public', 'private', 'protected', 'static', 'new',
+    'extends', 'implements', 'interface', 'trait', 'namespace', 'use', 'require', 'include',
+    'array', 'isset', 'empty', 'unset', 'true', 'false', 'null', 'this', 'self', 'parent',
+    'strlen', 'strpos', 'substr', 'explode', 'implode', 'array_map', 'array_filter', 'count'
+  ];
+
+  const phpSnippets = [
+    { label: 'class', text: 'class ${1:ClassName} {\n    public function __construct() {\n        ${2}\n    }\n}', detail: 'Create class' },
+    { label: 'function', text: 'function ${1:name}(${2:params}) {\n    ${3}\n}', detail: 'Create function' },
+    { label: 'foreach', text: 'foreach (${1:array} as ${2:key} => ${3:value}) {\n    ${4}\n}', detail: 'Foreach loop' },
+  ];
+
+  // Ruby keywords
+  const rubyCompletions = [
+    'puts', 'print', 'p', 'if', 'elsif', 'else', 'unless', 'case', 'when', 'while',
+    'until', 'for', 'break', 'next', 'redo', 'retry', 'def', 'class', 'module', 'end',
+    'return', 'yield', 'super', 'self', 'begin', 'rescue', 'ensure', 'raise', 'attr_accessor',
+    'attr_reader', 'attr_writer', 'include', 'extend', 'require', 'true', 'false', 'nil',
+    'each', 'map', 'select', 'reject', 'find', 'reduce', 'sort', 'reverse', 'join', 'split'
+  ];
+
+  const rubySnippets = [
+    { label: 'class', text: 'class ${1:ClassName}\n  def initialize(${2:params})\n    ${3}\n  end\nend', detail: 'Create class' },
+    { label: 'def', text: 'def ${1:method_name}(${2:params})\n  ${3}\nend', detail: 'Define method' },
+    { label: 'each', text: '${1:array}.each do |${2:item}|\n  ${3}\nend', detail: 'Each loop' },
+  ];
+
+  // Lua keywords
+  const luaCompletions = [
+    'print', 'type', 'tonumber', 'tostring', 'if', 'then', 'else', 'elseif', 'end',
+    'while', 'do', 'repeat', 'until', 'for', 'in', 'break', 'return', 'function',
+    'local', 'true', 'false', 'nil', 'and', 'or', 'not', 'pairs', 'ipairs', 'next',
+    'table', 'insert', 'remove', 'sort', 'concat', 'string', 'math', 'require', 'module'
+  ];
+
+  const luaSnippets = [
+    { label: 'function', text: 'function ${1:name}(${2:params})\n  ${3}\nend', detail: 'Create function' },
+    { label: 'for', text: 'for ${1:i} = ${2:1}, ${3:10} do\n  ${4}\nend', detail: 'For loop' },
+    { label: 'table', text: 'local ${1:tbl} = {${2}}\n', detail: 'Create table' },
+  ];
+
+  // Java keywords
+  const javaCompletions = [
+    'public', 'private', 'protected', 'static', 'final', 'class', 'interface', 'extends',
+    'implements', 'void', 'int', 'double', 'float', 'boolean', 'char', 'String', 'if',
+    'else', 'switch', 'case', 'default', 'for', 'while', 'do', 'break', 'continue',
+    'return', 'new', 'this', 'super', 'try', 'catch', 'finally', 'throw', 'throws',
+    'import', 'package', 'abstract', 'synchronized', 'volatile', 'transient', 'System',
+    'println', 'print', 'List', 'ArrayList', 'HashMap', 'Set', 'HashSet', 'Collections'
+  ];
+
+  const javaSnippets = [
+    { label: 'class', text: 'public class ${1:ClassName} {\n    public ${1}() {\n        ${2}\n    }\n}', detail: 'Create class' },
+    { label: 'main', text: 'public static void main(String[] args) {\n    ${1}\n}', detail: 'Main method' },
+    { label: 'for', text: 'for (int ${1:i} = 0; ${1:i} < ${2:length}; ${1:i}++) {\n    ${3}\n}', detail: 'For loop' },
+  ];
+
+  // TypeScript keywords
+  const tsCompletions = [
+    'let', 'const', 'var', 'function', 'class', 'interface', 'type', 'enum', 'namespace',
+    'if', 'else', 'switch', 'case', 'for', 'while', 'do', 'break', 'continue', 'return',
+    'async', 'await', 'Promise', 'import', 'export', 'default', 'from', 'as', 'extends',
+    'implements', 'public', 'private', 'protected', 'readonly', 'static', 'abstract',
+    'string', 'number', 'boolean', 'any', 'void', 'null', 'undefined', 'Array', 'Map',
+    'Set', 'typeof', 'instanceof', 'this', 'super', 'new', 'try', 'catch', 'finally'
+  ];
+
+  const tsSnippets = [
+    { label: 'interface', text: 'interface ${1:Name} {\n  ${2:property}: ${3:type};\n}', detail: 'Create interface' },
+    { label: 'class', text: 'class ${1:ClassName} {\n  constructor(${2:params}) {\n    ${3}\n  }\n}', detail: 'Create class' },
+    { label: 'async function', text: 'async function ${1:name}(${2:params}): Promise<${3:void}> {\n  ${4}\n}', detail: 'Async function' },
+  ];
+
+  // C++ keywords
+  const cppCompletions = [
+    'include', 'namespace', 'using', 'class', 'struct', 'public', 'private', 'protected',
+    'virtual', 'override', 'final', 'static', 'const', 'constexpr', 'int', 'float',
+    'double', 'char', 'bool', 'void', 'auto', 'if', 'else', 'switch', 'case', 'for',
+    'while', 'do', 'break', 'continue', 'return', 'new', 'delete', 'this', 'nullptr',
+    'try', 'catch', 'throw', 'template', 'typename', 'std', 'cout', 'cin', 'endl',
+    'vector', 'string', 'map', 'set', 'pair', 'make_pair', 'shared_ptr', 'unique_ptr'
+  ];
+
+  const cppSnippets = [
+    { label: 'class', text: 'class ${1:ClassName} {\npublic:\n    ${1}() {}\n    ~${1}() {}\nprivate:\n    ${2}\n};', detail: 'Create class' },
+    { label: 'for', text: 'for (int ${1:i} = 0; ${1:i} < ${2:n}; ${1:i}++) {\n    ${3}\n}', detail: 'For loop' },
+    { label: 'vector', text: 'std::vector<${1:int}> ${2:name};', detail: 'Create vector' },
+  ];
+
+  // C keywords
+  const cCompletions = [
+    'include', 'define', 'if', 'else', 'switch', 'case', 'default', 'for', 'while',
+    'do', 'break', 'continue', 'return', 'int', 'float', 'double', 'char', 'void',
+    'long', 'short', 'unsigned', 'signed', 'const', 'static', 'extern', 'typedef',
+    'struct', 'union', 'enum', 'sizeof', 'malloc', 'free', 'calloc', 'realloc',
+    'printf', 'scanf', 'strlen', 'strcpy', 'strcmp', 'strcat', 'fopen', 'fclose',
+    'NULL', 'true', 'false', 'FILE', 'stdin', 'stdout', 'stderr'
+  ];
+
+  const cSnippets = [
+    { label: 'main', text: 'int main() {\n    ${1}\n    return 0;\n}', detail: 'Main function' },
+    { label: 'struct', text: 'struct ${1:Name} {\n    ${2:int member};\n};', detail: 'Create struct' },
+    { label: 'for', text: 'for (int ${1:i} = 0; ${1:i} < ${2:n}; ${1:i}++) {\n    ${3}\n}', detail: 'For loop' },
+  ];
+
+  // Rust keywords
+  const rustCompletions = [
+    'fn', 'let', 'mut', 'const', 'static', 'struct', 'enum', 'impl', 'trait', 'type',
+    'if', 'else', 'match', 'loop', 'while', 'for', 'in', 'break', 'continue', 'return',
+    'pub', 'use', 'mod', 'crate', 'super', 'self', 'Self', 'true', 'false', 'Option',
+    'Some', 'None', 'Result', 'Ok', 'Err', 'Vec', 'String', 'i32', 'u32', 'f64', 'bool',
+    'println', 'print', 'format', 'unwrap', 'expect', 'clone', 'to_string', 'iter', 'map'
+  ];
+
+  const rustSnippets = [
+    { label: 'fn', text: 'fn ${1:name}(${2:params}) -> ${3:ReturnType} {\n    ${4}\n}', detail: 'Create function' },
+    { label: 'struct', text: 'struct ${1:Name} {\n    ${2:field}: ${3:Type},\n}', detail: 'Create struct' },
+    { label: 'match', text: 'match ${1:value} {\n    ${2:pattern} => ${3:result},\n    _ => ${4:default},\n}', detail: 'Match expression' },
+  ];
+
+  // Go keywords
+  const goCompletions = [
+    'package', 'import', 'func', 'var', 'const', 'type', 'struct', 'interface', 'map',
+    'chan', 'if', 'else', 'switch', 'case', 'default', 'for', 'range', 'break',
+    'continue', 'return', 'go', 'defer', 'select', 'fallthrough', 'true', 'false',
+    'nil', 'make', 'new', 'len', 'cap', 'append', 'copy', 'delete', 'panic', 'recover',
+    'fmt', 'Println', 'Printf', 'Sprintf', 'string', 'int', 'float64', 'bool', 'byte', 'rune'
+  ];
+
+  const goSnippets = [
+    { label: 'func', text: 'func ${1:name}(${2:params}) ${3:returnType} {\n    ${4}\n}', detail: 'Create function' },
+    { label: 'struct', text: 'type ${1:Name} struct {\n    ${2:Field} ${3:Type}\n}', detail: 'Create struct' },
+    { label: 'for', text: 'for ${1:i} := 0; ${1:i} < ${2:n}; ${1:i}++ {\n    ${3}\n}', detail: 'For loop' },
+  ];
+
+  // Swift keywords
+  const swiftCompletions = [
+    'import', 'class', 'struct', 'enum', 'protocol', 'extension', 'func', 'var', 'let',
+    'if', 'else', 'switch', 'case', 'default', 'for', 'in', 'while', 'repeat', 'break',
+    'continue', 'return', 'guard', 'defer', 'throws', 'try', 'catch', 'throw', 'async',
+    'await', 'public', 'private', 'internal', 'fileprivate', 'static', 'final', 'override',
+    'init', 'deinit', 'self', 'super', 'nil', 'true', 'false', 'String', 'Int', 'Double',
+    'Bool', 'Array', 'Dictionary', 'Set', 'Optional', 'print', 'debugPrint'
+  ];
+
+  const swiftSnippets = [
+    { label: 'class', text: 'class ${1:ClassName} {\n    init() {\n        ${2}\n    }\n}', detail: 'Create class' },
+    { label: 'func', text: 'func ${1:name}(${2:params}) -> ${3:ReturnType} {\n    ${4}\n}', detail: 'Create function' },
+    { label: 'for', text: 'for ${1:item} in ${2:collection} {\n    ${3}\n}', detail: 'For-in loop' },
+  ];
+
+  // Kotlin keywords
+  const kotlinCompletions = [
+    'package', 'import', 'fun', 'val', 'var', 'class', 'interface', 'object', 'data',
+    'sealed', 'enum', 'if', 'else', 'when', 'for', 'in', 'while', 'do', 'break',
+    'continue', 'return', 'throw', 'try', 'catch', 'finally', 'public', 'private',
+    'protected', 'internal', 'abstract', 'override', 'open', 'final', 'companion',
+    'this', 'super', 'null', 'true', 'false', 'String', 'Int', 'Double', 'Boolean',
+    'List', 'MutableList', 'Map', 'Set', 'println', 'print', 'readLine', 'let', 'apply'
+  ];
+
+  const kotlinSnippets = [
+    { label: 'class', text: 'class ${1:ClassName} {\n    ${2}\n}', detail: 'Create class' },
+    { label: 'fun', text: 'fun ${1:name}(${2:params}): ${3:ReturnType} {\n    ${4}\n}', detail: 'Create function' },
+    { label: 'data class', text: 'data class ${1:Name}(${2:val property: Type})', detail: 'Data class' },
+  ];
+
+  // C# keywords
+  const csharpCompletions = [
+    'using', 'namespace', 'class', 'struct', 'interface', 'enum', 'delegate', 'event',
+    'public', 'private', 'protected', 'internal', 'static', 'readonly', 'const', 'virtual',
+    'override', 'abstract', 'sealed', 'async', 'await', 'void', 'int', 'string', 'bool',
+    'double', 'float', 'decimal', 'char', 'if', 'else', 'switch', 'case', 'for', 'foreach',
+    'while', 'do', 'break', 'continue', 'return', 'new', 'this', 'base', 'null', 'true',
+    'false', 'try', 'catch', 'finally', 'throw', 'throws', 'var', 'List', 'Dictionary',
+    'Console', 'WriteLine', 'ReadLine', 'ToString', 'Parse', 'TryParse', 'Length', 'Count'
+  ];
+
+  const csharpSnippets = [
+    { label: 'class', text: 'public class ${1:ClassName}\n{\n    public ${1}()\n    {\n        ${2}\n    }\n}', detail: 'Create class' },
+    { label: 'method', text: 'public ${1:void} ${2:MethodName}(${3:params})\n{\n    ${4}\n}', detail: 'Create method' },
+    { label: 'for', text: 'for (int ${1:i} = 0; ${1:i} < ${2:length}; ${1:i}++)\n{\n    ${3}\n}', detail: 'For loop' },
+  ];
+
   const mkProvider = (keywords: string[], snippets: Array<{label: string, text: string, detail: string}> = []) => ({
     provideCompletionItems: (model: any, position: any) => {
       const word = model.getWordUntilPosition(position);
@@ -118,6 +306,18 @@ const registerCompletionProviders = (monaco: any) => {
   monaco.languages.registerCompletionItemProvider('r', mkProvider(rCompletions, rSnippets));
   monaco.languages.registerCompletionItemProvider('javascript', mkProvider(jsCompletions));
   monaco.languages.registerCompletionItemProvider('sql', mkProvider(sqlCompletions));
+  monaco.languages.registerCompletionItemProvider('php', mkProvider(phpCompletions, phpSnippets));
+  monaco.languages.registerCompletionItemProvider('ruby', mkProvider(rubyCompletions, rubySnippets));
+  monaco.languages.registerCompletionItemProvider('lua', mkProvider(luaCompletions, luaSnippets));
+  monaco.languages.registerCompletionItemProvider('java', mkProvider(javaCompletions, javaSnippets));
+  monaco.languages.registerCompletionItemProvider('typescript', mkProvider(tsCompletions, tsSnippets));
+  monaco.languages.registerCompletionItemProvider('cpp', mkProvider(cppCompletions, cppSnippets));
+  monaco.languages.registerCompletionItemProvider('c', mkProvider(cCompletions, cSnippets));
+  monaco.languages.registerCompletionItemProvider('rust', mkProvider(rustCompletions, rustSnippets));
+  monaco.languages.registerCompletionItemProvider('go', mkProvider(goCompletions, goSnippets));
+  monaco.languages.registerCompletionItemProvider('swift', mkProvider(swiftCompletions, swiftSnippets));
+  monaco.languages.registerCompletionItemProvider('kotlin', mkProvider(kotlinCompletions, kotlinSnippets));
+  monaco.languages.registerCompletionItemProvider('csharp', mkProvider(csharpCompletions, csharpSnippets));
 };
 
 export const CodeEditor = ({ value, language, onChange, isMobile = false, onEditorReady }: CodeEditorProps) => {
