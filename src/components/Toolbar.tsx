@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -11,6 +11,7 @@ interface ToolbarProps {
   onDownload: () => void;
   onSaveScratchAsFile: () => void;
   onCopyAll: () => void;
+  onClearAll: () => void;
   onShare?: () => void;
   onOpenTranslate?: () => void;
   onExportPortfolio?: () => void;
@@ -37,6 +38,7 @@ export const Toolbar = ({
   onDownload, 
   onSaveScratchAsFile,
   onCopyAll,
+  onClearAll,
   onShare,
   onOpenTranslate,
   onExportPortfolio,
@@ -135,6 +137,16 @@ export const Toolbar = ({
                 <BookOpen className="w-4 h-4" />
               </Button>
             )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClearAll}
+              className="h-8 w-8 flex-shrink-0"
+              title="Clear All Code"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
 
             {onOpenFeatures && (
               <Button
@@ -290,6 +302,15 @@ export const Toolbar = ({
             >
               <Copy className="w-4 h-4 mr-2" />
               Copy All
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClearAll}
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Clear All
             </Button>
 
             {onShare && (

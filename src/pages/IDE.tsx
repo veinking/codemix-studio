@@ -879,6 +879,32 @@ Jack,30,Miami,86`,
     });
   };
 
+  const handleClearAll = () => {
+    if (activeFile) {
+      // Clear the active file's content
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === activeFile ? { ...f, content: '' } : f
+        )
+      );
+      if (dbReady) {
+        const fileToUpdate = files.find((f) => f.id === activeFile);
+        if (fileToUpdate) {
+          saveFile({ ...fileToUpdate, content: '' });
+        }
+      }
+      toast.success('File content cleared');
+    } else {
+      // Clear scratch code
+      setScratchCode('');
+      setLanguageCode((prev) => ({
+        ...prev,
+        [scratchLanguage]: ''
+      }));
+      toast.success('Code cleared');
+    }
+  };
+
   const handleLoadLabIntoEditor = (content: string, title: string) => {
     handleCreateFile(title, content);
     setLabTrainerOpen(false);
@@ -1049,6 +1075,7 @@ Jack,30,Miami,86`,
       onDownload={handleDownload}
       onSaveScratchAsFile={handleSaveScratchAsFile}
       onCopyAll={handleCopyAll}
+      onClearAll={handleClearAll}
       onShare={() => setShareDialogOpen(true)}
       onOpenTranslate={() => setTranslateDialogOpen(true)}
       onExportPortfolio={() => setPortfolioExportOpen(true)}
