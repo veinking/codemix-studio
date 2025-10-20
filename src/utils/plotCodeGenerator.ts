@@ -16,8 +16,8 @@ export function generatePythonPlot(config: PlotConfig, isMobile: boolean = false
   const { dataset, datasetContent, chartType, xColumn, yColumn, colorColumn, title, xLabel, yLabel } = config;
 
   // Mobile optimization: smaller figures, lower DPI
-  const figSize = isMobile ? '(8, 5)' : '(10, 6)';
-  const dpi = isMobile ? 72 : 100;
+  const figSize = isMobile ? '(8, 5)' : '(12, 8)';
+  const dpi = isMobile ? 72 : 150;
 
   const loadPackages = `# Imports only — packages are auto-loaded by the runtime
 import pandas as pd
@@ -131,6 +131,10 @@ try:
     img_str = base64.b64encode(buf.read()).decode()
     print(f"data:image/png;base64,{img_str}")
     plt.close()
+except FileNotFoundError as e:
+    plt.close()
+    print(f"❌ Error: Dataset file not found. Make sure '{dataset}' is loaded first.")
+    print(f"   {str(e)}")
 except Exception as e:
     plt.close()
     print(f"⚠️ Plot created but couldn't capture image: {str(e)}")

@@ -523,7 +523,7 @@ Jack,30,Miami,86`,
     }
   };
 
-  const parseCSV = (content: string, fileName: string) => {
+  const parseCSV = async (content: string, fileName: string) => {
     try {
       // Prefer Papa Parse for robustness
       const res = Papa.parse<Record<string, any>>(content, {
@@ -535,6 +535,18 @@ Jack,30,Miami,86`,
       const data = (res.data as any[]).map(row => headers.map(h => String(row?.[h] ?? '')));
       setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
       addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
+      
+      // Write CSV to Python runtime virtual filesystem
+      const runtime = RuntimeRegistry.get('python');
+      if (runtime && runtime.isInitialized) {
+        try {
+          // @ts-ignore - writeCSVToFS exists on PythonRuntime
+          await runtime.writeCSVToFS(fileName, content);
+          console.log(`[IDE] Wrote ${fileName} to Pyodide FS`);
+        } catch (err) {
+          console.warn(`[IDE] Could not write ${fileName} to Pyodide FS:`, err);
+        }
+      }
     } catch (e) {
       // Fallback to naive parser
       const lines = content.split('\n').filter(line => line.trim());
@@ -545,6 +557,18 @@ Jack,30,Miami,86`,
       );
       setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
       addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
+      
+      // Write CSV to Python runtime virtual filesystem
+      const runtime = RuntimeRegistry.get('python');
+      if (runtime && runtime.isInitialized) {
+        try {
+          // @ts-ignore - writeCSVToFS exists on PythonRuntime
+          await runtime.writeCSVToFS(fileName, content);
+          console.log(`[IDE] Wrote ${fileName} to Pyodide FS`);
+        } catch (err) {
+          console.warn(`[IDE] Could not write ${fileName} to Pyodide FS:`, err);
+        }
+      }
     }
   };
 

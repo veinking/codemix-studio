@@ -87,8 +87,8 @@ ${code}
         .split('\n')
         .map(l => l.replace(/#.*/, ''))
         .join('\n');
-      // Only match explicit function calls (e.g., plot(, ggplot(), hist(), etc.)
-      const likelyPlots = /(\bplot\s*\(|\bhist\s*\(|\bbarplot\s*\(|\bboxplot\s*\(|\bimage\s*\(|\bheatmap\s*\(|\bqplot\s*\(|\bggplot\s*\()/i.test(codeNoComments);
+      // More specific plot detection - match ggplot() or base R plotting functions
+      const likelyPlots = /(ggplot\s*\(|plot\s*\((?!.*function)|hist\s*\(|barplot\s*\(|boxplot\s*\(|image\s*\(|heatmap\s*\(|pairs\s*\(|matplot\s*\()/i.test(codeNoComments);
 
       // Check for plots only if code likely plots and graphics devices are active
       if (likelyPlots) {
