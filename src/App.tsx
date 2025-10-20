@@ -28,6 +28,18 @@ import PythonDocs from "./pages/docs/PythonDocs";
 import RDocs from "./pages/docs/RDocs";
 import JavaScriptDocs from "./pages/docs/JavaScriptDocs";
 import SQLDocs from "./pages/docs/SQLDocs";
+import PHPDocs from "./pages/docs/PHPDocs";
+import RubyDocs from "./pages/docs/RubyDocs";
+import LuaDocs from "./pages/docs/LuaDocs";
+import JavaDocs from "./pages/docs/JavaDocs";
+import TypeScriptDocs from "./pages/docs/TypeScriptDocs";
+import CppDocs from "./pages/docs/CppDocs";
+import CDocs from "./pages/docs/CDocs";
+import RustDocs from "./pages/docs/RustDocs";
+import GoDocs from "./pages/docs/GoDocs";
+import SwiftDocs from "./pages/docs/SwiftDocs";
+import KotlinDocs from "./pages/docs/KotlinDocs";
+import CSharpDocs from "./pages/docs/CSharpDocs";
 
 const queryClient = new QueryClient();
 
@@ -71,6 +83,18 @@ const App = () => {
               <Route path="/docs/r" element={<RDocs />} />
               <Route path="/docs/javascript" element={<JavaScriptDocs />} />
               <Route path="/docs/sql" element={<SQLDocs />} />
+              <Route path="/docs/php" element={<PHPDocs />} />
+              <Route path="/docs/ruby" element={<RubyDocs />} />
+              <Route path="/docs/lua" element={<LuaDocs />} />
+              <Route path="/docs/java" element={<JavaDocs />} />
+              <Route path="/docs/typescript" element={<TypeScriptDocs />} />
+              <Route path="/docs/cpp" element={<CppDocs />} />
+              <Route path="/docs/c" element={<CDocs />} />
+              <Route path="/docs/rust" element={<RustDocs />} />
+              <Route path="/docs/go" element={<GoDocs />} />
+              <Route path="/docs/swift" element={<SwiftDocs />} />
+              <Route path="/docs/kotlin" element={<KotlinDocs />} />
+              <Route path="/docs/csharp" element={<CSharpDocs />} />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
