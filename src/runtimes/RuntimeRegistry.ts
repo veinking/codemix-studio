@@ -1,5 +1,23 @@
 import { RuntimeExecutor, RuntimeConfig } from './RuntimeInterface';
 
+export type SupportedLanguage = 
+  | 'python' 
+  | 'r' 
+  | 'javascript' 
+  | 'sql' 
+  | 'php' 
+  | 'ruby' 
+  | 'lua'
+  | 'java'
+  | 'cpp'
+  | 'c'
+  | 'rust'
+  | 'go'
+  | 'swift'
+  | 'kotlin'
+  | 'typescript'
+  | 'csharp';
+
 export class RuntimeRegistry {
   private static runtimes = new Map<string, RuntimeExecutor>();
 
@@ -30,10 +48,13 @@ export class RuntimeRegistry {
     return undefined;
   }
 
-  static getLanguageFromExtension(filename: string): 'python' | 'r' | 'javascript' | 'sql' {
+  static getLanguageFromExtension(filename: string): SupportedLanguage {
     const detected = this.detectLanguage(filename);
-    if (detected === 'javascript' || detected === 'sql') return detected;
-    if (detected === 'r') return 'r';
-    return 'python';
+    return (detected as SupportedLanguage) || 'python';
+  }
+
+  static isExecutableRuntime(language: string): boolean {
+    const runtime = this.get(language);
+    return runtime?.config.supportsPackages !== undefined;
   }
 }

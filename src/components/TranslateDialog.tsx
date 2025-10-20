@@ -6,7 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Loader2, ArrowRight } from "lucide-react";
 
-type Lang = 'python' | 'r' | 'javascript' | 'sql';
+import { SupportedLanguage } from '@/runtimes/RuntimeRegistry';
+
+type Lang = SupportedLanguage;
 
 interface TranslateDialogProps {
   open: boolean;
