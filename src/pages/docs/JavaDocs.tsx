@@ -5,6 +5,8 @@ import { SyntaxSection } from '@/components/SyntaxSection';
 import { ArrowLeft, Lightbulb, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 
 export default function JavaDocs() {
   const navigate = useNavigate();
@@ -15,6 +17,16 @@ export default function JavaDocs() {
         <title>Java Reference - bIDE Documentation</title>
         <meta name="description" content="Complete Java reference manual for enterprise and Android development." />
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'Java', url: 'https://codemixapp.com/docs/java' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="java"
+        languageName="Java"
+        description="Free online Java code editor with syntax highlighting. Learn Java programming for enterprise and Android development. Editor-only mode for learning and practice."
+      />
       
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card sticky top-0 z-10">

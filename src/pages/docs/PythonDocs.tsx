@@ -6,6 +6,8 @@ import { CodeExample } from '@/components/CodeExample';
 import { ArrowLeft, Lightbulb, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function PythonDocs() {
@@ -19,6 +21,16 @@ export default function PythonDocs() {
         <meta name="keywords" content="python documentation, python syntax, python tutorial, python examples, learn python, python reference guide, python data structures" />
         <link rel="canonical" href="https://codemixapp.com/docs/python" />
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'Python', url: 'https://codemixapp.com/docs/python' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="python"
+        languageName="Python"
+        description="Free online Python IDE with AI assistance. Run Python code in your browser with Pyodide. Perfect for students, data scientists, and developers learning Python."
+      />
       
       <div className="min-h-screen bg-background">
         {/* Header */}

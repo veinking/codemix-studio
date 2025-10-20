@@ -6,6 +6,8 @@ import { CodeExample } from '@/components/CodeExample';
 import { ArrowLeft, Lightbulb, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 
 export default function RDocs() {
   const navigate = useNavigate();
@@ -18,6 +20,16 @@ export default function RDocs() {
         <meta name="keywords" content="r documentation, r programming, r syntax, r tutorial, r examples, ggplot2, data analysis in r, statistical programming" />
         <link rel="canonical" href="https://codemixapp.com/docs/r" />
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'R', url: 'https://codemixapp.com/docs/r' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="r"
+        languageName="R"
+        description="Free online R IDE for statistics and data science. Run R code with webR in your browser. Includes ggplot2, dplyr, and statistical analysis tools."
+      />
       
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card sticky top-0 z-10">

@@ -6,6 +6,8 @@ import { CodeExample } from '@/components/CodeExample';
 import { ArrowLeft, Lightbulb, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 
 export default function JavaScriptDocs() {
   const navigate = useNavigate();
@@ -18,6 +20,16 @@ export default function JavaScriptDocs() {
         <meta name="keywords" content="javascript documentation, javascript syntax, javascript tutorial, es6 javascript, modern javascript, javascript examples, learn javascript" />
         <link rel="canonical" href="https://codemixapp.com/docs/javascript" />
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'JavaScript', url: 'https://codemixapp.com/docs/javascript' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="javascript"
+        languageName="JavaScript"
+        description="Free online JavaScript IDE with modern ES6+ support. Run JavaScript code directly in your browser. Perfect for learning web development and testing code snippets."
+      />
       
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card sticky top-0 z-10">

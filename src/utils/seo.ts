@@ -240,6 +240,18 @@ export const SEO_CONFIGS = {
     keywords: 'shared code, code snippets, programming examples, community code, code sharing',
     canonical: 'https://codemixapp.com/share'
   },
+  testimonials: {
+    title: 'Student Reviews & Testimonials - bIDE | Real User Feedback',
+    description: 'See what students and educators say about bIDE. Real reviews from users who code Python, R, JavaScript, and 13+ languages in their browser for coursework and projects.',
+    keywords: 'bide reviews, student testimonials, python ide reviews, r ide reviews, user feedback, online ide reviews, programming tool reviews',
+    canonical: 'https://codemixapp.com/testimonials'
+  },
+  blog: {
+    title: 'Blog - bIDE | Coding Tips, Tutorials & Updates',
+    description: 'bIDE blog featuring coding tutorials, programming tips, data science guides, and platform updates for Python, R, JavaScript, and 13+ languages.',
+    keywords: 'coding blog, programming tutorials, data science tips, python guides, r programming blog, javascript tips',
+    canonical: 'https://codemixapp.com/blog'
+  },
   notFound: {
     title: '404 Not Found - bIDE',
     description: 'Page not found. Return to bIDE homepage to start coding in 16 programming languages in your browser.',

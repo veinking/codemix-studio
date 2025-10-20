@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 
 export default function RustDocs() {
   const navigate = useNavigate();
@@ -13,6 +15,16 @@ export default function RustDocs() {
       <Helmet>
         <title>Rust Reference - bIDE Documentation</title>
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'Rust', url: 'https://codemixapp.com/docs/rust' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="rust"
+        languageName="Rust"
+        description="Free online Rust code editor. Learn Rust for systems programming with memory safety. Perfect for WebAssembly and blockchain development."
+      />
       
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card sticky top-0 z-10">

@@ -5,6 +5,8 @@ import { SyntaxSection } from '@/components/SyntaxSection';
 import { ArrowLeft, Lightbulb, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 
 export default function RubyDocs() {
   const navigate = useNavigate();
@@ -15,6 +17,16 @@ export default function RubyDocs() {
         <title>Ruby Reference - bIDE Documentation</title>
         <meta name="description" content="Complete Ruby reference manual for elegant web development." />
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'Ruby', url: 'https://codemixapp.com/docs/ruby' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="ruby"
+        languageName="Ruby"
+        description="Free online Ruby code editor. Learn Ruby programming with WebAssembly execution. Perfect for Ruby on Rails developers and beginners."
+      />
       
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card sticky top-0 z-10">

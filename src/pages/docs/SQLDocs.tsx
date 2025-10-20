@@ -6,6 +6,8 @@ import { CodeExample } from '@/components/CodeExample';
 import { ArrowLeft, Lightbulb, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 
 export default function SQLDocs() {
   const navigate = useNavigate();
@@ -18,6 +20,16 @@ export default function SQLDocs() {
         <meta name="keywords" content="sql documentation, sql syntax, sql tutorial, sql queries, learn sql, database queries, sql examples" />
         <link rel="canonical" href="https://codemixapp.com/docs/sql" />
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'SQL', url: 'https://codemixapp.com/docs/sql' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="sql"
+        languageName="SQL"
+        description="Free online SQL IDE powered by sql.js. Practice database queries in your browser. Learn SELECT, JOIN, aggregations, and more with instant execution."
+      />
       
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card sticky top-0 z-10">

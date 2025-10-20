@@ -4,6 +4,8 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 
 export default function CDocs() {
   const navigate = useNavigate();
@@ -13,6 +15,16 @@ export default function CDocs() {
       <Helmet>
         <title>C Reference - bIDE Documentation</title>
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'C', url: 'https://codemixapp.com/docs/c' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="c"
+        languageName="C"
+        description="Free online C code editor with syntax highlighting. Learn C programming for operating systems, embedded systems, and low-level programming."
+      />
       
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card sticky top-0 z-10">

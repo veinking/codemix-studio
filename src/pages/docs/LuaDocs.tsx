@@ -5,6 +5,8 @@ import { SyntaxSection } from '@/components/SyntaxSection';
 import { ArrowLeft, Lightbulb, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet';
+import { BreadcrumbSchema } from '@/components/BreadcrumbSchema';
+import { SoftwareApplicationSchema } from '@/components/SoftwareApplicationSchema';
 
 export default function LuaDocs() {
   const navigate = useNavigate();
@@ -15,6 +17,16 @@ export default function LuaDocs() {
         <title>Lua Reference - bIDE Documentation</title>
         <meta name="description" content="Complete Lua reference manual for game scripting and embedded systems." />
       </Helmet>
+      <BreadcrumbSchema items={[
+        { name: 'Home', url: 'https://codemixapp.com/' },
+        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
+        { name: 'Lua', url: 'https://codemixapp.com/docs/lua' }
+      ]} />
+      <SoftwareApplicationSchema 
+        language="lua"
+        languageName="Lua"
+        description="Free online Lua IDE with browser execution. Learn Lua scripting for games and embedded systems. Perfect for Roblox developers and game modders."
+      />
       
       <div className="min-h-screen bg-background">
         <div className="border-b border-border bg-card sticky top-0 z-10">
