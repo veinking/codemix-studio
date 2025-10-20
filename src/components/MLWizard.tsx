@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import Papa from 'papaparse';
 import {
   Dialog,
   DialogContent,
@@ -13,8 +14,9 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Brain, Target, Settings, BarChart3, CheckCircle2 } from "lucide-react";
+import { Brain, Target, Settings, BarChart3, CheckCircle2, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 interface Dataset {
   headers: string[];
@@ -27,6 +29,7 @@ interface MLWizardProps {
   datasets: Map<string, Dataset>;
   onInsertCode: (code: string) => void;
   language: 'python' | 'r';
+  onLoadDataset?: (rows: any[], name: string) => void;
 }
 
 type ModelType = 'linear_regression' | 'ridge' | 'lasso' | 'random_forest_regressor' | 
@@ -35,9 +38,11 @@ type ProblemType = 'regression' | 'classification';
 type ScalingMethod = 'none' | 'standard' | 'minmax';
 type MissingValueStrategy = 'drop' | 'mean' | 'median';
 
-export const MLWizard = ({ open, onOpenChange, datasets, onInsertCode, language }: MLWizardProps) => {
+export const MLWizard = ({ open, onOpenChange, datasets, onInsertCode, language, onLoadDataset }: MLWizardProps) => {
   const [step, setStep] = useState(1);
   const [selectedDataset, setSelectedDataset] = useState<string>("");
+  const [uploadedDataset, setUploadedDataset] = useState<Dataset | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const [targetColumn, setTargetColumn] = useState<string>("");
   const [problemType, setProblemType] = useState<ProblemType>("regression");
   const [modelType, setModelType] = useState<ModelType>("linear_regression");
@@ -48,8 +53,51 @@ export const MLWizard = ({ open, onOpenChange, datasets, onInsertCode, language 
   const [randomSeed, setRandomSeed] = useState(42);
 
   const datasetNames = Array.from(datasets.keys());
-  const currentDataset = selectedDataset ? datasets.get(selectedDataset) : null;
+  const currentDataset = uploadedDataset || (selectedDataset ? datasets.get(selectedDataset) : null);
+  const currentDatasetName = uploadedFileName || selectedDataset;
   const columns = currentDataset?.headers || [];
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.csv')) {
+      toast.error('Please upload a CSV file');
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      const result = Papa.parse<Record<string, any>>(text, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+      });
+
+      if (result.errors.length > 0) {
+        toast.error('Error parsing CSV file');
+        console.error(result.errors);
+        return;
+      }
+
+      const headers = result.meta.fields || Object.keys(result.data[0] || {});
+      const data = (result.data as any[]).map(row => headers.map(h => String(row?.[h] ?? '')));
+
+      setUploadedDataset({ headers, data });
+      setUploadedFileName(file.name);
+      setSelectedDataset(''); // Clear any previously selected dataset
+      
+      // Optionally load to IDE datasets
+      if (onLoadDataset && result.data.length > 0) {
+        onLoadDataset(result.data, file.name);
+      }
+
+      toast.success(`Loaded ${file.name}: ${data.length} rows × ${headers.length} columns`);
+    } catch (error) {
+      console.error('File upload error:', error);
+      toast.error('Failed to load CSV file');
+    }
+  };
 
   // Detect column types
   const columnTypes = useMemo(() => {
@@ -95,8 +143,8 @@ export const MLWizard = ({ open, onOpenChange, datasets, onInsertCode, language 
   };
 
   const handleNext = () => {
-    if (step === 1 && !selectedDataset) {
-      toast.error("Please select a dataset");
+    if (step === 1 && !currentDataset) {
+      toast.error("Please select or upload a dataset");
       return;
     }
     if (step === 2 && !targetColumn) {
@@ -153,7 +201,7 @@ export const MLWizard = ({ open, onOpenChange, datasets, onInsertCode, language 
       : `from sklearn.linear_model import LogisticRegression\nfrom sklearn.svm import SVC\nfrom sklearn.ensemble import RandomForestClassifier\nimport xgboost as xgb\nfrom sklearn.metrics import accuracy_score, classification_report, confusion_matrix`;
 
     return `# ML Workflow: ${modelType.replace(/_/g, ' ').toUpperCase()}
-# Dataset: ${selectedDataset}
+# Dataset: ${currentDatasetName}
 # Target: ${targetColumn}
 
 import pandas as pd
@@ -163,7 +211,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, MinMaxScaler
 
 # Load dataset
-df = pd.read_csv('${selectedDataset}')
+df = pd.read_csv('${currentDatasetName}')
 
 # Handle missing values
 ${missingCode}
@@ -207,6 +255,8 @@ print("\\nModel trained successfully!")
   const resetState = () => {
     setStep(1);
     setSelectedDataset("");
+    setUploadedDataset(null);
+    setUploadedFileName("");
     setTargetColumn("");
     setProblemType("regression");
     setModelType("linear_regression");
@@ -254,33 +304,88 @@ print("\\nModel trained successfully!")
 
         <ScrollArea className="max-h-[60vh]">
           <div className="space-y-4 p-1">
-            {/* Step 1: Select Dataset */}
+            {/* Step 1: Select or Upload Dataset */}
             {step === 1 && (
               <div className="space-y-4">
-                <Label>Select Dataset</Label>
-                <Select value={selectedDataset} onValueChange={setSelectedDataset}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a dataset" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {datasetNames.map((name) => (
-                      <SelectItem key={name} value={name}>{name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="space-y-2">
+                  <Label>Select Existing Dataset</Label>
+                  <Select 
+                    value={selectedDataset} 
+                    onValueChange={(value) => {
+                      setSelectedDataset(value);
+                      setUploadedDataset(null);
+                      setUploadedFileName("");
+                    }}
+                    disabled={!!uploadedDataset}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a dataset" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {datasetNames.length === 0 ? (
+                        <SelectItem value="no-datasets" disabled>No datasets loaded</SelectItem>
+                      ) : (
+                        datasetNames.map((name) => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Upload New CSV Dataset</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      className="flex-1"
+                      disabled={!!selectedDataset}
+                    />
+                    {(uploadedDataset || selectedDataset) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setUploadedDataset(null);
+                          setUploadedFileName("");
+                          setSelectedDataset("");
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
 
                 {currentDataset && (
-                  <div className="p-4 border rounded space-y-2">
-                    <div className="text-sm font-medium">Dataset Info</div>
+                  <div className="p-4 border rounded-lg space-y-3 bg-muted/30">
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold">Dataset Info</div>
+                      <Badge variant="outline">{currentDatasetName}</Badge>
+                    </div>
                     <div className="text-sm text-muted-foreground">
                       {currentDataset.data.length} rows × {currentDataset.headers.length} columns
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      {currentDataset.headers.map((header) => (
-                        <Badge key={header} variant={columnTypes.get(header) === 'numeric' ? 'default' : 'secondary'}>
-                          {header}
-                        </Badge>
-                      ))}
+                    <div>
+                      <div className="text-xs text-muted-foreground mb-2">Columns:</div>
+                      <div className="flex flex-wrap gap-2">
+                        {currentDataset.headers.map((header) => (
+                          <Badge key={header} variant={columnTypes.get(header) === 'numeric' ? 'default' : 'secondary'}>
+                            {header}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -452,7 +557,7 @@ print("\\nModel trained successfully!")
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="text-muted-foreground">Dataset:</span>
-                      <div className="font-medium">{selectedDataset}</div>
+                      <div className="font-medium">{currentDatasetName}</div>
                     </div>
                     <div>
                       <span className="text-muted-foreground">Problem:</span>

@@ -1377,6 +1377,11 @@ Jack,30,Miami,86`,
         datasets={datasets}
         onInsertCode={handleInsertCode}
         language={scratchLanguage === 'r' ? 'r' : 'python'}
+        onLoadDataset={(rows, name) => {
+          const headers = Object.keys(rows[0] || {});
+          const data = rows.map(row => headers.map(h => String(row[h] ?? '')));
+          setDatasets(prev => new Map(prev).set(name, { headers, data }));
+        }}
       />
 
       <TemplateLibrary
