@@ -48,13 +48,13 @@ export const SidePanel = ({
   return (
     <div
       className={cn(
-        "h-full border-l border-border bg-background transition-all duration-300 ease-in-out",
+        "h-full border-l border-border bg-background transition-all duration-300 ease-in-out flex-shrink-0",
         open ? "w-80" : "w-0"
       )}
     >
       {open && (
-        <div className="h-full flex flex-col">
-          <div className="flex items-center justify-between p-4 border-b border-border">
+        <div className="h-full flex flex-col w-80">
+          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
             <h2 className="text-lg font-semibold">Tools</h2>
             <Button
               variant="ghost"
@@ -65,7 +65,7 @@ export const SidePanel = ({
             </Button>
           </div>
 
-          <Tabs defaultValue="ai" className="flex-1 flex flex-col overflow-hidden">
+          <Tabs defaultValue="ai" className="flex-1 flex flex-col overflow-hidden min-h-0">
             <TabsList className="w-full justify-start border-b rounded-none bg-background px-2">
               <TabsTrigger value="ai" className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />

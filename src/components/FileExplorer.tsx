@@ -196,20 +196,6 @@ export const FileExplorer = ({
         onInstallPackage={onInstallPackage}
         isInstalling={isInstalling}
       />
-      
-      <div className="p-3 border-t border-border">
-        <Button
-          variant="outline"
-          size="sm"
-          className="w-full"
-          onClick={() => {
-            onOpenLabTrainer();
-          }}
-        >
-          <Beaker className="h-4 w-4 mr-2" />
-          Practice Labs
-        </Button>
-      </div>
     </div>
   );
 };

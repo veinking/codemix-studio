@@ -80,18 +80,6 @@ export const Toolbar = ({
         {isMobile ? (
           <>
             {/* Mobile: Show only essential buttons */}
-            {onOpenLabTrainer && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onOpenLabTrainer}
-                className="h-8 w-8 flex-shrink-0 bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none hover:from-emerald-600 hover:to-teal-600"
-                title="Practice Labs"
-              >
-                <Beaker className="w-4 h-4" />
-              </Button>
-            )}
-            
             <Button
               variant="outline"
               size="icon"
@@ -174,18 +162,6 @@ export const Toolbar = ({
               >
                 <Settings className="w-4 h-4 mr-2" />
                 Tools
-              </Button>
-            )}
-
-            {onOpenLabTrainer && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenLabTrainer?.()}
-                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none hover:from-emerald-600 hover:to-teal-600"
-              >
-                <Beaker className="w-4 h-4 mr-2" />
-                Practice Labs
               </Button>
             )}
 

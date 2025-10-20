@@ -1386,8 +1386,8 @@ Jack,30,Miami,86`,
             }
           />
         ) : (
-          <div className="flex h-screen overflow-hidden">
-            <div className="flex-1 min-w-0">
+          <div className="flex h-screen overflow-hidden w-full">
+            <div className="flex-1 min-w-0 overflow-hidden">
               <DesktopLayout
                 toolbar={toolbarComponent}
                 fileExplorer={fileExplorerComponent}
