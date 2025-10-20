@@ -194,25 +194,52 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
-        const notebook = JSON.parse(content);
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
         
-        const importedCells: NotebookCellData[] = notebook.cells.map((cell: any) => ({
-          id: crypto.randomUUID(),
-          type: cell.cell_type === 'code' ? 'code' : 'markdown',
-          content: Array.isArray(cell.source) ? cell.source.join('\n') : cell.source,
-          output: cell.outputs?.[0]?.text ? 
-            (Array.isArray(cell.outputs[0].text) ? cell.outputs[0].text.join('\n') : cell.outputs[0].text)
-            : undefined,
-          isError: cell.outputs?.[0]?.output_type === 'error'
-        }));
-
-        setCells(importedCells);
-        toast.success('Notebook imported successfully');
+        if (fileExtension === 'ipynb') {
+          // Import Jupyter notebook format
+          const notebook = JSON.parse(content);
+          
+          if (notebook.cells && Array.isArray(notebook.cells)) {
+            const importedCells: NotebookCellData[] = notebook.cells.map((cell: any) => ({
+              id: crypto.randomUUID(),
+              type: cell.cell_type === 'markdown' ? 'markdown' : 'code',
+              content: Array.isArray(cell.source) ? cell.source.join('') : cell.source,
+              output: cell.outputs?.[0]?.text ? 
+                (Array.isArray(cell.outputs[0].text) ? cell.outputs[0].text.join('\n') : cell.outputs[0].text)
+                : undefined,
+              isError: cell.outputs?.[0]?.output_type === 'error'
+            }));
+            
+            setCells(importedCells);
+            toast.success('Jupyter notebook imported successfully');
+          }
+        } else if (fileExtension === 'py' || fileExtension === 'r') {
+          // Import plain Python/R file as single code cell
+          const importedCells: NotebookCellData[] = [
+            {
+              id: crypto.randomUUID(),
+              type: 'code',
+              content: content,
+              output: undefined,
+              isError: undefined
+            }
+          ];
+          
+          setCells(importedCells);
+          toast.success(`${fileExtension.toUpperCase()} file imported as notebook`);
+        } else {
+          toast.error('Unsupported file format. Use .ipynb, .py, or .r files');
+        }
       } catch (error) {
-        toast.error('Failed to import notebook');
+        console.error('Error importing file:', error);
+        toast.error('Failed to import file');
       }
     };
     reader.readAsText(file);
+    
+    // Reset input
+    event.target.value = '';
   }, []);
 
   return (

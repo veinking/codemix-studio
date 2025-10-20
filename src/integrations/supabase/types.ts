@@ -68,6 +68,57 @@ export type Database = {
         }
         Relationships: []
       }
+      community_recipes: {
+        Row: {
+          category: string
+          code: string
+          created_at: string
+          description: string
+          difficulty: string
+          id: string
+          is_public: boolean
+          language: string
+          likes_count: number
+          tags: string[]
+          title: string
+          updated_at: string
+          user_id: string
+          views_count: number
+        }
+        Insert: {
+          category: string
+          code: string
+          created_at?: string
+          description: string
+          difficulty?: string
+          id?: string
+          is_public?: boolean
+          language: string
+          likes_count?: number
+          tags?: string[]
+          title: string
+          updated_at?: string
+          user_id: string
+          views_count?: number
+        }
+        Update: {
+          category?: string
+          code?: string
+          created_at?: string
+          description?: string
+          difficulty?: string
+          id?: string
+          is_public?: boolean
+          language?: string
+          likes_count?: number
+          tags?: string[]
+          title?: string
+          updated_at?: string
+          user_id?: string
+          views_count?: number
+        }
+        Relationships: []
+      }
       feedback: {
         Row: {
           created_at: string
@@ -245,6 +296,35 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_likes: {
+        Row: {
+          created_at: string
+          id: string
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_likes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "community_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_code: {
         Row: {
           code: string
@@ -278,6 +358,45 @@ export type Database = {
           short_id?: string
           user_id?: string | null
           view_count?: number
+        }
+        Relationships: []
+      }
+      workspaces: {
+        Row: {
+          active_file_id: string | null
+          created_at: string
+          description: string | null
+          files: Json
+          id: string
+          language: string
+          last_accessed_at: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_file_id?: string | null
+          created_at?: string
+          description?: string | null
+          files?: Json
+          id?: string
+          language?: string
+          last_accessed_at?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_file_id?: string | null
+          created_at?: string
+          description?: string | null
+          files?: Json
+          id?: string
+          language?: string
+          last_accessed_at?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

@@ -29,6 +29,8 @@ import { ShareDialog } from "@/components/ShareDialog";
 import { PortfolioExporter } from "@/components/PortfolioExporter";
 import { TemplateLibrary } from "@/components/TemplateLibrary";
 import { RTemplateLibrary } from "@/components/RTemplateLibrary";
+import { RecipeGallery } from "@/components/RecipeGallery";
+import { WorkspaceManager } from "@/components/WorkspaceManager";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
@@ -99,6 +101,8 @@ const IDE = () => {
   const [isNotebookMode, setIsNotebookMode] = useState(false);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
   const [rTemplateLibraryOpen, setRTemplateLibraryOpen] = useState(false);
+  const [recipeGalleryOpen, setRecipeGalleryOpen] = useState(false);
+  const [workspaceManagerOpen, setWorkspaceManagerOpen] = useState(false);
   const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
@@ -1501,6 +1505,26 @@ Jack,30,Miami,86`,
         open={rTemplateLibraryOpen}
         onOpenChange={setRTemplateLibraryOpen}
         onInsertCode={handleInsertCode}
+      />
+
+      <RecipeGallery
+        open={recipeGalleryOpen}
+        onOpenChange={setRecipeGalleryOpen}
+        onSelectRecipe={handleInsertCode}
+        currentLanguage={activeFile ? (currentFile.language === 'python' || currentFile.language === 'r' ? currentFile.language : scratchLanguage) : scratchLanguage}
+      />
+
+      <WorkspaceManager
+        open={workspaceManagerOpen}
+        onOpenChange={setWorkspaceManagerOpen}
+        currentFiles={files}
+        currentActiveFileId={activeFile}
+        currentLanguage={scratchLanguage}
+        onLoadWorkspace={(workspace) => {
+          setFiles(Array.isArray(workspace.files) ? workspace.files : []);
+          if (workspace.active_file_id) setActiveFile(workspace.active_file_id);
+          toast.success('Workspace loaded from cloud');
+        }}
       />
 
       <AuthDialog
