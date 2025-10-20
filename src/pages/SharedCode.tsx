@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { Editor } from "@monaco-editor/react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Copy, Download, Eye, ArrowLeft } from "lucide-react";
+import { Copy, Download, Eye, ArrowLeft, Code2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
+import { Helmet } from "react-helmet";
 
 interface SharedCodeData {
   code: string;
@@ -18,9 +19,14 @@ interface SharedCodeData {
 
 export default function SharedCode() {
   const { shortId } = useParams<{ shortId: string }>();
+  const navigate = useNavigate();
   const [codeData, setCodeData] = useState<SharedCodeData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+
+  const shareUrl = `${window.location.origin}/share/${shortId}`;
+  const shareTitle = codeData?.file_name || "Shared Code";
+  const shareDescription = `Check out this ${codeData?.language || 'code'} snippet on bIDE`;
 
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.sharedCode);
@@ -95,6 +101,14 @@ export default function SharedCode() {
     toast.success("Code downloaded!");
   };
 
+  const handleForkCode = () => {
+    if (!codeData) return;
+    // Copy code to clipboard and navigate to IDE
+    navigator.clipboard.writeText(codeData.code);
+    toast.success("Code copied! Opening in IDE...");
+    navigate('/');
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -124,9 +138,20 @@ export default function SharedCode() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto p-4 space-y-4">
-        {/* Header */}
+    <>
+      <Helmet>
+        <meta property="og:title" content={shareTitle} />
+        <meta property="og:description" content={shareDescription} />
+        <meta property="og:url" content={shareUrl} />
+        <meta property="og:type" content="article" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={shareTitle} />
+        <meta name="twitter:description" content={shareDescription} />
+      </Helmet>
+      
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div className="container mx-auto p-4 space-y-4">
+          {/* Header */}
         <Card className="p-4">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="space-y-1">
@@ -149,7 +174,11 @@ export default function SharedCode() {
               </div>
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              <Button onClick={handleForkCode} variant="default" size="sm" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                <Code2 className="w-4 h-4 mr-2" />
+                Fork Code
+              </Button>
               <Button onClick={handleCopy} variant="outline" size="sm">
                 <Copy className="w-4 h-4 mr-2" />
                 Copy
@@ -184,8 +213,9 @@ export default function SharedCode() {
               renderLineHighlight: "none",
             }}
           />
-        </Card>
+          </Card>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

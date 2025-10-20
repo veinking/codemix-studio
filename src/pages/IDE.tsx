@@ -9,6 +9,7 @@ import { DatasetViewer } from "@/components/DatasetViewer";
 import DataLab from "@/components/DataLab";
 import { PlotViewer } from "@/components/PlotViewer";
 import { PlotBuilder } from "@/components/PlotBuilder";
+import { MLWizard } from "@/components/MLWizard";
 import { NotebookMode } from "@/components/NotebookMode";
 import { MobileLayout } from "@/components/layouts/MobileLayout";
 import { DesktopLayout } from "@/components/layouts/DesktopLayout";
@@ -90,6 +91,7 @@ const IDE = () => {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const [portfolioExportOpen, setPortfolioExportOpen] = useState(false);
   const [plotBuilderOpen, setPlotBuilderOpen] = useState(false);
+  const [mlWizardOpen, setMlWizardOpen] = useState(false);
   const [isNotebookMode, setIsNotebookMode] = useState(false);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
@@ -1360,6 +1362,14 @@ Jack,30,Miami,86`,
       <PlotBuilder
         open={plotBuilderOpen}
         onOpenChange={setPlotBuilderOpen}
+        datasets={datasets}
+        onInsertCode={handleInsertCode}
+        language={scratchLanguage === 'r' ? 'r' : 'python'}
+      />
+
+      <MLWizard
+        open={mlWizardOpen}
+        onOpenChange={setMlWizardOpen}
         datasets={datasets}
         onInsertCode={handleInsertCode}
         language={scratchLanguage === 'r' ? 'r' : 'python'}

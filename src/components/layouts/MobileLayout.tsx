@@ -62,9 +62,16 @@ export const MobileLayout = ({
   const [filesOpen, setFilesOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
 
+  const hapticFeedback = () => {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+  };
+
   const handleCSVInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.name.endsWith('.csv')) {
+      hapticFeedback();
       onCSVUpload(file);
       setFilesOpen(false);
     }
@@ -79,17 +86,26 @@ export const MobileLayout = ({
             <Button
               variant="ghost"
               size="icon"
-              className="h-9 w-9 touch-manipulation"
-              onClick={() => navigate('/')}
+              className="h-11 w-11 touch-manipulation active:scale-95 transition-transform"
+              onClick={() => {
+                hapticFeedback();
+                navigate('/');
+              }}
             >
-              <Home className="w-4 w-4" />
+              <Home className="w-5 h-5" />
             </Button>
-            <h1 className="text-sm font-bold text-foreground">OpenIDE</h1>
+            <h1 className="text-sm font-bold text-foreground">bIDE</h1>
           </div>
           
           <div className="flex items-center gap-2">
             <label htmlFor="csv-upload-mobile" className="cursor-pointer">
-              <Button variant="ghost" size="icon" className="h-9 w-9 touch-manipulation" asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-11 w-11 touch-manipulation active:scale-95 transition-transform" 
+                asChild
+                onClick={hapticFeedback}
+              >
                 <span>
                   <FileUp className="w-5 h-5" />
                 </span>
@@ -105,7 +121,12 @@ export const MobileLayout = ({
 
             <Sheet open={filesOpen} onOpenChange={setFilesOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 touch-manipulation">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-11 w-11 touch-manipulation active:scale-95 transition-transform"
+                  onClick={hapticFeedback}
+                >
                   <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
@@ -121,7 +142,12 @@ export const MobileLayout = ({
 
             <Drawer open={actionsOpen} onOpenChange={setActionsOpen}>
               <DrawerTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-9 w-9 touch-manipulation">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-11 w-11 touch-manipulation active:scale-95 transition-transform"
+                  onClick={hapticFeedback}
+                >
                   <MoreVertical className="w-5 h-5" />
                 </Button>
               </DrawerTrigger>
@@ -133,8 +159,9 @@ export const MobileLayout = ({
                 <div className="p-4 space-y-2">
                   <Button
                     variant="outline"
-                    className="w-full justify-start h-12 touch-manipulation"
+                    className="w-full justify-start h-14 touch-manipulation active:scale-98 transition-transform"
                     onClick={() => {
+                      hapticFeedback();
                       onCopyAll();
                       setActionsOpen(false);
                     }}
@@ -146,8 +173,9 @@ export const MobileLayout = ({
                   {!currentFile && (
                     <Button
                       variant="outline"
-                      className="w-full justify-start h-12 touch-manipulation"
+                      className="w-full justify-start h-14 touch-manipulation active:scale-98 transition-transform"
                       onClick={() => {
+                        hapticFeedback();
                         onSaveScratchAsFile();
                         setActionsOpen(false);
                       }}
@@ -159,8 +187,9 @@ export const MobileLayout = ({
                   
                   <Button
                     variant="outline"
-                    className="w-full justify-start h-12 touch-manipulation"
+                    className="w-full justify-start h-14 touch-manipulation active:scale-98 transition-transform"
                     onClick={() => {
+                      hapticFeedback();
                       onDownload();
                       setActionsOpen(false);
                     }}
@@ -171,8 +200,9 @@ export const MobileLayout = ({
                   
                   <Button
                     variant="outline"
-                    className="w-full justify-start h-12 touch-manipulation"
+                    className="w-full justify-start h-14 touch-manipulation active:scale-98 transition-transform"
                     onClick={() => {
+                      hapticFeedback();
                       setIsFullScreen(!isFullScreen);
                       setActionsOpen(false);
                     }}
@@ -220,12 +250,15 @@ export const MobileLayout = ({
           {/* Floating Action Button - iOS Safe Area */}
           <div className="fixed right-4 z-40" style={{ bottom: 'max(6rem, calc(6rem + env(safe-area-inset-bottom)))' }}>
             <Button
-              onClick={onRun}
+              onClick={() => {
+                hapticFeedback();
+                onRun();
+              }}
               disabled={isRunning}
-              className="h-14 w-14 rounded-full shadow-lg bg-primary hover:bg-primary/90 touch-manipulation"
+              className="h-16 w-16 rounded-full shadow-lg bg-primary hover:bg-primary/90 touch-manipulation active:scale-95 transition-transform"
               style={{ boxShadow: 'var(--glow-purple)' }}
             >
-              <Play className="w-6 h-6" fill="currentColor" />
+              <Play className="w-7 h-7" fill="currentColor" />
             </Button>
           </div>
 

@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Check, Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Copy, Check, Loader2, QrCode, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { QRCodeSVG } from 'qrcode.react';
 
 interface ShareDialogProps {
   open: boolean;
@@ -124,7 +126,7 @@ export const ShareDialog = ({ open, onOpenChange, code, language, fileName }: Sh
             <Button 
               onClick={handleShare} 
               disabled={isGenerating}
-              className="w-full"
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
             >
               {isGenerating ? (
                 <>
@@ -132,40 +134,66 @@ export const ShareDialog = ({ open, onOpenChange, code, language, fileName }: Sh
                   Creating Link...
                 </>
               ) : (
-                "Create Share Link"
+                <>
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Create Share Link
+                </>
               )}
             </Button>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Share Link</Label>
-              <div className="flex gap-2">
-                <Input 
-                  value={shareUrl} 
-                  readOnly 
-                  className="font-mono text-sm"
-                />
-                <Button 
-                  onClick={handleCopy}
-                  size="icon"
-                  variant="outline"
-                >
-                  {copied ? (
-                    <Check className="w-4 h-4 text-green-500" />
-                  ) : (
-                    <Copy className="w-4 h-4" />
-                  )}
-                </Button>
+          <Tabs defaultValue="link" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="link">Link</TabsTrigger>
+              <TabsTrigger value="qr">QR Code</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="link" className="space-y-4">
+              <div className="space-y-2">
+                <Label>Share Link</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={shareUrl} 
+                    readOnly 
+                    className="font-mono text-sm"
+                  />
+                  <Button 
+                    onClick={handleCopy}
+                    size="icon"
+                    variant="outline"
+                  >
+                    {copied ? (
+                      <Check className="w-4 h-4 text-green-500" />
+                    ) : (
+                      <Copy className="w-4 h-4" />
+                    )}
+                  </Button>
+                </div>
               </div>
-            </div>
 
-            <div className="text-sm text-muted-foreground">
-              {expiresIn === "never" 
-                ? "This link will never expire" 
-                : `This link expires in ${expiresIn} day${expiresIn === "1" ? "" : "s"}`}
-            </div>
-          </div>
+              <div className="text-sm text-muted-foreground">
+                {expiresIn === "never" 
+                  ? "This link will never expire" 
+                  : `This link expires in ${expiresIn} day${expiresIn === "1" ? "" : "s"}`}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="qr" className="space-y-4">
+              <div className="flex flex-col items-center gap-4">
+                <div className="p-4 bg-white rounded-lg">
+                  <QRCodeSVG 
+                    value={shareUrl} 
+                    size={200}
+                    level="H"
+                    includeMargin
+                  />
+                </div>
+                <p className="text-sm text-muted-foreground text-center">
+                  Scan this QR code to open the shared code
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
       </DialogContent>
     </Dialog>

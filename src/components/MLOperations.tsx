@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 interface MLOperationsProps {
   onInsertCode: (code: string) => void;
+  onOpenMLWizard?: () => void;
 }
 
 const ML_OPERATIONS = [
@@ -134,7 +135,7 @@ const ML_OPERATIONS = [
   }
 ];
 
-export const MLOperations = ({ onInsertCode }: MLOperationsProps) => {
+export const MLOperations = ({ onInsertCode, onOpenMLWizard }: MLOperationsProps) => {
   const handleInsert = (code: string, name: string) => {
     onInsertCode(code);
     toast.success(`Inserted: ${name}`);
@@ -163,6 +164,12 @@ export const MLOperations = ({ onInsertCode }: MLOperationsProps) => {
           <SheetDescription>
             Common ML workflows for scikit-learn, TensorFlow, and more
           </SheetDescription>
+          {onOpenMLWizard && (
+            <Button onClick={onOpenMLWizard} className="w-full mt-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+              <Brain className="w-4 h-4 mr-2" />
+              Open ML Workflow Wizard
+            </Button>
+          )}
         </SheetHeader>
         
         <ScrollArea className="h-[calc(100vh-120px)] mt-4">
