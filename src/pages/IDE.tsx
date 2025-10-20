@@ -103,6 +103,7 @@ const IDE = () => {
   const [hasNewOutput, setHasNewOutput] = useState(false);
   const [mobileConsoleOpen, setMobileConsoleOpen] = useState(false);
   const previousOutputLength = React.useRef(0);
+  const editorRef = React.useRef<any>(null);
   
   // Per-language code storage (scratch pad per language)
   const [languageCode, setLanguageCode] = useState<{
@@ -905,6 +906,20 @@ Jack,30,Miami,86`,
     }
   };
 
+  const handleUndo = () => {
+    if (editorRef.current) {
+      editorRef.current.trigger('keyboard', 'undo', null);
+      toast.success('Undo');
+    }
+  };
+
+  const handleRedo = () => {
+    if (editorRef.current) {
+      editorRef.current.trigger('keyboard', 'redo', null);
+      toast.success('Redo');
+    }
+  };
+
   const handleLoadLabIntoEditor = (content: string, title: string) => {
     handleCreateFile(title, content);
     setLabTrainerOpen(false);
@@ -1234,6 +1249,7 @@ Jack,30,Miami,86`,
               language={scratchLanguage}
               onChange={(value) => setScratchCode(value || '')}
               isMobile={isMobile}
+              onEditorReady={(editor) => editorRef.current = editor}
             />
           )}
         </div>
@@ -1250,6 +1266,7 @@ Jack,30,Miami,86`,
         language={currentFile.language}
         onChange={handleCodeChange}
         isMobile={isMobile}
+        onEditorReady={(editor) => editorRef.current = editor}
       />
     )
   ) : (
@@ -1258,6 +1275,7 @@ Jack,30,Miami,86`,
       language={scratchLanguage}
       onChange={handleCodeChange}
       isMobile={isMobile}
+      onEditorReady={(editor) => editorRef.current = editor}
     />
   );
 
@@ -1335,6 +1353,8 @@ Jack,30,Miami,86`,
             onCSVUpload={handleCSVUpload}
             onCopyAll={handleCopyAll}
             onClearAll={handleClearAll}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
             onSaveScratchAsFile={handleSaveScratchAsFile}
             hasNewOutput={hasNewOutput}
             consoleOpen={mobileConsoleOpen}

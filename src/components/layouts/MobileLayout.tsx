@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download, Home, Trash2 } from "lucide-react";
+import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download, Home, Trash2, Undo, Redo } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +31,8 @@ interface MobileLayoutProps {
   onCSVUpload: (file: File) => void;
   onCopyAll: () => void;
   onClearAll: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onSaveScratchAsFile: () => void;
   dataOpsComponent?: ReactNode;
   featureDrawer?: ReactNode;
@@ -52,6 +54,8 @@ export const MobileLayout = ({
   onCSVUpload,
   onCopyAll,
   onClearAll,
+  onUndo,
+  onRedo,
   onSaveScratchAsFile,
   dataOpsComponent,
   featureDrawer,
@@ -183,6 +187,32 @@ export const MobileLayout = ({
                   >
                     <Trash2 className="w-5 h-5 mr-3" />
                     Clear All Code
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-14 touch-manipulation active:scale-98 transition-transform"
+                    onClick={() => {
+                      hapticFeedback();
+                      onUndo();
+                      setActionsOpen(false);
+                    }}
+                  >
+                    <Undo className="w-5 h-5 mr-3" />
+                    Undo
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-14 touch-manipulation active:scale-98 transition-transform"
+                    onClick={() => {
+                      hapticFeedback();
+                      onRedo();
+                      setActionsOpen(false);
+                    }}
+                  >
+                    <Redo className="w-5 h-5 mr-3" />
+                    Redo
                   </Button>
                   
                   {!currentFile && (

@@ -5,6 +5,7 @@ interface CodeEditorProps {
   language: string;
   onChange: (value: string | undefined) => void;
   isMobile?: boolean;
+  onEditorReady?: (editor: any) => void;
 }
 
 // Guard so we don't register providers more than once
@@ -119,9 +120,14 @@ const registerCompletionProviders = (monaco: any) => {
   monaco.languages.registerCompletionItemProvider('sql', mkProvider(sqlCompletions));
 };
 
-export const CodeEditor = ({ value, language, onChange, isMobile = false }: CodeEditorProps) => {
+export const CodeEditor = ({ value, language, onChange, isMobile = false, onEditorReady }: CodeEditorProps) => {
   const handleEditorMount = (editor: any, monaco: any) => {
     registerCompletionProviders(monaco);
+    
+    // Expose editor instance to parent
+    if (onEditorReady) {
+      onEditorReady(editor);
+    }
     
     // Quick line selection shortcut (Ctrl/Cmd+L)
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
