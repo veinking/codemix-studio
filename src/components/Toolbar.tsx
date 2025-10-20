@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User, LogOut, Book } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User, LogOut, Book, Sparkles, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -24,6 +24,8 @@ interface ToolbarProps {
   onOpenTemplates?: () => void;
   onOpenRTemplates?: () => void;
   onOpenLabTrainer?: () => void;
+  onOpenRecipeGallery?: () => void;
+  onOpenWorkspaceManager?: () => void;
   currentLanguage?: string;
   isNotebookMode?: boolean;
   currentFile: string | null;
@@ -52,6 +54,8 @@ export const Toolbar = ({
   onOpenTemplates,
   onOpenRTemplates,
   onOpenLabTrainer,
+  onOpenRecipeGallery,
+  onOpenWorkspaceManager,
   currentLanguage = 'python',
   isNotebookMode = false,
   currentFile, 
@@ -221,6 +225,30 @@ export const Toolbar = ({
               >
                 <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
                 R Templates
+              </Button>
+            )}
+
+            {onOpenRecipeGallery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenRecipeGallery}
+                className="h-8 px-3 text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
+              >
+                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
+                Recipes
+              </Button>
+            )}
+
+            {onOpenWorkspaceManager && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenWorkspaceManager}
+                className="h-8 px-3 text-xs bg-gradient-to-r from-blue-500/20 to-cyan-500/20 hover:from-blue-500/30 hover:to-cyan-500/30 border border-blue-500/30 hover:shadow-[0_0_8px_rgba(59,130,246,0.4)] transition-all"
+              >
+                <Cloud className="w-3.5 h-3.5 mr-1.5" />
+                Cloud
               </Button>
             )}
             

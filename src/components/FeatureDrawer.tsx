@@ -8,7 +8,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X } from "lucide-react";
+import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X, Sparkles as SparklesAlt, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface FeatureDrawerProps {
@@ -21,6 +21,8 @@ interface FeatureDrawerProps {
   mlOperations: ReactNode;
   labTrainer: ReactNode;
   about: ReactNode;
+  recipeGallery?: ReactNode;
+  workspaceManager?: ReactNode;
 }
 
 export const FeatureDrawer = ({
@@ -33,6 +35,8 @@ export const FeatureDrawer = ({
   mlOperations,
   labTrainer,
   about,
+  recipeGallery,
+  workspaceManager,
 }: FeatureDrawerProps) => {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -75,6 +79,18 @@ export const FeatureDrawer = ({
               <GraduationCap className="h-4 w-4" />
               <span className="hidden sm:inline">Learn</span>
             </TabsTrigger>
+            {recipeGallery && (
+              <TabsTrigger value="recipes" className="flex items-center gap-2">
+                <SparklesAlt className="h-4 w-4" />
+                <span className="hidden sm:inline">Recipes</span>
+              </TabsTrigger>
+            )}
+            {workspaceManager && (
+              <TabsTrigger value="cloud" className="flex items-center gap-2">
+                <Cloud className="h-4 w-4" />
+                <span className="hidden sm:inline">Cloud</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="about" className="flex items-center gap-2">
               <Coffee className="h-4 w-4" />
               <span className="hidden sm:inline">About</span>
@@ -101,6 +117,16 @@ export const FeatureDrawer = ({
             <TabsContent value="learn" className="mt-0">
               {labTrainer}
             </TabsContent>
+            {recipeGallery && (
+              <TabsContent value="recipes" className="mt-0">
+                {recipeGallery}
+              </TabsContent>
+            )}
+            {workspaceManager && (
+              <TabsContent value="cloud" className="mt-0">
+                {workspaceManager}
+              </TabsContent>
+            )}
             <TabsContent value="about" className="mt-0">
               {about}
             </TabsContent>

@@ -253,7 +253,7 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
         <div className={cn("flex items-center", isMobile ? "gap-0.5" : "gap-1")}>
           <input
             type="file"
-            accept=".ipynb,.Rmd"
+            accept=".ipynb,.py,.r"
             onChange={handleImportNotebook}
             className="hidden"
             id="notebook-import"

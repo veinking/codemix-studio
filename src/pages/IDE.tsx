@@ -33,6 +33,7 @@ import { RecipeGallery } from "@/components/RecipeGallery";
 import { WorkspaceManager } from "@/components/WorkspaceManager";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
+import { Sparkles, Cloud } from "lucide-react";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -1120,6 +1121,8 @@ Jack,30,Miami,86`,
       onOpenTemplates={() => setTemplateLibraryOpen(true)}
       onOpenRTemplates={() => setRTemplateLibraryOpen(true)}
       onOpenLabTrainer={() => setLabTrainerOpen(true)}
+      onOpenRecipeGallery={() => setRecipeGalleryOpen(true)}
+      onOpenWorkspaceManager={() => setWorkspaceManagerOpen(true)}
       currentLanguage={
         currentFile?.language === 'python' || currentFile?.language === 'r' || 
         currentFile?.language === 'javascript' || currentFile?.language === 'sql'
@@ -1431,6 +1434,46 @@ Jack,30,Miami,86`,
           mlOperations={mlOpsComponent}
           labTrainer={labTrainerComponent}
           about={<AboutSection />}
+          recipeGallery={
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Recipe Gallery</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Browse and share community code recipes for {scratchLanguage}
+                </p>
+                <Button 
+                  onClick={() => {
+                    setRecipeGalleryOpen(true);
+                    setFeatureDrawerOpen(false);
+                  }}
+                  className="w-full"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Open Recipe Gallery
+                </Button>
+              </div>
+            </div>
+          }
+          workspaceManager={
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Cloud Workspaces</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Save and sync your coding sessions across devices
+                </p>
+                <Button 
+                  onClick={() => {
+                    setWorkspaceManagerOpen(true);
+                    setFeatureDrawerOpen(false);
+                  }}
+                  className="w-full"
+                >
+                  <Cloud className="w-4 h-4 mr-2" />
+                  Open Cloud Workspaces
+                </Button>
+              </div>
+            </div>
+          }
         />
       )}
       {plotData && (
