@@ -1,5 +1,5 @@
 import React from "react";
-import { Terminal, Trash2, Lightbulb, Code } from "lucide-react";
+import { Terminal, Trash2, Lightbulb, Code, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -23,9 +23,11 @@ interface ConsolePanelProps {
   plainEnglishMode: boolean;
   onTogglePlainEnglish: () => void;
   hasNewOutput?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainEnglish, hasNewOutput }: ConsolePanelProps) => {
+export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainEnglish, hasNewOutput, isCollapsed, onToggleCollapse }: ConsolePanelProps) => {
   const [showRawError, setShowRawError] = React.useState<number | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -48,6 +50,25 @@ export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainE
     }
     return "py-1";
   };
+
+  if (isCollapsed) {
+    return (
+      <div className={`h-full bg-console border-t flex items-center justify-between px-4 transition-all ${hasNewOutput ? 'border-primary shadow-[0_-2px_8px_rgba(168,85,247,0.3)]' : 'border-border'}`}>
+        <div className="flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-primary" />
+          <span className="text-sm font-semibold text-foreground">Console</span>
+          {output.length > 0 && (
+            <span className="text-xs text-muted-foreground">({output.length} messages)</span>
+          )}
+        </div>
+        {onToggleCollapse && (
+          <Button variant="ghost" size="icon" onClick={onToggleCollapse} title="Expand console">
+            <ChevronUp className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`h-full bg-console border-t flex flex-col transition-all ${hasNewOutput ? 'border-primary shadow-[0_-2px_8px_rgba(168,85,247,0.3)]' : 'border-border'}`}>
@@ -74,6 +95,11 @@ export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainE
           <Button variant="ghost" size="icon" onClick={onClear}>
             <Trash2 className="w-4 h-4" />
           </Button>
+          {onToggleCollapse && (
+            <Button variant="ghost" size="icon" onClick={onToggleCollapse} title="Collapse console">
+              <ChevronDown className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
       

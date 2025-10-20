@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useState, ReactElement, cloneElement, isValidElement } from "react";
 import { Button } from "@/components/ui/button";
 import { Home } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +18,7 @@ export const DesktopLayout = ({
   console: consolePanel,
 }: DesktopLayoutProps) => {
   const navigate = useNavigate();
+  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
   
   return (
     <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
@@ -45,7 +46,7 @@ export const DesktopLayout = ({
         
         {/* Main Content Area - Resizable Editor & Console */}
         <ResizablePanelGroup direction="vertical" className="flex-1">
-          <ResizablePanel defaultSize={65} minSize={30}>
+          <ResizablePanel defaultSize={consoleCollapsed ? 97 : 65} minSize={30}>
             <div className="h-full bg-editor overflow-hidden">
               {editor}
             </div>
@@ -53,9 +54,20 @@ export const DesktopLayout = ({
           
           <ResizableHandle withHandle />
           
-          <ResizablePanel defaultSize={35} minSize={15} maxSize={70}>
+          <ResizablePanel 
+            defaultSize={consoleCollapsed ? 3 : 35} 
+            minSize={consoleCollapsed ? 3 : 15} 
+            maxSize={consoleCollapsed ? 3 : 70}
+            collapsible={true}
+            collapsedSize={3}
+          >
             <div className="h-full">
-              {consolePanel}
+              {isValidElement(consolePanel) 
+                ? cloneElement(consolePanel as ReactElement, { 
+                    isCollapsed: consoleCollapsed, 
+                    onToggleCollapse: () => setConsoleCollapsed(!consoleCollapsed) 
+                  })
+                : consolePanel}
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
