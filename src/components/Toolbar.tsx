@@ -17,6 +17,7 @@ interface ToolbarProps {
   onOpenPlotBuilder?: () => void;
   onToggleNotebook?: () => void;
   onOpenTemplates?: () => void;
+  onOpenRTemplates?: () => void;
   isNotebookMode?: boolean;
   currentFile: string | null;
   isRunning: boolean;
@@ -40,6 +41,7 @@ export const Toolbar = ({
   onOpenPlotBuilder,
   onToggleNotebook,
   onOpenTemplates,
+  onOpenRTemplates,
   isNotebookMode = false,
   currentFile, 
   isRunning,
@@ -143,6 +145,18 @@ export const Toolbar = ({
               >
                 <Library className="w-4 h-4 mr-2" />
                 Templates
+              </Button>
+            )}
+
+            {onOpenRTemplates && scratchLanguage === 'r' && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenRTemplates}
+                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none hover:from-blue-600 hover:to-cyan-600"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                R Templates
               </Button>
             )}
 

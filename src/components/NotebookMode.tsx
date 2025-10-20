@@ -132,6 +132,28 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
     });
   }, []);
 
+  const handleDuplicateCell = useCallback((cellId: string) => {
+    setCells(prev => {
+      const index = prev.findIndex(c => c.id === cellId);
+      if (index === -1) return prev;
+      
+      const cellToDuplicate = prev[index];
+      const newCell: NotebookCellData = {
+        ...cellToDuplicate,
+        id: crypto.randomUUID(),
+        output: undefined,
+        isError: undefined
+      };
+      
+      return [
+        ...prev.slice(0, index + 1),
+        newCell,
+        ...prev.slice(index + 1)
+      ];
+    });
+    toast.success('Cell duplicated');
+  }, []);
+
   const handleExportNotebook = useCallback(() => {
     const notebook = {
       metadata: {
@@ -280,6 +302,7 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
                 onAddBelow={(cellId, type) => handleAddCell(cellId, type)}
                 onMoveUp={handleMoveUp}
                 onMoveDown={handleMoveDown}
+                onDuplicate={handleDuplicateCell}
                 canMoveUp={index > 0}
                 canMoveDown={index < cells.length - 1}
                 isMobile={isMobile}

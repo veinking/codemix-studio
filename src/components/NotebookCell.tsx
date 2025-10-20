@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { CodeEditor } from './CodeEditor';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { Play, Trash2, Plus, ChevronUp, ChevronDown, Code, FileText } from 'lucide-react';
+import { Play, Trash2, Plus, ChevronUp, ChevronDown, Code, FileText, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -25,6 +25,7 @@ interface NotebookCellProps {
   onAddBelow: (cellId: string, type: 'code' | 'markdown') => void;
   onMoveUp: (cellId: string) => void;
   onMoveDown: (cellId: string) => void;
+  onDuplicate: (cellId: string) => void;
   canMoveUp: boolean;
   canMoveDown: boolean;
   isMobile?: boolean;
@@ -40,6 +41,7 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
   onAddBelow,
   onMoveUp,
   onMoveDown,
+  onDuplicate,
   canMoveUp,
   canMoveDown,
   isMobile = false
@@ -82,6 +84,16 @@ export const NotebookCell: React.FC<NotebookCellProps> = ({
               <Play className={cn(isMobile ? "w-3.5 h-3.5" : "w-3 h-3")} />
             </Button>
           )}
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => onDuplicate(cell.id)}
+            className={cn(isMobile ? "h-8 w-8 p-0" : "h-7 px-2")}
+            title="Duplicate cell"
+          >
+            <Copy className={cn(isMobile ? "w-3.5 h-3.5" : "w-3 h-3")} />
+          </Button>
           
           <Button
             variant="ghost"

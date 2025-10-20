@@ -27,6 +27,7 @@ import { TranslateDialog } from "@/components/TranslateDialog";
 import { ShareDialog } from "@/components/ShareDialog";
 import { PortfolioExporter } from "@/components/PortfolioExporter";
 import { TemplateLibrary } from "@/components/TemplateLibrary";
+import { RTemplateLibrary } from "@/components/RTemplateLibrary";
 import { Button } from "@/components/ui/button";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -94,6 +95,7 @@ const IDE = () => {
   const [mlWizardOpen, setMlWizardOpen] = useState(false);
   const [isNotebookMode, setIsNotebookMode] = useState(false);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
+  const [rTemplateLibraryOpen, setRTemplateLibraryOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     return localStorage.getItem('sidePanelOpen') === 'true';
@@ -1023,6 +1025,7 @@ Jack,30,Miami,86`,
       onOpenPlotBuilder={() => setPlotBuilderOpen(true)}
       onToggleNotebook={() => setIsNotebookMode(prev => !prev)}
       onOpenTemplates={() => setTemplateLibraryOpen(true)}
+      onOpenRTemplates={() => setRTemplateLibraryOpen(true)}
       isNotebookMode={isNotebookMode}
       currentFile={activeFile}
       isRunning={isRunning}
@@ -1381,6 +1384,12 @@ Jack,30,Miami,86`,
         onOpenChange={setTemplateLibraryOpen}
         onSelectTemplate={handleLoadTemplate}
         currentLanguage={activeFile ? (currentFile.language === 'python' || currentFile.language === 'r' ? currentFile.language : scratchLanguage) : scratchLanguage}
+      />
+
+      <RTemplateLibrary
+        open={rTemplateLibraryOpen}
+        onOpenChange={setRTemplateLibraryOpen}
+        onInsertCode={handleInsertCode}
       />
     </>
   );
