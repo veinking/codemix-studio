@@ -165,6 +165,18 @@ export const Toolbar = ({
         ) : (
           <>
             {/* Desktop: Show all buttons with labels */}
+            {onOpenTools && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenTools}
+                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-none hover:from-purple-700 hover:to-blue-700"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Tools
+              </Button>
+            )}
+
             {onOpenLabTrainer && (
               <Button
                 variant="outline"
