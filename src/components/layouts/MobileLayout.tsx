@@ -1,5 +1,5 @@
 import { ReactNode, useState } from "react";
-import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download, Home } from "lucide-react";
+import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download, Home, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +30,7 @@ interface MobileLayoutProps {
   onClearConsole: () => void;
   onCSVUpload: (file: File) => void;
   onCopyAll: () => void;
+  onClearAll: () => void;
   onSaveScratchAsFile: () => void;
   dataOpsComponent?: ReactNode;
   featureDrawer?: ReactNode;
@@ -50,6 +51,7 @@ export const MobileLayout = ({
   onClearConsole,
   onCSVUpload,
   onCopyAll,
+  onClearAll,
   onSaveScratchAsFile,
   dataOpsComponent,
   featureDrawer,
@@ -168,6 +170,19 @@ export const MobileLayout = ({
                   >
                     <Copy className="w-5 h-5 mr-3" />
                     Copy All Code
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start h-14 touch-manipulation active:scale-98 transition-transform"
+                    onClick={() => {
+                      hapticFeedback();
+                      onClearAll();
+                      setActionsOpen(false);
+                    }}
+                  >
+                    <Trash2 className="w-5 h-5 mr-3" />
+                    Clear All Code
                   </Button>
                   
                   {!currentFile && (

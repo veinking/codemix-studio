@@ -1334,6 +1334,7 @@ Jack,30,Miami,86`,
             }}
             onCSVUpload={handleCSVUpload}
             onCopyAll={handleCopyAll}
+            onClearAll={handleClearAll}
             onSaveScratchAsFile={handleSaveScratchAsFile}
             hasNewOutput={hasNewOutput}
             consoleOpen={mobileConsoleOpen}
