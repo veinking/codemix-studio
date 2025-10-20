@@ -31,7 +31,7 @@ export const SoftwareApplicationSchema = ({ language, languageName, description 
       "Offline support",
       "No installation required"
     ],
-    "screenshot": "https://codemixapp.com/og-image.png",
+    "screenshot": "https://codemixapp.com/bide-og-preview.png?v=2",
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",

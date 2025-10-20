@@ -9,7 +9,7 @@
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://codemixapp.com/og-image.png</image:loc>
+      <image:loc>https://codemixapp.com/bide-og-preview.png?v=2</image:loc>
       <image:title>bIDE - Free Multi-Language IDE | 16 Programming Languages</image:title>
       <image:caption>Browser-based code editor supporting Python, R, JavaScript, SQL, and 12 more languages with AI assistance</image:caption>
     </image:image>
