@@ -1,8 +1,9 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Code2, Zap, Globe, Cpu, ArrowRight, Terminal, Sparkles, BookOpen, Wrench, User, LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 import { AIUsageIndicator } from "@/components/AIUsageIndicator";
 import { ActivityStats } from "@/components/ActivityStats";
 import { RecentActivityFeed } from "@/components/RecentActivityFeed";
@@ -20,10 +21,35 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 const Landing = () => {
   const navigate = useNavigate();
   const { user, profile, isGuest, signOut } = useAuth();
+  const { toast } = useToast();
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.landing);
   }, []);
+
+  const handleSignOut = async () => {
+    if (signingOut) return; // Prevent double-click
+    
+    setSigningOut(true);
+    try {
+      await signOut();
+      toast({
+        title: 'Signed out',
+        description: 'Successfully logged out',
+      });
+      // Navigation will happen automatically via auth state change
+    } catch (error: any) {
+      console.error('[LANDING] Sign out error:', error);
+      toast({
+        title: 'Sign out failed',
+        description: error.message || 'Please try again',
+        variant: 'destructive',
+      });
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-purple-950/30 overflow-hidden relative">
@@ -77,9 +103,9 @@ const Landing = () => {
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={signOut}>
+              <DropdownMenuItem onClick={handleSignOut} disabled={signingOut}>
                 <LogIn className="mr-2 h-4 w-4" />
-                Sign Out
+                {signingOut ? 'Signing out...' : 'Sign Out'}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

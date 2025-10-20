@@ -29,6 +29,7 @@ const Account = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [reactivating, setReactivating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -80,12 +81,24 @@ const Account = () => {
   }
   
   const handleSignOut = async () => {
-    await signOut();
-    toast({
-      title: 'Signed out',
-      description: 'Successfully logged out',
-    });
-    navigate('/');
+    setSigningOut(true);
+    try {
+      await signOut();
+      toast({
+        title: 'Signed out',
+        description: 'Successfully logged out',
+      });
+      navigate('/');
+    } catch (error: any) {
+      console.error('[ACCOUNT] Sign out error:', error);
+      toast({
+        title: 'Sign out failed',
+        description: error.message || 'Please try again',
+        variant: 'destructive',
+      });
+    } finally {
+      setSigningOut(false);
+    }
   };
   
   const handleCancelSubscription = async () => {
@@ -414,10 +427,11 @@ const Account = () => {
               <Button 
                 variant="outline" 
                 onClick={handleSignOut}
+                disabled={signingOut}
                 className="w-full"
               >
                 <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
+                {signingOut ? 'Signing out...' : 'Sign Out'}
               </Button>
               
               <Button 

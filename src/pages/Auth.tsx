@@ -42,12 +42,26 @@ const Auth = () => {
     };
   }, []);
   
-  // Redirect if already logged in
+  // Redirect if already logged in (but not if still loading)
   useEffect(() => {
     if (!isLoading && user) {
-      navigate('/ide');
+      console.log('[AUTH] User already logged in, redirecting to IDE');
+      navigate('/ide', { replace: true });
     }
   }, [user, isLoading, navigate]);
+  
+  // Don't render auth form if we're loading or already have a user
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (user) {
+    return null; // Will redirect via useEffect
+  }
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
