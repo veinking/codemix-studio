@@ -19,7 +19,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState<"login" | "signup">("login");
+  const [activeTab, setActiveTab] = useState<"login" | "signup" | "reset">("login");
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -85,6 +85,38 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     }
   };
 
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    try {
+      const redirectUrl = `${window.location.origin}/ide`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Check your email",
+        description: "We've sent you a password reset link. Click it to set a new password.",
+      });
+      
+      // Switch back to login tab after successful request
+      setActiveTab("login");
+      setEmail("");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Reset failed",
+        description: error.message || "Could not send reset email",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleContinueAsGuest = () => {
     onOpenChange(false);
     toast({
@@ -94,7 +126,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   };
 
   const authForm = (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup")} className="w-full">
+    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup" | "reset")} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="login">Sign In</TabsTrigger>
         <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -135,6 +167,16 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
             ) : (
               "Sign In"
             )}
+          </Button>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() => setActiveTab("reset")}
+            disabled={isLoading}
+            className="text-xs text-muted-foreground hover:text-primary"
+          >
+            Forgot password?
           </Button>
         </form>
       </TabsContent>
@@ -178,6 +220,43 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
           </Button>
         </form>
       </TabsContent>
+
+      <TabsContent value="reset" className="space-y-4">
+        <form onSubmit={handlePasswordReset} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="reset-email">Email</Label>
+            <Input
+              id="reset-email"
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={isLoading}
+            />
+          </div>
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Sending reset link...
+              </>
+            ) : (
+              "Send Reset Link"
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            onClick={() => setActiveTab("login")}
+            disabled={isLoading}
+            className="w-full text-xs text-muted-foreground hover:text-primary"
+          >
+            Back to sign in
+          </Button>
+        </form>
+      </TabsContent>
     </Tabs>
   );
 
@@ -199,14 +278,19 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>Welcome to OpenIDE</DrawerTitle>
+            <DrawerTitle>
+              {activeTab === "reset" ? "Reset Password" : "Welcome to OpenIDE"}
+            </DrawerTitle>
             <DrawerDescription>
-              Sign in to save your work and unlock premium features
+              {activeTab === "reset"
+                ? "Enter your email to receive a password reset link"
+                : "Sign in to save your work and unlock premium features"
+              }
             </DrawerDescription>
           </DrawerHeader>
           <div className="px-4 pb-8">
             {authForm}
-            {footer}
+            {activeTab !== "reset" && footer}
           </div>
         </DrawerContent>
       </Drawer>
@@ -217,13 +301,18 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Welcome to OpenIDE</DialogTitle>
+          <DialogTitle>
+            {activeTab === "reset" ? "Reset Password" : "Welcome to OpenIDE"}
+          </DialogTitle>
           <DialogDescription>
-            Sign in to save your work and unlock premium features
+            {activeTab === "reset" 
+              ? "Enter your email to receive a password reset link"
+              : "Sign in to save your work and unlock premium features"
+            }
           </DialogDescription>
         </DialogHeader>
         {authForm}
-        {footer}
+        {activeTab !== "reset" && footer}
       </DialogContent>
     </Dialog>
   );
