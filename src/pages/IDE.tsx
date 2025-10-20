@@ -19,9 +19,9 @@ import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
 import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { PackageManager } from "@/components/PackageManager";
-import { FeatureDrawer } from "@/components/FeatureDrawer";
-import { SidePanel } from "@/components/SidePanel";
 import { AboutSection } from "@/components/AboutSection";
+import { SidePanel } from "@/components/SidePanel";
+
 import { FeedbackForm } from "@/components/FeedbackForm";
 import { TranslateDialog } from "@/components/TranslateDialog";
 import { ShareDialog } from "@/components/ShareDialog";
