@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -6,6 +6,9 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { AIUsageIndicator } from "@/components/AIUsageIndicator";
 import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface ToolbarProps {
   onRun: () => void;
@@ -30,6 +33,7 @@ interface ToolbarProps {
   onInsertCode?: (code: string) => void;
   onOpenFeatures?: () => void;
   onOpenTools?: () => void;
+  onAuthClick?: () => void;
   initializedRuntimes?: Set<string>;
   isMobile?: boolean;
 }
@@ -57,10 +61,12 @@ export const Toolbar = ({
   onInsertCode = () => {},
   onOpenFeatures,
   onOpenTools,
+  onAuthClick,
   initializedRuntimes = new Set(),
   isMobile = false
 }: ToolbarProps) => {
   const navigate = useNavigate();
+  const { user, isGuest, signOut } = useAuth();
   return (
     <div className="flex items-center justify-between w-full gap-1.5">
       {/* Left Side - Language Selector */}
@@ -152,15 +158,44 @@ export const Toolbar = ({
               </Button>
             )}
             {/* Account (mobile) */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/account')}
-              className="h-8 w-8 flex-shrink-0"
-              title="Account"
-            >
-              <User className="w-4 h-4" />
-            </Button>
+            {isGuest ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onAuthClick}
+                className="h-8 w-8 flex-shrink-0"
+                title="Sign In"
+              >
+                <User className="w-4 h-4" />
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 flex-shrink-0"
+                  >
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/account')}>
+                    <User className="w-4 h-4 mr-2" />
+                    Account
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </>
 ) : (<>
             {/* Desktop: Compact buttons with consistent styling */}
@@ -286,15 +321,47 @@ export const Toolbar = ({
             )}
 
             {/* Account (desktop) */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/account')}
-              className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-            >
-              <User className="w-3.5 h-3.5 mr-1.5" />
-              Account
-            </Button>
+            {isGuest ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onAuthClick}
+                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
+              >
+                <User className="w-3.5 h-3.5 mr-1.5" />
+                Sign In
+              </Button>
+            ) : (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
+                  >
+                    <Avatar className="h-5 w-5 mr-1.5">
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="max-w-[80px] truncate">
+                      {user?.email?.split('@')[0]}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate('/account')}>
+                    <User className="w-4 h-4 mr-2" />
+                    Account
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={signOut}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </>
         )}
       </div>

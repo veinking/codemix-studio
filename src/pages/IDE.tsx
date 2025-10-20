@@ -28,6 +28,7 @@ import { ShareDialog } from "@/components/ShareDialog";
 import { PortfolioExporter } from "@/components/PortfolioExporter";
 import { TemplateLibrary } from "@/components/TemplateLibrary";
 import { RTemplateLibrary } from "@/components/RTemplateLibrary";
+import { AuthDialog } from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -97,6 +98,7 @@ const IDE = () => {
   const [isNotebookMode, setIsNotebookMode] = useState(false);
   const [templateLibraryOpen, setTemplateLibraryOpen] = useState(false);
   const [rTemplateLibraryOpen, setRTemplateLibraryOpen] = useState(false);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
     const stored = localStorage.getItem('sidePanelOpen');
@@ -1127,6 +1129,7 @@ Jack,30,Miami,86`,
       onInsertCode={handleInsertCode}
       onOpenFeatures={() => setFeatureDrawerOpen(true)}
       onOpenTools={() => setSidePanelOpen(prev => !prev)}
+      onAuthClick={() => setAuthDialogOpen(true)}
       initializedRuntimes={initializedRuntimes}
       isMobile={isMobile}
     />
@@ -1497,6 +1500,11 @@ Jack,30,Miami,86`,
         open={rTemplateLibraryOpen}
         onOpenChange={setRTemplateLibraryOpen}
         onInsertCode={handleInsertCode}
+      />
+
+      <AuthDialog
+        open={authDialogOpen}
+        onOpenChange={setAuthDialogOpen}
       />
     </>
   );
