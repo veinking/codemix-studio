@@ -1,10 +1,11 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2 } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { AIUsageIndicator } from "@/components/AIUsageIndicator";
 import { cn } from "@/lib/utils";
+import { useNavigate } from "react-router-dom";
 
 interface ToolbarProps {
   onRun: () => void;
@@ -59,6 +60,7 @@ export const Toolbar = ({
   initializedRuntimes = new Set(),
   isMobile = false
 }: ToolbarProps) => {
+  const navigate = useNavigate();
   return (
     <div className="flex items-center justify-between w-full gap-2">
       {/* Left Side - Language Selector */}
@@ -149,9 +151,18 @@ export const Toolbar = ({
                 <span className="text-xs font-medium">Features</span>
               </Button>
             )}
+            {/* Account (mobile) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate('/account')}
+              className="h-8 w-8 flex-shrink-0"
+              title="Account"
+            >
+              <User className="w-4 h-4" />
+            </Button>
           </>
-        ) : (
-          <>
+) : (<>
             {/* Desktop: Show all buttons with labels */}
             {onOpenTools && (
               <Button
@@ -301,6 +312,15 @@ export const Toolbar = ({
             >
               <Download className="w-4 h-4 mr-2" />
               Download
+            </Button>
+            {/* Account (desktop) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/account')}
+            >
+              <User className="w-4 h-4 mr-2" />
+              Account
             </Button>
           </>
         )}
