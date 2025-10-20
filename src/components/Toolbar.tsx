@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User, LogOut } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User, LogOut, Book } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -95,7 +95,7 @@ export const Toolbar = ({
               className="h-8 w-8 flex-shrink-0"
               title="Language Reference"
             >
-              <BookOpen className="w-4 h-4" />
+              <Book className="w-4 h-4" />
             </Button>
 
             {onShare && (
@@ -230,7 +230,7 @@ export const Toolbar = ({
               onClick={() => window.open(`/docs/${currentLanguage}`, '_blank')}
               className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
             >
-              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+              <Book className="w-3.5 h-3.5 mr-1.5" />
               Docs
             </Button>
 
