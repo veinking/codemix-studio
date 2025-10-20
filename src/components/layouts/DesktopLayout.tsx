@@ -22,18 +22,16 @@ export const DesktopLayout = ({
   
   return (
     <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
-      <div className="h-12 bg-toolbar border-b border-border flex items-center px-4 gap-3">
+      <div className="h-10 bg-background/95 backdrop-blur-sm border-b border-primary/20 flex items-center px-3 gap-2">
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
           onClick={() => navigate('/')}
-          className="gap-2"
+          className="h-8 w-8 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
         >
-          <Home className="h-4 w-4" />
-          <span>Home</span>
+          <Home className="w-3.5 h-3.5" />
         </Button>
-        <div className="h-6 w-px bg-border" />
-        <div className="flex-1">
+        <div className="flex-1 overflow-x-auto scrollbar-hide">
           {toolbar}
         </div>
       </div>

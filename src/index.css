@@ -42,7 +42,7 @@ All colors MUST be HSL.
     --editor-bg: 270 40% 12%;
     --console-bg: 270 50% 8%;
     --sidebar-bg: 270 50% 8%;
-    --toolbar-bg: 270 35% 15%;
+    --toolbar-bg: 270 50% 8%;
 
     /* Synthwave Gradients */
     --gradient-synthwave: linear-gradient(135deg, hsl(280 90% 65%) 0%, hsl(320 85% 60%) 50%, hsl(340 80% 55%) 100%);

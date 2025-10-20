@@ -62,9 +62,9 @@ export const Toolbar = ({
 }: ToolbarProps) => {
   const navigate = useNavigate();
   return (
-    <div className="flex items-center justify-between w-full gap-2">
+    <div className="flex items-center justify-between w-full gap-1.5">
       {/* Left Side - Language Selector */}
-      <div className="flex items-center gap-2 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         <AIUsageIndicator />
         
         {!currentFile && (
@@ -78,7 +78,7 @@ export const Toolbar = ({
       </div>
       
       {/* Right Side - Action Buttons */}
-      <div className="flex items-center gap-1 overflow-x-auto scrollbar-hide flex-shrink-0">
+      <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide flex-shrink-0">
         {isMobile ? (
           <>
             {/* Mobile: Show only essential buttons */}
@@ -163,80 +163,89 @@ export const Toolbar = ({
             </Button>
           </>
 ) : (<>
-            {/* Desktop: Show all buttons with labels */}
+            {/* Desktop: Compact buttons with consistent styling */}
             {onOpenTools && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onOpenTools}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-none hover:from-purple-700 hover:to-blue-700"
+                className="h-8 px-3 text-xs bg-gradient-to-r from-primary/20 to-accent/20 hover:from-primary/30 hover:to-accent/30 border border-primary/30 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
               >
-                <Settings className="w-4 h-4 mr-2" />
+                <Settings className="w-3.5 h-3.5 mr-1.5" />
                 Tools
               </Button>
             )}
 
             {onOpenTemplates && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onOpenTemplates}
+                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
               >
-                <Library className="w-4 h-4 mr-2" />
+                <Library className="w-3.5 h-3.5 mr-1.5" />
                 Templates
               </Button>
             )}
 
             {onOpenRTemplates && scratchLanguage === 'r' && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onOpenRTemplates}
-                className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white border-none hover:from-blue-600 hover:to-cyan-600"
+                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
               >
-                <BarChart3 className="w-4 h-4 mr-2" />
+                <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
                 R Templates
               </Button>
             )}
             
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => window.open(`/docs/${currentLanguage}`, '_blank')}
+              className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
             >
-              <BookOpen className="w-4 h-4 mr-2" />
+              <BookOpen className="w-3.5 h-3.5 mr-1.5" />
               Docs
             </Button>
 
             {onOpenTranslate && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onOpenTranslate}
+                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
               >
-                <Languages className="w-4 h-4 mr-2" />
+                <Languages className="w-3.5 h-3.5 mr-1.5" />
                 Translate
               </Button>
             )}
 
             {onOpenPlotBuilder && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onOpenPlotBuilder}
+                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
               >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Plot Builder
+                <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
+                Plot
               </Button>
             )}
 
             {onToggleNotebook && !currentFile && (
               <Button
-                variant={isNotebookMode ? "default" : "outline"}
+                variant={isNotebookMode ? "default" : "ghost"}
                 size="sm"
                 onClick={onToggleNotebook}
+                className={`h-8 px-3 text-xs transition-all ${
+                  isNotebookMode
+                    ? ""
+                    : "bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)]"
+                }`}
               >
-                <BookOpen className="w-4 h-4 mr-2" />
+                <BookOpen className="w-3.5 h-3.5 mr-1.5" />
                 {isNotebookMode ? 'Exit' : 'Notebook'}
               </Button>
             )}
@@ -246,80 +255,44 @@ export const Toolbar = ({
               size="sm"
               onClick={onRun}
               disabled={isRunning}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-8 px-3 text-xs bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white border-0 hover:shadow-[0_0_12px_rgba(168,85,247,0.6)] transition-all"
             >
-              <Play className="w-4 h-4 mr-2" />
+              <Play className="w-3.5 h-3.5 mr-1.5" />
               {isRunning ? 'Running...' : 'Run'}
-            </Button>
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onCopyAll}
-            >
-              <Copy className="w-4 h-4 mr-2" />
-              Copy All
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClearAll}
-              title="Clear all code from editor"
-            >
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear
             </Button>
 
             {onShare && (
               <Button
-                variant="default"
+                variant="ghost"
                 size="sm"
                 onClick={onShare}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className="h-8 px-3 text-xs bg-gradient-to-r from-primary/20 to-secondary/20 hover:from-primary/30 hover:to-secondary/30 border border-primary/30 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
               >
-                <Share2 className="w-4 h-4 mr-2" />
+                <Share2 className="w-3.5 h-3.5 mr-1.5" />
                 Share
-              </Button>
-            )}
-
-            {onExportPortfolio && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onExportPortfolio}
-              >
-                <FileDown className="w-4 h-4 mr-2" />
-                Export Portfolio
               </Button>
             )}
             
             {!currentFile && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={onSaveScratchAsFile}
+                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
               >
-                <Save className="w-4 h-4 mr-2" />
-                Save As
+                <Save className="w-3.5 h-3.5 mr-1.5" />
+                Save
               </Button>
             )}
-            
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={onDownload}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
+
             {/* Account (desktop) */}
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/account')}
+              className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
             >
-              <User className="w-4 h-4 mr-2" />
+              <User className="w-3.5 h-3.5 mr-1.5" />
               Account
             </Button>
           </>
