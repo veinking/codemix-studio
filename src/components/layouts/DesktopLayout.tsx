@@ -46,7 +46,7 @@ export const DesktopLayout = ({
         
         {/* Main Content Area - Resizable Editor & Console */}
           <ResizablePanelGroup direction="vertical" className="flex-1">
-            <ResizablePanel defaultSize={consoleCollapsed ? 97 : 70} minSize={20}>
+            <ResizablePanel defaultSize={consoleCollapsed ? 97 : 70} minSize={5}>
               <div className="h-full bg-editor overflow-hidden">
                 {editor}
               </div>
@@ -57,7 +57,7 @@ export const DesktopLayout = ({
             <ResizablePanel 
               defaultSize={consoleCollapsed ? 3 : 30} 
               minSize={3} 
-              maxSize={80}
+              maxSize={95}
               collapsible={true}
               collapsedSize={3}
             >
