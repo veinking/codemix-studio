@@ -7,7 +7,7 @@ It runs code *entirely in your browser*, powered by WebAssembly (Pyodide & webR)
 
 ---
 
-## 🚀 Features
+## 🚀 Features ##
 
 - 🧠 **Python & R runtimes in the browser** (via Pyodide + webR)
 - 🪶 **Lightweight server** — minimal backend for saving files & auth
