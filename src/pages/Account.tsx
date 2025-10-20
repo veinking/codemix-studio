@@ -112,16 +112,27 @@ const Account = () => {
   const handleRefreshSubscription = async () => {
     setRefreshing(true);
     try {
+      // First try to sync from Stripe
+      const { data: syncData, error: syncError } = await supabase.functions.invoke('sync-subscription');
+      if (syncError) {
+        console.error('Sync error:', syncError);
+      } else if (syncData) {
+        console.log('Sync result:', syncData);
+      }
+      
+      // Then check subscription status
       const { data, error } = await supabase.functions.invoke('check-subscription');
       if (error) throw error;
       
       toast({
         title: 'Subscription refreshed',
-        description: 'Your subscription status has been updated.',
+        description: syncData?.message || 'Your subscription status has been updated.',
       });
       
       // Reload to update profile
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error: any) {
       console.error('Refresh subscription error:', error);
       toast({

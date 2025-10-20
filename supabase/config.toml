@@ -24,5 +24,8 @@ verify_jwt = false
 [functions.cancel-subscription]
 verify_jwt = false
 
+[functions.sync-subscription]
+verify_jwt = false
+
 [functions.stripe-webhook]
 verify_jwt = false
