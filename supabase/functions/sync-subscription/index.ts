@@ -89,7 +89,16 @@ serve(async (req) => {
 
     const subscription = subscriptions.data[0];
     const productId = subscription.items.data[0].price.product as string;
-    const subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+    
+    // Safely handle date conversion
+    let subscriptionEnd = null;
+    if (subscription.current_period_end) {
+      try {
+        subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      } catch (e) {
+        logStep("Date conversion warning", { current_period_end: subscription.current_period_end, error: String(e) });
+      }
+    }
     
     logStep("Active subscription found", { 
       subscriptionId: subscription.id,
