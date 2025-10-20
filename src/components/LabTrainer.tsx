@@ -204,7 +204,7 @@ export const LabTrainer = ({ open, onOpenChange, onLoadLab }: LabTrainerProps) =
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[600px] p-0">
+      <SheetContent side="right" className="w-full sm:w-[600px] p-0 z-[60]">
         <SheetHeader className="p-6 pb-4 border-b">
           <div className="flex items-center justify-between">
             <SheetTitle className="flex items-center gap-2">

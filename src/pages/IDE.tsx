@@ -98,7 +98,8 @@ const IDE = () => {
   const [rTemplateLibraryOpen, setRTemplateLibraryOpen] = useState(false);
   const [csvViewMode, setCsvViewMode] = useState<'data' | 'code'>('data'); // Toggle between data view and code view
   const [sidePanelOpen, setSidePanelOpen] = useState(() => {
-    return localStorage.getItem('sidePanelOpen') === 'true';
+    const stored = localStorage.getItem('sidePanelOpen');
+    return stored ? stored === 'true' : true; // Default open on desktop first visit
   });
   const [hasNewOutput, setHasNewOutput] = useState(false);
   const [mobileConsoleOpen, setMobileConsoleOpen] = useState(false);
@@ -1385,13 +1386,15 @@ Jack,30,Miami,86`,
             }
           />
         ) : (
-          <>
-            <DesktopLayout
-              toolbar={toolbarComponent}
-              fileExplorer={fileExplorerComponent}
-              editor={editorComponent}
-              console={consoleComponent}
-            />
+          <div className="flex h-screen overflow-hidden">
+            <div className="flex-1 min-w-0">
+              <DesktopLayout
+                toolbar={toolbarComponent}
+                fileExplorer={fileExplorerComponent}
+                editor={editorComponent}
+                console={consoleComponent}
+              />
+            </div>
             <SidePanel
               open={sidePanelOpen}
               onOpenChange={setSidePanelOpen}
@@ -1404,7 +1407,7 @@ Jack,30,Miami,86`,
               feedback={<FeedbackForm />}
               about={<AboutSection />}
             />
-          </>
+          </div>
         )}
       </div>
       

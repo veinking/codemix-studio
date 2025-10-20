@@ -18,7 +18,7 @@ export const DesktopLayout = ({
   console: consolePanel,
 }: DesktopLayoutProps) => {
   const navigate = useNavigate();
-  const [consoleCollapsed, setConsoleCollapsed] = useState(false);
+  const [consoleCollapsed, setConsoleCollapsed] = useState(true);
   
   return (
     <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
@@ -45,22 +45,22 @@ export const DesktopLayout = ({
         </div>
         
         {/* Main Content Area - Resizable Editor & Console */}
-        <ResizablePanelGroup direction="vertical" className="flex-1">
-          <ResizablePanel defaultSize={consoleCollapsed ? 97 : 65} minSize={30}>
-            <div className="h-full bg-editor overflow-hidden">
-              {editor}
-            </div>
-          </ResizablePanel>
-          
-          <ResizableHandle withHandle />
-          
-          <ResizablePanel 
-            defaultSize={consoleCollapsed ? 3 : 35} 
-            minSize={consoleCollapsed ? 3 : 15} 
-            maxSize={consoleCollapsed ? 3 : 70}
-            collapsible={true}
-            collapsedSize={3}
-          >
+          <ResizablePanelGroup direction="vertical" className="flex-1">
+            <ResizablePanel defaultSize={consoleCollapsed ? 97 : 80} minSize={30}>
+              <div className="h-full bg-editor overflow-hidden">
+                {editor}
+              </div>
+            </ResizablePanel>
+            
+            <ResizableHandle withHandle />
+            
+            <ResizablePanel 
+              defaultSize={consoleCollapsed ? 3 : 20} 
+              minSize={consoleCollapsed ? 3 : 10} 
+              maxSize={consoleCollapsed ? 3 : 60}
+              collapsible={true}
+              collapsedSize={3}
+            >
             <div className="h-full">
               {isValidElement(consolePanel) 
                 ? cloneElement(consolePanel as ReactElement, { 

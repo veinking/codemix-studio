@@ -202,7 +202,9 @@ export const FileExplorer = ({
           variant="outline"
           size="sm"
           className="w-full"
-          onClick={onOpenLabTrainer}
+          onClick={() => {
+            onOpenLabTrainer();
+          }}
         >
           <Beaker className="h-4 w-4 mr-2" />
           Practice Labs
