@@ -34,45 +34,6 @@ export const AboutSection = () => {
           </div>
         </CardContent>
       </Card>
-
-      {/* Support Card */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2 mb-2">
-            <Coffee className="h-5 w-5 text-primary" />
-            <CardTitle>Support Development</CardTitle>
-          </div>
-          <CardDescription>
-            Help keep OpenIDE running for students everywhere
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            If OpenIDE helped you pass a class, finish a project, or learn something new, 
-            consider buying me a coffee! It helps cover AI costs and keeps this project 
-            running for students everywhere.
-          </p>
-          <Button 
-            className="w-full" 
-            onClick={() => window.open('https://buymeacoffee.com/treytrey', '_blank', 'noopener,noreferrer')}
-          >
-            <Coffee className="mr-2 h-4 w-4" />
-            Buy Me a Coffee
-          </Button>
-          <div className="text-center pt-2">
-            <p className="text-xs text-muted-foreground">
-              Built with 💜 by <span className="font-semibold">@treytrey</span>
-            </p>
-            <p className="text-xs text-muted-foreground">Data Science Student</p>
-            <a 
-              href="mailto:fbarfiel@gmu.edu" 
-              className="text-xs text-primary hover:underline block mt-1"
-            >
-              fbarfiel@gmu.edu
-            </a>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

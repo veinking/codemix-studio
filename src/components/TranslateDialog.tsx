@@ -4,7 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, Sparkles } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Link } from "react-router-dom";
 
 import { SupportedLanguage } from '@/runtimes/RuntimeRegistry';
 
@@ -27,6 +30,7 @@ export const TranslateDialog = ({
 }: TranslateDialogProps) => {
   const [targetLanguage, setTargetLanguage] = useState<Lang>('python');
   const [isTranslating, setIsTranslating] = useState(false);
+  const { isGuest } = useAuth();
 
   const handleTranslate = async () => {
     if (targetLanguage === sourceLanguage) {
@@ -76,6 +80,19 @@ export const TranslateDialog = ({
         </DialogHeader>
 
         <div className="space-y-4">
+          {isGuest && (
+            <Alert>
+              <Sparkles className="h-4 w-4" />
+              <AlertDescription>
+                AI translation requires a free account.{" "}
+                <Link to="/auth" className="font-semibold underline">
+                  Sign up
+                </Link>{" "}
+                to get 1 free AI request per day!
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <label className="text-sm font-medium">From</label>
@@ -108,7 +125,7 @@ export const TranslateDialog = ({
           <DialogFooter>
             <Button
               onClick={handleTranslate}
-              disabled={isTranslating}
+              disabled={isTranslating || isGuest}
               className="w-full"
             >
               {isTranslating ? (

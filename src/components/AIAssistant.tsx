@@ -6,6 +6,9 @@ import { Sparkles, Wand2, CheckCircle, Lightbulb, X, Zap, BookOpen } from "lucid
 import { toast } from "sonner";
 import { useAIFunction } from "@/hooks/useAIFunction";
 import { UpgradeDialog } from "@/components/UpgradeDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Link } from "react-router-dom";
 
 interface AIAssistantProps {
   code: string;
@@ -20,6 +23,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
   const [suggestion, setSuggestion] = useState<string | null>(null);
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
   const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
+  const { isGuest } = useAuth();
   
   const { invokeAI, isLoading } = useAIFunction({
     onUpgradeRequired: () => setShowUpgradeDialog(true)
@@ -129,19 +133,32 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
         )}
       </div>
 
+      {isGuest && (
+        <Alert>
+          <Sparkles className="h-4 w-4" />
+          <AlertDescription>
+            AI features require a free account.{" "}
+            <Link to="/auth" className="font-semibold underline">
+              Sign up
+            </Link>{" "}
+            to get 1 free AI request per day!
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Textarea
         placeholder="Describe what you want to build or what the code should do..."
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         className="min-h-[80px] resize-none"
-        disabled={isLoading}
+        disabled={isLoading || isGuest}
       />
 
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
           onClick={() => handleAIAction("autofill")}
-          disabled={isLoading || !prompt.trim()}
+          disabled={isLoading || !prompt.trim() || isGuest}
           className="flex items-center gap-2"
         >
           <Wand2 className="h-4 w-4" />
@@ -152,7 +169,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
           size="sm"
           variant="secondary"
           onClick={() => handleAIAction("autocomplete")}
-          disabled={isLoading || !code}
+          disabled={isLoading || !code || isGuest}
           className="flex items-center gap-2"
         >
           <Sparkles className="h-4 w-4" />
@@ -163,7 +180,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
           size="sm"
           variant="outline"
           onClick={() => handleAIAction("explain")}
-          disabled={isLoading || !selectedCode}
+          disabled={isLoading || !selectedCode || isGuest}
           className="flex items-center gap-2"
         >
           <BookOpen className="h-4 w-4" />
@@ -174,7 +191,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
           size="sm"
           variant="outline"
           onClick={() => handleAIAction("check")}
-          disabled={isLoading || (!code && !selectedCode)}
+          disabled={isLoading || (!code && !selectedCode) || isGuest}
           className="flex items-center gap-2"
         >
           <CheckCircle className="h-4 w-4" />
@@ -185,7 +202,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
           size="sm"
           variant="ghost"
           onClick={handleAutoScan}
-          disabled={isLoading || !code}
+          disabled={isLoading || !code || isGuest}
           className="flex items-center gap-2"
         >
           <Lightbulb className="h-4 w-4" />
@@ -196,7 +213,7 @@ export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobi
           size="sm"
           variant="default"
           onClick={() => handleAIAction("optimize")}
-          disabled={isLoading || !code}
+          disabled={isLoading || !code || isGuest}
           className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80"
         >
           <Zap className="h-4 w-4" />

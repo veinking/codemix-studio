@@ -5,8 +5,11 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { toast } from 'sonner';
-import { Loader2, ChevronDown } from 'lucide-react';
+import { Loader2, ChevronDown, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 
 type Row = Record<string, any>;
 type Analysis = {
@@ -34,6 +37,7 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
   const [aiCode, setAiCode] = useState('');
   const [isLoadingAI, setIsLoadingAI] = useState(false);
   const [showAiSection, setShowAiSection] = useState(false);
+  const { isGuest } = useAuth();
 
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
 
@@ -216,7 +220,7 @@ if (length(num_cols) > 0) {
               <Button variant="secondary" onClick={() => onInsertCode(mkCode())}>
                 Insert Cleaning & Plots ({language.toUpperCase()})
               </Button>
-              <Button variant="outline" onClick={askAI} disabled={isLoadingAI}>
+              <Button variant="outline" onClick={askAI} disabled={isLoadingAI || isGuest}>
                 {isLoadingAI ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -237,6 +241,19 @@ if (length(num_cols) > 0) {
           <div className="text-sm text-muted-foreground">
             <b>{filename}</b> • {rows.length.toLocaleString()} rows • {columns.length} columns
           </div>
+        )}
+
+        {isGuest && rows.length > 0 && (
+          <Alert>
+            <Sparkles className="h-4 w-4" />
+            <AlertDescription>
+              AI data recommendations require a free account.{" "}
+              <Link to="/auth" className="font-semibold underline">
+                Sign up
+              </Link>{" "}
+              to get 1 free AI request per day!
+            </AlertDescription>
+          </Alert>
         )}
 
         {showAiSection && (
