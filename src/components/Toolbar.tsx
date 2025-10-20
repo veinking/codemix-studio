@@ -1,4 +1,4 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library } from "lucide-react";
+import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
@@ -18,6 +18,7 @@ interface ToolbarProps {
   onToggleNotebook?: () => void;
   onOpenTemplates?: () => void;
   onOpenRTemplates?: () => void;
+  onOpenLabTrainer?: () => void;
   isNotebookMode?: boolean;
   currentFile: string | null;
   isRunning: boolean;
@@ -42,6 +43,7 @@ export const Toolbar = ({
   onToggleNotebook,
   onOpenTemplates,
   onOpenRTemplates,
+  onOpenLabTrainer,
   isNotebookMode = false,
   currentFile, 
   isRunning,
@@ -74,15 +76,27 @@ export const Toolbar = ({
         {isMobile ? (
           <>
             {/* Mobile: Show only essential buttons */}
+            {onOpenLabTrainer && (
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={onOpenLabTrainer}
+                className="h-8 w-8 flex-shrink-0 bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none hover:from-emerald-600 hover:to-teal-600"
+                title="Practice Labs"
+              >
+                <Beaker className="w-4 h-4" />
+              </Button>
+            )}
+
             {onShare && (
               <Button
                 variant="outline"
                 size="icon"
                 onClick={onShare}
-                className="h-9 w-9 flex-shrink-0"
+                className="h-8 w-8 flex-shrink-0"
                 title="Share Code"
               >
-                <Share2 className="w-5 h-5" />
+                <Share2 className="w-4 h-4" />
               </Button>
             )}
             
@@ -91,10 +105,10 @@ export const Toolbar = ({
                 variant="ghost"
                 size="icon"
                 onClick={onOpenTranslate}
-                className="h-9 w-9 flex-shrink-0"
+                className="h-8 w-8 flex-shrink-0"
                 title="Translate Code"
               >
-                <Languages className="w-5 h-5" />
+                <Languages className="w-4 h-4" />
               </Button>
             )}
             
@@ -103,10 +117,10 @@ export const Toolbar = ({
                 variant={isNotebookMode ? "default" : "ghost"}
                 size="icon"
                 onClick={onToggleNotebook}
-                className="h-9 w-9 flex-shrink-0"
+                className="h-8 w-8 flex-shrink-0"
                 title={isNotebookMode ? 'Exit Notebook' : 'Notebook Mode'}
               >
-                <BookOpen className="w-5 h-5" />
+                <BookOpen className="w-4 h-4" />
               </Button>
             )}
 
@@ -115,10 +129,10 @@ export const Toolbar = ({
                 variant="outline"
                 size="default"
                 onClick={onOpenFeatures}
-                className="h-9 px-3 flex-shrink-0"
+                className="h-8 px-2.5 flex-shrink-0"
               >
-                <Settings className="w-5 h-5 mr-1.5" />
-                <span className="text-sm font-medium">Tools</span>
+                <Settings className="w-4 h-4 mr-1" />
+                <span className="text-xs font-medium">Tools</span>
               </Button>
             )}
 
@@ -127,16 +141,28 @@ export const Toolbar = ({
                 variant="outline"
                 size="default"
                 onClick={onOpenTools}
-                className="h-9 px-3 flex-shrink-0"
+                className="h-8 px-2.5 flex-shrink-0"
               >
-                <Settings className="w-5 h-5 mr-1.5" />
-                <span className="text-sm font-medium">Features</span>
+                <Settings className="w-4 h-4 mr-1" />
+                <span className="text-xs font-medium">Features</span>
               </Button>
             )}
           </>
         ) : (
           <>
             {/* Desktop: Show all buttons with labels */}
+            {onOpenLabTrainer && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenLabTrainer}
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white border-none hover:from-emerald-600 hover:to-teal-600"
+              >
+                <Beaker className="w-4 h-4 mr-2" />
+                Practice Labs
+              </Button>
+            )}
+
             {onOpenTemplates && (
               <Button
                 variant="outline"

@@ -1026,6 +1026,7 @@ Jack,30,Miami,86`,
       onToggleNotebook={() => setIsNotebookMode(prev => !prev)}
       onOpenTemplates={() => setTemplateLibraryOpen(true)}
       onOpenRTemplates={() => setRTemplateLibraryOpen(true)}
+      onOpenLabTrainer={() => setLabTrainerOpen(true)}
       isNotebookMode={isNotebookMode}
       currentFile={activeFile}
       isRunning={isRunning}

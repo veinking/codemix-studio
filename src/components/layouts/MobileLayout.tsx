@@ -81,33 +81,33 @@ export const MobileLayout = ({
     <div className="h-screen w-full flex flex-col bg-background overflow-hidden touch-manipulation">
       {/* Minimal Top Bar */}
       {!isFullScreen && (
-        <div className="bg-toolbar border-b border-border px-3 py-2 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="bg-toolbar border-b border-border px-2 py-1.5 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="ghost"
               size="icon"
-              className="h-11 w-11 touch-manipulation active:scale-95 transition-transform"
+              className="h-9 w-9 touch-manipulation active:scale-95 transition-transform"
               onClick={() => {
                 hapticFeedback();
                 navigate('/');
               }}
             >
-              <Home className="w-5 h-5" />
+              <Home className="w-4 h-4" />
             </Button>
-            <h1 className="text-sm font-bold text-foreground">bIDE</h1>
+            <h1 className="text-xs font-bold text-foreground">bIDE</h1>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <label htmlFor="csv-upload-mobile" className="cursor-pointer">
               <Button 
                 variant="ghost" 
                 size="icon" 
-                className="h-11 w-11 touch-manipulation active:scale-95 transition-transform" 
+                className="h-9 w-9 touch-manipulation active:scale-95 transition-transform" 
                 asChild
                 onClick={hapticFeedback}
               >
                 <span>
-                  <FileUp className="w-5 h-5" />
+                  <FileUp className="w-4 h-4" />
                 </span>
               </Button>
             </label>
@@ -124,10 +124,10 @@ export const MobileLayout = ({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-11 w-11 touch-manipulation active:scale-95 transition-transform"
+                  className="h-9 w-9 touch-manipulation active:scale-95 transition-transform"
                   onClick={hapticFeedback}
                 >
-                  <Menu className="w-5 h-5" />
+                  <Menu className="w-4 h-4" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[85vw] max-w-[320px] bg-background p-0">
@@ -145,10 +145,10 @@ export const MobileLayout = ({
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="h-11 w-11 touch-manipulation active:scale-95 transition-transform"
+                  className="h-9 w-9 touch-manipulation active:scale-95 transition-transform"
                   onClick={hapticFeedback}
                 >
-                  <MoreVertical className="w-5 h-5" />
+                  <MoreVertical className="w-4 h-4" />
                 </Button>
               </DrawerTrigger>
               <DrawerContent>
@@ -219,7 +219,7 @@ export const MobileLayout = ({
 
       {/* Toolbar - Language Selector & Features */}
       {!isFullScreen && (
-        <div className="bg-toolbar border-b border-border px-3 py-2 shrink-0">
+        <div className="bg-toolbar border-b border-border px-2 py-1.5 shrink-0">
           {toolbar}
         </div>
       )}
@@ -239,7 +239,10 @@ export const MobileLayout = ({
       {/* Editor - Takes Full Height with Bottom Padding for Floating Buttons */}
       <div 
         className={isFullScreen ? "h-screen" : "flex-1 min-h-0 overflow-hidden"}
-        style={!isFullScreen ? { paddingBottom: 'max(140px, calc(140px + env(safe-area-inset-bottom)))' } : undefined}
+        style={!isFullScreen ? { 
+          paddingTop: 'env(safe-area-inset-top)', 
+          paddingBottom: 'max(120px, calc(120px + env(safe-area-inset-bottom)))' 
+        } : undefined}
       >
         {editor}
       </div>
@@ -248,17 +251,17 @@ export const MobileLayout = ({
       {!isFullScreen && (
         <>
           {/* Floating Action Button - iOS Safe Area */}
-          <div className="fixed right-4 z-40" style={{ bottom: 'max(6rem, calc(6rem + env(safe-area-inset-bottom)))' }}>
+          <div className="fixed right-4 z-40" style={{ bottom: 'max(5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
             <Button
               onClick={() => {
                 hapticFeedback();
                 onRun();
               }}
               disabled={isRunning}
-              className="h-16 w-16 rounded-full shadow-lg bg-primary hover:bg-primary/90 touch-manipulation active:scale-95 transition-transform"
+              className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 touch-manipulation active:scale-95 transition-transform"
               style={{ boxShadow: 'var(--glow-purple)' }}
             >
-              <Play className="w-7 h-7" fill="currentColor" />
+              <Play className="w-6 h-6" fill="currentColor" />
             </Button>
           </div>
 
@@ -298,7 +301,7 @@ export const MobileLayout = ({
           </Drawer>
 
           {/* Tools Drawer - Positioned higher to avoid blocking editor */}
-          <div className="fixed left-4 z-40" style={{ bottom: 'max(6rem, calc(6rem + env(safe-area-inset-bottom)))' }}>
+          <div className="fixed left-4 z-40" style={{ bottom: 'max(5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
             {dataOpsComponent}
           </div>
         </>
