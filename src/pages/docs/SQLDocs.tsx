@@ -13,8 +13,10 @@ export default function SQLDocs() {
   return (
     <>
       <Helmet>
-        <title>SQL Reference - bIDE Documentation</title>
-        <meta name="description" content="Complete SQL reference manual for database queries and data manipulation." />
+        <title>SQL Documentation - bIDE | Database Query Reference</title>
+        <meta name="description" content="Complete SQL reference for bIDE. SELECT, JOIN, aggregations, subqueries, and database operations. Practice SQL queries in your browser with instant execution." />
+        <meta name="keywords" content="sql documentation, sql syntax, sql tutorial, sql queries, learn sql, database queries, sql examples" />
+        <link rel="canonical" href="https://codemixapp.com/docs/sql" />
       </Helmet>
       
       <div className="min-h-screen bg-background">

@@ -13,8 +13,10 @@ export default function RDocs() {
   return (
     <>
       <Helmet>
-        <title>R Reference - bIDE Documentation</title>
-        <meta name="description" content="Complete R reference manual for statistical computing, data analysis, and visualization." />
+        <title>R Documentation - bIDE | Statistical Programming Reference</title>
+        <meta name="description" content="Complete R language reference for bIDE. Data analysis, visualization with ggplot2, statistical functions, and data manipulation. Run R code examples instantly in your browser." />
+        <meta name="keywords" content="r documentation, r programming, r syntax, r tutorial, r examples, ggplot2, data analysis in r, statistical programming" />
+        <link rel="canonical" href="https://codemixapp.com/docs/r" />
       </Helmet>
       
       <div className="min-h-screen bg-background">

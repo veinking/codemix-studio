@@ -26,8 +26,10 @@ export default function DocsIndex() {
   return (
     <>
       <Helmet>
-        <title>Language References - bIDE Documentation</title>
-        <meta name="description" content="Comprehensive reference manuals for Python, R, JavaScript, SQL, and 12+ other programming languages in bIDE." />
+        <title>Documentation Hub - bIDE | Reference for 16 Programming Languages</title>
+        <meta name="description" content="Complete documentation for all 16 languages in bIDE. Syntax guides, code examples, and 'Open in IDE' feature. Languages: Python, R, JavaScript, SQL, PHP, Ruby, Lua, Java, TypeScript, C++, C, Rust, Go, Swift, Kotlin, C#." />
+        <meta name="keywords" content="programming documentation, language reference, syntax guide, code examples, python docs, r docs, javascript docs, sql docs, multi-language reference" />
+        <link rel="canonical" href="https://codemixapp.com/docs" />
       </Helmet>
       
       <div className="min-h-screen bg-background">

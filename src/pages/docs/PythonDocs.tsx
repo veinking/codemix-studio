@@ -14,8 +14,10 @@ export default function PythonDocs() {
   return (
     <>
       <Helmet>
-        <title>Python Reference - bIDE Documentation</title>
-        <meta name="description" content="Complete Python reference manual with syntax examples, use cases, and best practices for data science and programming." />
+        <title>Python Documentation - bIDE | Complete Syntax Guide & Examples</title>
+        <meta name="description" content="Comprehensive Python reference for bIDE. Variables, functions, data structures, file I/O, and more. Run examples instantly with 'Open in IDE' button. Perfect for students and developers." />
+        <meta name="keywords" content="python documentation, python syntax, python tutorial, python examples, learn python, python reference guide, python data structures" />
+        <link rel="canonical" href="https://codemixapp.com/docs/python" />
       </Helmet>
       
       <div className="min-h-screen bg-background">
