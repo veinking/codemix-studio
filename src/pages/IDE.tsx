@@ -817,6 +817,14 @@ Jack,30,Miami,86`,
       }
     }
     
+    // Show loading toast for seaborn (first-time install takes ~10 seconds)
+    if (language === 'python' && (code.includes('seaborn') || code.includes('sns.'))) {
+      toast.info("Loading Seaborn", {
+        description: "First-time setup may take ~10 seconds...",
+        duration: 10000,
+      });
+    }
+    
     try {
       const result = await runtime.execute(code, (output) => {
         addToConsole(output);

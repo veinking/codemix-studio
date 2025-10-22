@@ -105,23 +105,36 @@ async function ensurePackage(pkg) {
     if (!pyodide) await initPyodideSafe();
     if (!pyodide) throw new Error("Pyodide not initialized");
     
-    if (!pyodide.loadedPackages[pkg]) {
-      self.postMessage({
-        type: "log",
-        text: `📦 Loading package: ${pkg}`,
-      });
-      await pyodide.loadPackage(pkg);
-      self.postMessage({
-        type: "log",
-        text: `✅ Loaded package: ${pkg}`,
-      });
+    // Packages available via pyodide.loadPackage (built-in)
+    const builtInPackages = new Set(['numpy', 'pandas', 'matplotlib', 'scipy', 'scikit-learn', 'pyarrow']);
+    
+    // Packages that need micropip installation
+    const micropipPackages = new Set(['seaborn', 'statsmodels', 'plotly', 'beautifulsoup4']);
+    
+    if (builtInPackages.has(pkg)) {
+      // Use built-in loader
+      if (!pyodide.loadedPackages[pkg]) {
+        self.postMessage({ type: "log", text: `📦 Loading package: ${pkg}` });
+        await pyodide.loadPackage(pkg);
+        self.postMessage({ type: "log", text: `✅ Loaded package: ${pkg}` });
+      }
+    } else if (micropipPackages.has(pkg)) {
+      // Use micropip for packages not in built-in set
+      await ensurePackage('micropip');
+      if (!pyodide.loadedPackages['micropip']) {
+        await pyodide.loadPackage('micropip');
+      }
+      
+      self.postMessage({ type: "log", text: `📦 Installing via micropip: ${pkg}` });
+      await pyodide.runPythonAsync(`
+import micropip
+await micropip.install("${pkg}")
+      `);
+      self.postMessage({ type: "log", text: `✅ Installed package: ${pkg}` });
     }
   } catch (e) {
     console.warn(`Could not load ${pkg}:`, e);
-    self.postMessage({
-      type: "log",
-      text: `⚠️ Could not load ${pkg}: ${String(e)}`,
-    });
+    self.postMessage({ type: "log", text: `⚠️ Could not load ${pkg}: ${String(e)}` });
   }
 }
 
