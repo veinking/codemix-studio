@@ -25,7 +25,7 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
 
     // Check for error messages in plot data
     if (plotData.includes('⚠️') || plotData.includes('Plot created but couldn\'t capture')) {
-      setError('Plot code executed successfully, but image capture failed on this device.');
+      setError('📱 Plot rendering is limited on this device. The code executed successfully but couldn\'t display the visualization.');
       setIsLoading(false);
       return;
     }
@@ -46,7 +46,7 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
         }
       };
       img.onerror = () => {
-        setError('Failed to load plot image. The code is valid but rendering failed on this device.');
+        setError('📱 Failed to render plot on this device. Try viewing on desktop or download the code to run locally.');
         setIsLoading(false);
       };
       img.src = plotData;
@@ -154,22 +154,21 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
             )}
             
             {error ? (
-              <Alert>
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
                   <p className="font-semibold mb-2">{error}</p>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    💡 The plot code is valid and has been generated successfully. 
+                  <p className="text-sm mb-3">
+                    💡 Your plot code is valid and ready to use. You can:
                   </p>
-                  <div className="flex gap-2 flex-wrap">
-                    {plotData?.startsWith('data:image') && (
-                      <Button onClick={handleDownloadImage} variant="default" size="sm">
-                        <Download className="w-4 h-4 mr-2" />
-                        Download Plot Image
-                      </Button>
-                    )}
+                  <ul className="text-sm space-y-1 mb-3 list-disc list-inside">
+                    <li>Try simpler chart types (bar/line charts work best on mobile)</li>
+                    <li>View this plot on a desktop device</li>
+                    <li>Download the code and run it in Jupyter or a local Python IDE</li>
+                  </ul>
+                  <div className="flex gap-2 flex-wrap mt-3">
                     {plotCode && (
-                      <Button onClick={handleDownloadCode} variant="outline" size="sm">
+                      <Button onClick={handleDownloadCode} variant="default" size="sm">
                         <Download className="w-4 h-4 mr-2" />
                         Download Code
                       </Button>

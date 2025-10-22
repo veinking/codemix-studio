@@ -825,6 +825,14 @@ Jack,30,Miami,86`,
       });
     }
     
+    // Mobile plot warning
+    if (deviceType === 'mobile' && language === 'python' && code.includes('plt.')) {
+      toast.info("Mobile Plotting", {
+        description: "Complex plots may have limited rendering on mobile devices",
+        duration: 5000,
+      });
+    }
+    
     try {
       const result = await runtime.execute(code, (output) => {
         addToConsole(output);
@@ -835,10 +843,19 @@ Jack,30,Miami,86`,
         setPlotData(result.plotUrl);
         setPlotCode(code);
       } else if (result.output) {
-        const m = result.output.match(/data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+/);
-        if (m) {
-          setPlotData(m[0]);
-          setPlotCode(code);
+        if (result.output.includes("data:image/png;base64,")) {
+          const imageMatch = result.output.match(/data:image\/png;base64,[A-Za-z0-9+/=]+/);
+          if (imageMatch) {
+            const imageData = imageMatch[0];
+            setPlotData(imageData);
+            setPlotCode(code);
+          }
+        } else if (deviceType === 'mobile' && result.output.includes("couldn't capture image")) {
+          // Mobile plot capture failed - show helpful message
+          toast.error("Plot Rendering Limited on Mobile", {
+            description: "The code executed successfully, but couldn't display the plot. Try: (1) Simpler chart types like bar/line, (2) View on desktop, or (3) Download the code",
+            duration: 8000,
+          });
         }
       }
 

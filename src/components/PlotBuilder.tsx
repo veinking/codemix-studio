@@ -218,25 +218,38 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
                 <div>
                   <Label>Chart Type</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                    {chartTypeOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        onClick={() => setChartType(option.value as ChartType)}
-                        className={`p-4 border rounded-lg flex flex-col items-center gap-2 transition-all ${
-                          chartType === option.value
-                            ? "border-primary bg-primary/10"
-                            : "hover:border-primary/50"
-                        }`}
-                      >
-                        <option.icon className="w-6 h-6" />
-                        <span className="text-sm font-medium">{option.label}</span>
-                        <span className="text-xs text-muted-foreground text-center">
-                          {option.tooltip}
-                        </span>
-                      </button>
-                    ))}
+                    {chartTypeOptions.map((option) => {
+                      const isComplexForMobile = isMobile && ['heatmap', 'box'].includes(option.value);
+                      return (
+                        <button
+                          key={option.value}
+                          onClick={() => setChartType(option.value as ChartType)}
+                          className={`p-4 border rounded-lg flex flex-col items-center gap-2 transition-all ${
+                            chartType === option.value
+                              ? "border-primary bg-primary/10"
+                              : "hover:border-primary/50"
+                          } ${isComplexForMobile ? 'opacity-60' : ''}`}
+                        >
+                          <option.icon className="w-6 h-6" />
+                          <span className="text-sm font-medium">{option.label}</span>
+                          <span className="text-xs text-muted-foreground text-center">
+                            {option.tooltip}
+                          </span>
+                          {isComplexForMobile && (
+                            <span className="text-xs text-amber-600 dark:text-amber-400 text-center mt-1">
+                              ⚠️ May not render on mobile
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+                {isMobile && (chartType === 'heatmap' || chartType === 'box') && (
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm text-amber-800 dark:text-amber-200">
+                    📱 <strong>Mobile Warning:</strong> This chart type may not render properly on mobile devices. Consider using bar or line charts for better mobile compatibility.
+                  </div>
+                )}
               </div>
             )}
 

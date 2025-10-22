@@ -202,9 +202,9 @@ self.onmessage = async (e) => {
       // Special handling for plotting code - ensure matplotlib is fully ready
       if (msg.code.includes('matplotlib') || msg.code.includes('plt.')) {
         await ensurePackage('matplotlib');
-        // Give matplotlib a moment to initialize on mobile
+        // Extended delay for mobile Safari memory management
         if (msg.isMobile) {
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise(resolve => setTimeout(resolve, 800));
         }
       }
       

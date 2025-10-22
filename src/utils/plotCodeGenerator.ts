@@ -15,11 +15,21 @@ export interface PlotConfig {
 export function generatePythonPlot(config: PlotConfig, isMobile: boolean = false): string {
   const { dataset, datasetContent, chartType, xColumn, yColumn, colorColumn, title, xLabel, yLabel } = config;
 
-  // Mobile optimization: smaller figures, lower DPI
-  const figSize = isMobile ? '(8, 5)' : '(12, 8)';
-  const dpi = isMobile ? 72 : 150;
+  // Mobile optimization: smaller figures, lower DPI, simpler styling
+  const figSize = isMobile ? '(6, 4)' : '(12, 8)';
+  const dpi = isMobile ? 50 : 150;
+  const tightLayout = isMobile ? '' : '\nplt.tight_layout()';
 
-  const loadPackages = `# Imports only — packages are auto-loaded by the runtime
+  const loadPackages = isMobile 
+    ? `# Imports only — packages are auto-loaded by the runtime
+import pandas as pd
+import matplotlib
+matplotlib.use('module://matplotlib_pyodide.wasm_backend')
+import matplotlib.pyplot as plt
+
+# Use basic matplotlib style for mobile (less memory intensive)
+plt.style.use('default')`
+    : `# Imports only — packages are auto-loaded by the runtime
 import pandas as pd
 import matplotlib
 matplotlib.use('module://matplotlib_pyodide.wasm_backend')
@@ -37,7 +47,14 @@ df = pd.read_csv("${dataset}")`;
   
   switch (chartType) {
     case 'bar':
-      plotCode = `
+      plotCode = isMobile ? `
+# Create bar chart (mobile optimized)
+plt.figure(figsize=${figSize})
+plt.bar(df['${xColumn}'], df['${yColumn}'], color='#a855f7')
+plt.title('${title}')
+plt.xlabel('${xLabel}')
+plt.ylabel('${yLabel}')
+plt.xticks(rotation=45)${tightLayout}` : `
 # Create bar chart
 plt.figure(figsize=${figSize})
 sns.barplot(data=df, x='${xColumn}', y='${yColumn}')
@@ -49,7 +66,13 @@ plt.tight_layout()`;
       break;
 
     case 'line':
-      plotCode = `
+      plotCode = isMobile ? `
+# Create line chart (mobile optimized)
+plt.figure(figsize=${figSize})
+plt.plot(df['${xColumn}'], df['${yColumn}'], color='#a855f7', linewidth=2)
+plt.title('${title}')
+plt.xlabel('${xLabel}')
+plt.ylabel('${yLabel}')${tightLayout}` : `
 # Create line chart
 plt.figure(figsize=${figSize})
 sns.lineplot(data=df, x='${xColumn}', y='${yColumn}')
@@ -60,7 +83,16 @@ plt.tight_layout()`;
       break;
 
     case 'scatter':
-      plotCode = colorColumn ? `
+      if (isMobile) {
+        plotCode = `
+# Create scatter plot (mobile optimized)
+plt.figure(figsize=${figSize})
+plt.scatter(df['${xColumn}'], df['${yColumn}'], color='#a855f7', alpha=0.6)
+plt.title('${title}')
+plt.xlabel('${xLabel}')
+plt.ylabel('${yLabel}')${tightLayout}`;
+      } else {
+        plotCode = colorColumn ? `
 # Create scatter plot with color
 plt.figure(figsize=${figSize})
 sns.scatterplot(data=df, x='${xColumn}', y='${yColumn}', hue='${colorColumn}')
@@ -76,10 +108,17 @@ plt.title('${title}')
 plt.xlabel('${xLabel}')
 plt.ylabel('${yLabel}')
 plt.tight_layout()`;
+      }
       break;
 
     case 'histogram':
-      plotCode = `
+      plotCode = isMobile ? `
+# Create histogram (mobile optimized)
+plt.figure(figsize=${figSize})
+plt.hist(df['${xColumn}'], bins=20, color='#a855f7', alpha=0.7)
+plt.title('${title}')
+plt.xlabel('${xLabel}')
+plt.ylabel('Frequency')${tightLayout}` : `
 # Create histogram
 plt.figure(figsize=${figSize})
 sns.histplot(data=df, x='${xColumn}', bins=30)
@@ -90,7 +129,12 @@ plt.tight_layout()`;
       break;
 
     case 'box':
-      plotCode = `
+      plotCode = isMobile ? `
+# Create box plot (mobile optimized)
+plt.figure(figsize=${figSize})
+plt.boxplot(df['${yColumn}'], vert=True)
+plt.title('${title}')
+plt.ylabel('${yLabel}')${tightLayout}` : `
 # Create box plot
 plt.figure(figsize=${figSize})
 sns.boxplot(data=df, y='${yColumn}')
@@ -100,7 +144,14 @@ plt.tight_layout()`;
       break;
 
     case 'heatmap':
-      plotCode = `
+      plotCode = isMobile ? `
+# Heatmap - Warning: Complex chart type not optimized for mobile
+plt.figure(figsize=${figSize})
+numeric_cols = df.select_dtypes(include=['number'])
+corr = numeric_cols.corr()
+plt.imshow(corr, cmap='coolwarm', aspect='auto')
+plt.colorbar()
+plt.title('${title}')${tightLayout}` : `
 # Create heatmap (requires numeric data)
 plt.figure(figsize=${figSize})
 numeric_cols = df.select_dtypes(include=['number'])
