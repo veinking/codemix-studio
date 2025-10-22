@@ -33,7 +33,7 @@ import { RecipeGallery } from "@/components/RecipeGallery";
 import { WorkspaceManager } from "@/components/WorkspaceManager";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Cloud } from "lucide-react";
+import { Sparkles, Cloud, GraduationCap } from "lucide-react";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { toast } from "sonner";
@@ -1144,13 +1144,6 @@ Jack,30,Miami,86`,
     };
   };
 
-  // Listen for practice labs event from side panel
-  useEffect(() => {
-    const handleOpenLabTrainer = () => setLabTrainerOpen(true);
-    window.addEventListener('openLabTrainer', handleOpenLabTrainer);
-    return () => window.removeEventListener('openLabTrainer', handleOpenLabTrainer);
-  }, []);
-
   const currentFile = files.find((f) => f.id === activeFile);
   const currentDataset = showDataset ? datasets.get(showDataset) : null;
 
@@ -1207,11 +1200,24 @@ Jack,30,Miami,86`,
   );
 
   const labTrainerComponent = (
-    <LabTrainer 
-      open={labTrainerOpen} 
-      onOpenChange={setLabTrainerOpen}
-      onLoadLab={handleLoadLabIntoEditor}
-    />
+    <div className="space-y-4">
+      <div>
+        <h3 className="text-lg font-semibold mb-2">Practice Labs</h3>
+        <p className="text-sm text-muted-foreground mb-4">
+          Generate coding challenges and practice problems to improve your skills
+        </p>
+        <Button 
+          onClick={() => {
+            setLabTrainerOpen(true);
+            setFeatureDrawerOpen(false);
+          }}
+          className="w-full"
+        >
+          <GraduationCap className="w-4 h-4 mr-2" />
+          Open Lab Trainer
+        </Button>
+      </div>
+    </div>
   );
 
   const fileExplorerComponent = (
@@ -1464,7 +1470,7 @@ Jack,30,Miami,86`,
               dataLab={dataLabComponent}
               dataOperations={dataOpsComponent}
               mlOperations={mlOpsComponent}
-              labTrainer={<div />}
+              labTrainer={labTrainerComponent}
               feedback={<FeedbackForm />}
               about={<AboutSection />}
             />
@@ -1617,6 +1623,12 @@ Jack,30,Miami,86`,
           if (workspace.active_file_id) setActiveFile(workspace.active_file_id);
           toast.success('Workspace loaded from cloud');
         }}
+      />
+
+      <LabTrainer 
+        open={labTrainerOpen} 
+        onOpenChange={setLabTrainerOpen}
+        onLoadLab={handleLoadLabIntoEditor}
       />
 
       <AuthDialog
