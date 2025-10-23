@@ -327,35 +327,44 @@ export type Database = {
       }
       shared_code: {
         Row: {
+          category: string | null
           code: string
           created_at: string
+          description: string | null
           expires_at: string | null
           file_name: string | null
           id: string
           language: string
           short_id: string
+          tags: string[] | null
           user_id: string | null
           view_count: number
         }
         Insert: {
+          category?: string | null
           code: string
           created_at?: string
+          description?: string | null
           expires_at?: string | null
           file_name?: string | null
           id?: string
           language: string
           short_id: string
+          tags?: string[] | null
           user_id?: string | null
           view_count?: number
         }
         Update: {
+          category?: string | null
           code?: string
           created_at?: string
+          description?: string | null
           expires_at?: string | null
           file_name?: string | null
           id?: string
           language?: string
           short_id?: string
+          tags?: string[] | null
           user_id?: string | null
           view_count?: number
         }
