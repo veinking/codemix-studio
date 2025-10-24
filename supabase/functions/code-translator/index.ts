@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,17 +10,34 @@ const corsHeaders = {
 
 type Lang = 'python' | 'r' | 'javascript' | 'sql';
 
+// Input validation schema
+const requestSchema = z.object({
+  sourceLanguage: z.enum(['python', 'r', 'javascript', 'sql']),
+  targetLanguage: z.enum(['python', 'r', 'javascript', 'sql']),
+  code: z.string().min(1, 'Code cannot be empty').max(51200, 'Code must be less than 50KB')
+});
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { sourceLanguage, targetLanguage, code } = await req.json() as {
-      sourceLanguage: Lang;
-      targetLanguage: Lang;
-      code: string;
-    };
+    const body = await req.json();
+    
+    // Validate input
+    const validation = requestSchema.safeParse(body);
+    if (!validation.success) {
+      console.error('[CODE-TRANSLATOR] Validation error:', validation.error.flatten());
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input: ' + validation.error.errors.map(e => e.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { sourceLanguage, targetLanguage, code } = validation.data;
     
     // Initialize Supabase client for usage tracking
     const supabase = createClient(

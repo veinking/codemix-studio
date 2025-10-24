@@ -1,11 +1,20 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-guest-fingerprint',
 };
+
+// Input validation schema
+const requestSchema = z.object({
+  error: z.string().max(5000, 'Error message too long'),
+  code: z.string().max(51200, 'Code must be less than 50KB'),
+  language: z.string().max(50, 'Language name too long'),
+  lineNumber: z.number().int().positive().optional()
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -13,7 +22,21 @@ serve(async (req) => {
   }
 
   try {
-    const { error, code, language, lineNumber } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validation = requestSchema.safeParse(body);
+    if (!validation.success) {
+      console.error('[EXPLAIN-ERROR] Validation error:', validation.error.flatten());
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input: ' + validation.error.errors.map(e => e.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { error, code, language, lineNumber } = validation.data;
     
     // Initialize Supabase client for usage tracking
     const supabase = createClient(
@@ -62,8 +85,8 @@ serve(async (req) => {
         }
       );
     }
+    
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
-
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }

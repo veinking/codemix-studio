@@ -1,10 +1,21 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-guest-fingerprint",
 };
+
+// Input validation schema
+const requestSchema = z.object({
+  action: z.enum(['scan', 'autofill', 'autocomplete', 'explain', 'check', 'optimize']),
+  code: z.string().max(51200, 'Code must be less than 50KB'),
+  prompt: z.string().max(1000, 'Prompt must be less than 1000 characters').optional(),
+  selectedCode: z.string().max(51200, 'Selected code must be less than 50KB').optional(),
+  language: z.string().max(50, 'Language name too long'),
+  isMobile: z.boolean().optional()
+});
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -12,7 +23,21 @@ serve(async (req) => {
   }
 
   try {
-    const { action, code, prompt, language, selectedCode, isMobile } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validation = requestSchema.safeParse(body);
+    if (!validation.success) {
+      console.error('[AI-CODE-ASSISTANT] Validation error:', validation.error.flatten());
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input: ' + validation.error.errors.map(e => e.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { action, code, prompt, language, selectedCode, isMobile } = validation.data;
     
     // Initialize Supabase client for usage tracking
     const supabase = createClient(

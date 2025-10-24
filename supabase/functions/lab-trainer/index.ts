@@ -1,10 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-guest-fingerprint',
 };
+
+// Input validation schema
+const requestSchema = z.object({
+  difficulty: z.enum(['beginner', 'intermediate', 'advanced']).default('beginner'),
+  topic: z.string().max(100, 'Topic name too long').optional()
+});
 
 interface LabBlueprint {
   title: string;
@@ -148,7 +155,21 @@ serve(async (req) => {
   }
 
   try {
-    const { difficulty = 'beginner', topic } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validation = requestSchema.safeParse(body);
+    if (!validation.success) {
+      console.error('[LAB-TRAINER] Validation error:', validation.error.flatten());
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input: ' + validation.error.errors.map(e => e.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { difficulty, topic } = validation.data;
     
     // Initialize Supabase client for usage tracking
     const supabase = createClient(

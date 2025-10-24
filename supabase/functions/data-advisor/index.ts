@@ -1,11 +1,20 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-guest-fingerprint',
 };
+
+// Input validation schema
+const requestSchema = z.object({
+  headers: z.array(z.string().max(200)).max(100, 'Too many columns'),
+  sampleRows: z.array(z.array(z.any()).max(100)).max(100, 'Too many sample rows'),
+  targetColumn: z.string().max(200).optional(),
+  language: z.enum(['python', 'r'])
+});
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -13,7 +22,21 @@ serve(async (req) => {
   }
 
   try {
-    const { headers, sampleRows, targetColumn, language } = await req.json();
+    const body = await req.json();
+    
+    // Validate input
+    const validation = requestSchema.safeParse(body);
+    if (!validation.success) {
+      console.error('[DATA-ADVISOR] Validation error:', validation.error.flatten());
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid input: ' + validation.error.errors.map(e => e.message).join(', ')
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    const { headers, sampleRows, targetColumn, language } = validation.data;
     
     // Initialize Supabase client for usage tracking
     const supabase = createClient(
