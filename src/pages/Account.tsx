@@ -100,6 +100,60 @@ const Account = () => {
       setSigningOut(false);
     }
   };
+
+  // Smart polling: Auto-refresh subscription after successful checkout
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const success = params.get('success') === 'true';
+
+    if (!success || !user || !profile) return;
+
+    // Only poll if not already Pro
+    if (profile.subscription_tier === 'pro') {
+      window.history.replaceState({}, '', '/account');
+      return;
+    }
+
+    console.log('[ACCOUNT] Success redirect detected, starting subscription polling...');
+    
+    let attempts = 0;
+    const maxAttempts = 15; // 30 seconds total
+    
+    const pollInterval = setInterval(async () => {
+      attempts++;
+      console.log(`[ACCOUNT] Polling subscription status (${attempts}/${maxAttempts})`);
+      
+      try {
+        // Sync from Stripe
+        await supabase.functions.invoke('sync-subscription');
+        // Check status
+        const { data: status } = await supabase.functions.invoke('check-subscription');
+        
+        if (status?.subscribed || profile.subscription_tier === 'pro') {
+          console.log('[ACCOUNT] Pro status detected! Stopping poll.');
+          clearInterval(pollInterval);
+          toast({
+            title: 'Subscription activated! 🎉',
+            description: 'Your Pro subscription is now active.',
+          });
+          window.history.replaceState({}, '', '/account');
+          setTimeout(() => window.location.reload(), 500);
+        } else if (attempts >= maxAttempts) {
+          console.log('[ACCOUNT] Max polling attempts reached.');
+          clearInterval(pollInterval);
+          toast({
+            title: 'Please refresh manually',
+            description: 'Click the "Refresh" button to check your subscription status.',
+          });
+        }
+      } catch (e) {
+        console.warn('[ACCOUNT] Polling error:', e);
+        if (attempts >= maxAttempts) clearInterval(pollInterval);
+      }
+    }, 2000);
+
+    return () => clearInterval(pollInterval);
+  }, [user, profile?.subscription_tier]);
   
   const handleCancelSubscription = async () => {
     if (!confirm('Are you sure you want to cancel your Pro plan? You\'ll keep access until the end of this billing period.')) {

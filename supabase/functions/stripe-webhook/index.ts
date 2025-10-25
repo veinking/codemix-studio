@@ -71,14 +71,31 @@ serve(async (req) => {
 
         console.log('[STRIPE-WEBHOOK] Checkout completed for user:', userId);
 
+        // Retrieve full subscription object to get correct billing period
+        const subscriptionId = session.subscription as string;
+        let subscription: Stripe.Subscription | null = null;
+        
+        if (subscriptionId) {
+          subscription = await stripe.subscriptions.retrieve(subscriptionId);
+          console.log('[STRIPE-WEBHOOK] Retrieved subscription:', subscription.id, 'ends:', new Date(subscription.current_period_end * 1000).toISOString());
+        } else {
+          // Fallback: expand subscription from session
+          const fullSession = await stripe.checkout.sessions.retrieve(session.id, { expand: ['subscription'] });
+          subscription = fullSession.subscription as Stripe.Subscription | null;
+        }
+
+        if (!subscription) {
+          console.error('[STRIPE-WEBHOOK] Could not resolve subscription for session:', session.id);
+          break;
+        }
+
         const { error: updateError } = await supabase.from('profiles').update({
           subscription_tier: 'pro',
-          subscription_status: 'active',
-          stripe_customer_id: session.customer as string,
-          stripe_subscription_id: session.subscription as string,
-          subscription_period_end: session.expires_at
-            ? new Date(session.expires_at * 1000).toISOString()
-            : null,
+          subscription_status: subscription.status,
+          stripe_customer_id: (session.customer as string) || (subscription.customer as string),
+          stripe_subscription_id: subscription.id,
+          subscription_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          cancel_at_period_end: subscription.cancel_at_period_end,
         }).eq('id', userId);
 
         if (updateError) {
@@ -86,6 +103,7 @@ serve(async (req) => {
           throw new Error(`Database update failed: ${updateError.message}`);
         }
 
+        console.log('[STRIPE-WEBHOOK] Profile updated successfully for user:', userId);
         break;
       }
 
@@ -159,7 +177,7 @@ serve(async (req) => {
           subscription_tier: 'free',
           subscription_status: 'canceled',
           cancel_at_period_end: false,
-          canceled_at: null,
+          canceled_at: new Date().toISOString(),
           stripe_subscription_id: null,
         }).eq('id', profiles[0].id);
 

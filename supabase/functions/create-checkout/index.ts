@@ -65,6 +65,7 @@ serve(async (req) => {
       success_url: `${req.headers.get('origin')}/account?success=true`,
       cancel_url: `${req.headers.get('origin')}/upgrade?canceled=true`,
       metadata: { user_id: user.id },
+      allow_promotion_codes: true,
     });
 
     console.log('[CREATE-CHECKOUT] Session created:', session.id);
