@@ -93,6 +93,7 @@ const IDE = () => {
   const [labTrainerOpen, setLabTrainerOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [initializedRuntimes, setInitializedRuntimes] = useState<Set<string>>(new Set());
+  const [loadingRuntimes, setLoadingRuntimes] = useState<Set<string>>(new Set());
   const [featureDrawerOpen, setFeatureDrawerOpen] = useState(false);
   const [translateDialogOpen, setTranslateDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
@@ -195,7 +196,7 @@ const IDE = () => {
   }, [scratchLanguage]);
 
   // When switching languages, save current code and load new language's code
-  const handleLanguageChange = (newLang: 'python' | 'r' | 'javascript' | 'sql') => {
+  const handleLanguageChange = async (newLang: 'python' | 'r' | 'javascript' | 'sql') => {
     // Save current language code
     setLanguageCode(prev => ({
       ...prev,
@@ -207,6 +208,30 @@ const IDE = () => {
     
     // Load new language's code
     setScratchCode(languageCode[newLang]);
+
+    // Lazy initialize runtime if not already initialized
+    if (!initializedRuntimes.has(newLang)) {
+      const runtime = RuntimeRegistry.get(newLang);
+      if (runtime && runtime.config.supportsPackages) {
+        setLoadingRuntimes(prev => new Set(prev).add(newLang));
+        const toastId = toast.loading(`Initializing ${runtime.config.displayName}...`);
+        
+        try {
+          await runtime.initialize(isMobile);
+          setInitializedRuntimes(prev => new Set(prev).add(newLang));
+          toast.success(`${runtime.config.displayName} ready!`, { id: toastId });
+        } catch (error: any) {
+          toast.error(`Failed to load ${runtime.config.displayName}`, { id: toastId });
+          console.error(`Runtime initialization error:`, error);
+        } finally {
+          setLoadingRuntimes(prev => {
+            const next = new Set(prev);
+            next.delete(newLang);
+            return next;
+          });
+        }
+      }
+    }
   };
 
   // Register all runtimes on mount
@@ -767,6 +792,7 @@ Jack,30,Miami,86`,
 
     // Lazy initialize runtime
     if (!runtime.isInitialized) {
+      setLoadingRuntimes(prev => new Set(prev).add(language));
       const toastId = toast.loading(`Initializing ${runtime.config.displayName}...`);
       try {
         await runtime.initialize(isMobile);
@@ -778,6 +804,12 @@ Jack,30,Miami,86`,
         toast.error(`Failed to load ${runtime.config.displayName}`, { id: toastId });
         setIsRunning(false);
         return;
+      } finally {
+        setLoadingRuntimes(prev => {
+          const next = new Set(prev);
+          next.delete(language);
+          return next;
+        });
       }
     }
 
@@ -1181,6 +1213,7 @@ Jack,30,Miami,86`,
       onOpenTools={() => setSidePanelOpen(prev => !prev)}
       onAuthClick={() => setAuthDialogOpen(true)}
       initializedRuntimes={initializedRuntimes}
+      loadingRuntimes={loadingRuntimes}
       isMobile={isMobile}
     />
   );

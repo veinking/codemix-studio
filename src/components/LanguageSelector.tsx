@@ -1,4 +1,4 @@
-import { Code2, ChevronDown } from "lucide-react";
+import { Code2, ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,6 +16,7 @@ interface LanguageSelectorProps {
   currentLanguage: SupportedLanguage;
   onLanguageChange: (lang: SupportedLanguage) => void;
   initializedRuntimes: Set<string>;
+  loadingRuntimes?: Set<string>;
   isMobile?: boolean;
 }
 
@@ -159,9 +160,11 @@ export const LanguageSelector = ({
   currentLanguage, 
   onLanguageChange, 
   initializedRuntimes,
+  loadingRuntimes = new Set(),
   isMobile = false 
 }: LanguageSelectorProps) => {
   const currentLang = ALL_LANGUAGES.find(l => l.value === currentLanguage);
+  const isCurrentLoading = loadingRuntimes.has(currentLanguage);
   
   return (
     <DropdownMenu>
@@ -174,9 +177,11 @@ export const LanguageSelector = ({
           <div className="flex items-center gap-2">
             <span className="text-lg">{currentLang?.icon}</span>
             <span className="font-medium">{currentLang?.label}</span>
-            {initializedRuntimes.has(currentLanguage) && (
+            {isCurrentLoading ? (
+              <Loader2 className="w-3 h-3 animate-spin text-primary" />
+            ) : initializedRuntimes.has(currentLanguage) ? (
               <Badge variant="secondary" className="h-4 px-1 text-[10px]">✓</Badge>
-            )}
+            ) : null}
           </div>
           <ChevronDown className="w-4 h-4 opacity-50" />
         </Button>
@@ -187,11 +192,13 @@ export const LanguageSelector = ({
           {EXECUTABLE_LANGUAGES.map((lang) => {
             const isActive = lang.value === currentLanguage;
             const isInitialized = initializedRuntimes.has(lang.value);
+            const isLoading = loadingRuntimes.has(lang.value);
             
             return (
               <DropdownMenuItem
                 key={lang.value}
                 onClick={() => onLanguageChange(lang.value)}
+                disabled={isLoading}
                 className={`
                   flex items-center justify-between gap-2 cursor-pointer
                   ${isActive ? 'bg-accent' : ''}
@@ -202,9 +209,11 @@ export const LanguageSelector = ({
                   <span className="font-medium">{lang.label}</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  {isInitialized && (
+                  {isLoading ? (
+                    <Loader2 className="w-3 h-3 animate-spin text-primary" />
+                  ) : isInitialized ? (
                     <Badge variant="secondary" className="h-4 px-1 text-[10px]">Ready</Badge>
-                  )}
+                  ) : null}
                 </div>
               </DropdownMenuItem>
             );

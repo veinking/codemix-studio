@@ -1,7 +1,8 @@
 import { ReactNode, useState } from "react";
-import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download, Home, Trash2, Undo, Redo } from "lucide-react";
+import { Play, Menu, FileUp, X, Maximize2, Minimize2, MoreVertical, Copy, Save, Download, Home, Trash2, Undo, Redo, Terminal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Drawer,
   DrawerContent,
@@ -65,6 +66,7 @@ export const MobileLayout = ({
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [consoleSheetOpen, setConsoleSheetOpen] = useState(false);
 
   const hapticFeedback = () => {
     if ('vibrate' in navigator) {
@@ -102,6 +104,24 @@ export const MobileLayout = ({
           </div>
           
           <div className="flex items-center gap-1.5">
+            {/* Console Toggle */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 touch-manipulation active:scale-95 transition-transform relative"
+              onClick={() => {
+                hapticFeedback();
+                setConsoleSheetOpen(true);
+              }}
+            >
+              <Terminal className="w-4 h-4" />
+              {hasNewOutput && (
+                <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px] bg-primary animate-pulse">
+                  !
+                </Badge>
+              )}
+            </Button>
+
             <label htmlFor="csv-upload-mobile" className="cursor-pointer">
               <Button 
                 variant="ghost" 
@@ -279,72 +299,64 @@ export const MobileLayout = ({
         </Button>
       )}
 
-      {/* Editor - Takes Full Height with Bottom Padding for Floating Buttons */}
+      {/* Editor - Takes Full Height with Bottom Padding for Floating Button */}
       <div 
         className={isFullScreen ? "h-screen" : "flex-1 min-h-0 overflow-hidden"}
         style={!isFullScreen ? { 
           paddingTop: 'env(safe-area-inset-top)', 
-          paddingBottom: 'max(120px, calc(120px + env(safe-area-inset-bottom)))' 
+          paddingBottom: 'max(80px, calc(80px + env(safe-area-inset-bottom)))' 
         } : undefined}
       >
         {editor}
       </div>
 
-      {/* Floating Run Button + Console Drawer */}
+      {/* Floating Action Button - Run Code */}
       {!isFullScreen && (
         <>
-          {/* Floating Action Button - iOS Safe Area */}
-          <div className="fixed right-4 z-40" style={{ bottom: 'max(5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
+          <div className="fixed right-4 z-40" style={{ bottom: 'max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom)))' }}>
             <Button
               onClick={() => {
                 hapticFeedback();
                 onRun();
               }}
               disabled={isRunning}
-              className="h-12 w-12 rounded-full shadow-lg bg-primary hover:bg-primary/90 touch-manipulation active:scale-95 transition-transform"
-              style={{ boxShadow: 'var(--glow-purple)' }}
+              className="h-14 w-14 rounded-full shadow-lg bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 touch-manipulation active:scale-95 transition-all"
+              style={{ boxShadow: '0 0 20px rgba(168, 85, 247, 0.5)' }}
             >
-              <Play className="w-6 h-6" fill="currentColor" />
+              <Play className="w-7 h-7" fill="currentColor" />
             </Button>
           </div>
 
-          {/* Bottom Console Drawer - iOS Safe Area */}
-          <Drawer open={consoleOpen} onOpenChange={onConsoleOpenChange}>
-            <DrawerTrigger asChild>
-              <div 
-                className="fixed bottom-0 left-0 right-0 z-30 bg-toolbar border-t transition-all"
-                style={{ paddingBottom: 'max(0px, env(safe-area-inset-bottom))' }}
-              >
-                <button className="w-full py-3 flex items-center justify-center gap-2 active:bg-muted/50 transition-colors touch-manipulation relative">
-                  <div className={`w-10 h-1 rounded-full transition-all ${
-                    hasNewOutput 
-                      ? 'bg-primary animate-pulse' 
-                      : 'bg-muted-foreground/40'
-                  }`} />
-                  {hasNewOutput && (
-                    <span className="absolute top-1 right-4 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded-full animate-pulse font-semibold">
-                      New Output
-                    </span>
-                  )}
-                </button>
-              </div>
-            </DrawerTrigger>
-            <DrawerContent 
-              className="max-h-[70vh]"
-              style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}
+          {/* Console Side Sheet - Slides from Right */}
+          <Sheet open={consoleSheetOpen} onOpenChange={setConsoleSheetOpen}>
+            <SheetContent 
+              side="right" 
+              className="w-[90vw] max-w-[400px] bg-background p-0 flex flex-col"
             >
-              <DrawerHeader className="border-b border-border">
-                <DrawerTitle>Console Output</DrawerTitle>
-                <DrawerDescription>View execution results</DrawerDescription>
-              </DrawerHeader>
-              <div className="h-[50vh] overflow-hidden">
+              <SheetHeader className="px-4 py-3 border-b border-border flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <SheetTitle className="flex items-center gap-2">
+                    <Terminal className="w-5 h-5" />
+                    Console
+                  </SheetTitle>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onClearConsole}
+                    className="h-8 px-2 text-xs"
+                  >
+                    Clear
+                  </Button>
+                </div>
+              </SheetHeader>
+              <div className="flex-1 overflow-hidden">
                 {consolePanel}
               </div>
-            </DrawerContent>
-          </Drawer>
+            </SheetContent>
+          </Sheet>
 
-          {/* Tools Drawer - Positioned higher to avoid blocking editor */}
-          <div className="fixed left-4 z-40" style={{ bottom: 'max(5rem, calc(5rem + env(safe-area-inset-bottom)))' }}>
+          {/* Tools Drawer - Bottom Left */}
+          <div className="fixed left-4 z-40" style={{ bottom: 'max(1.5rem, calc(1.5rem + env(safe-area-inset-bottom)))' }}>
             {dataOpsComponent}
           </div>
         </>

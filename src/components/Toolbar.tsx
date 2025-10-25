@@ -37,6 +37,7 @@ interface ToolbarProps {
   onOpenTools?: () => void;
   onAuthClick?: () => void;
   initializedRuntimes?: Set<string>;
+  loadingRuntimes?: Set<string>;
   isMobile?: boolean;
 }
 
@@ -67,6 +68,7 @@ export const Toolbar = ({
   onOpenTools,
   onAuthClick,
   initializedRuntimes = new Set(),
+  loadingRuntimes = new Set(),
   isMobile = false
 }: ToolbarProps) => {
   const navigate = useNavigate();
@@ -82,6 +84,7 @@ export const Toolbar = ({
             currentLanguage={scratchLanguage}
             onLanguageChange={onScratchLanguageChange}
             initializedRuntimes={initializedRuntimes}
+            loadingRuntimes={loadingRuntimes}
             isMobile={isMobile}
           />
         )}
