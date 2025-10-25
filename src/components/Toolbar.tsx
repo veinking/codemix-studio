@@ -1,5 +1,6 @@
 import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User, LogOut, Book, Sparkles, Cloud } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { DataOperations } from "@/components/DataOperations";
 import { MLOperations } from "@/components/MLOperations";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -94,77 +95,54 @@ export const Toolbar = ({
       <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide flex-shrink-0">
         {isMobile ? (
           <>
-            {/* Mobile: Show only essential buttons */}
+            {/* Mobile: Essential buttons only - no horizontal scroll needed */}
+            
+            {/* Docs - Quick Reference */}
             <Button
               variant="outline"
               size="icon"
               onClick={() => window.open(`/docs/${currentLanguage}`, '_blank')}
-              className="h-8 w-8 flex-shrink-0"
+              className="h-9 w-9 flex-shrink-0"
               title="Language Reference"
             >
               <Book className="w-4 h-4" />
             </Button>
 
+            {/* Share - High-value feature */}
             {onShare && (
               <Button
                 variant="outline"
                 size="icon"
                 onClick={onShare}
-                className="h-8 w-8 flex-shrink-0"
+                className="h-9 w-9 flex-shrink-0"
                 title="Share Code"
               >
                 <Share2 className="w-4 h-4" />
               </Button>
             )}
             
-            {onOpenTranslate && (
+            {/* Tools - Primary gateway to all features */}
+            {onOpenFeatures && (
               <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenTranslate}
-                className="h-8 w-8 flex-shrink-0"
-                title="Translate Code"
+                variant="default"
+                size="default"
+                onClick={onOpenFeatures}
+                className="h-9 px-3 flex-shrink-0 bg-gradient-to-r from-primary to-accent relative"
+                title="All Tools & Features"
               >
-                <Languages className="w-4 h-4" />
+                <Settings className="w-4 h-4 mr-1.5" />
+                <span className="text-sm font-semibold">Tools</span>
+                <Badge className="absolute -top-1 -right-1 h-4 px-1 text-[10px] bg-accent border-0">8+</Badge>
               </Button>
             )}
             
-            {/* PRIORITY: Notebook Mode - Show prominently when available */}
-            {onToggleNotebook && !currentFile && (
-              <Button
-                variant={isNotebookMode ? "default" : "outline"}
-                size="default"
-                onClick={onToggleNotebook}
-                className={cn(
-                  "h-8 px-2.5 flex-shrink-0 font-medium",
-                  !isNotebookMode && "border-primary/50 bg-primary/10 animate-pulse"
-                )}
-                title={isNotebookMode ? 'Exit Notebook' : 'Notebook Mode'}
-              >
-                <BookOpen className="w-4 h-4 mr-1" />
-                <span className="text-xs">{isNotebookMode ? 'Exit' : 'Notebook'}</span>
-              </Button>
-            )}
-
-            {onOpenFeatures && (
-              <Button
-                variant="outline"
-                size="default"
-                onClick={onOpenFeatures}
-                className="h-8 px-2.5 flex-shrink-0"
-                title="Tools"
-              >
-                <Settings className="w-4 h-4 mr-1" />
-                <span className="text-xs font-medium">Tools</span>
-              </Button>
-            )}
             {/* Account (mobile) */}
             {isGuest ? (
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={onAuthClick}
-                className="h-8 w-8 flex-shrink-0"
+                className="h-9 w-9 flex-shrink-0"
                 title="Sign In"
               >
                 <User className="w-4 h-4" />
@@ -175,7 +153,7 @@ export const Toolbar = ({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 flex-shrink-0"
+                    className="h-9 w-9 flex-shrink-0"
                   >
                     <Avatar className="h-6 w-6">
                       <AvatarFallback className="bg-primary/20 text-primary text-xs">
@@ -184,7 +162,7 @@ export const Toolbar = ({
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="z-[9999]">
                   <DropdownMenuItem onClick={() => navigate('/account')}>
                     <User className="w-4 h-4 mr-2" />
                     Account

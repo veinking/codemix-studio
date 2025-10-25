@@ -8,7 +8,7 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X, Sparkles as SparklesAlt, Cloud, BookOpen } from "lucide-react";
+import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X, Sparkles as SparklesAlt, Cloud, BookOpen, Wrench, Languages, BarChart3, Library, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -26,6 +26,12 @@ interface FeatureDrawerProps {
   workspaceManager?: ReactNode;
   onToggleNotebook?: () => void;
   isNotebookMode?: boolean;
+  onOpenTranslate?: () => void;
+  onOpenPlotBuilder?: () => void;
+  onOpenTemplates?: () => void;
+  onOpenRTemplates?: () => void;
+  onExportPortfolio?: () => void;
+  currentLanguage?: string;
 }
 
 export const FeatureDrawer = ({
@@ -42,6 +48,12 @@ export const FeatureDrawer = ({
   workspaceManager,
   onToggleNotebook,
   isNotebookMode,
+  onOpenTranslate,
+  onOpenPlotBuilder,
+  onOpenTemplates,
+  onOpenRTemplates,
+  onExportPortfolio,
+  currentLanguage = 'python',
 }: FeatureDrawerProps) => {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -62,8 +74,12 @@ export const FeatureDrawer = ({
           </div>
         </DrawerHeader>
 
-        <Tabs defaultValue="ai" className="flex-1 flex flex-col overflow-hidden">
+        <Tabs defaultValue="tools" className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="w-full justify-start border-b rounded-none bg-background px-4">
+            <TabsTrigger value="tools" className="flex items-center gap-2">
+              <Wrench className="h-4 w-4" />
+              <span className="hidden sm:inline">Tools</span>
+            </TabsTrigger>
             <TabsTrigger value="ai" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               <span className="hidden sm:inline">AI</span>
@@ -103,6 +119,153 @@ export const FeatureDrawer = ({
           </TabsList>
 
           <div className="flex-1 overflow-y-auto p-4">
+            <TabsContent value="tools" className="mt-0 space-y-3">
+              {/* Translate Code */}
+              {onOpenTranslate && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Languages className="w-5 h-5 text-blue-500" />
+                      <CardTitle className="text-base">Translate Code</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Convert code between Python, R, JavaScript, and more
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={() => {
+                        onOpenTranslate();
+                        onOpenChange(false);
+                      }}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Languages className="w-4 h-4 mr-2" />
+                      Open Translator
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Plot Builder */}
+              {onOpenPlotBuilder && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-purple-500" />
+                      <CardTitle className="text-base">Plot Builder</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Create charts and visualizations with guided wizard
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={() => {
+                        onOpenPlotBuilder();
+                        onOpenChange(false);
+                      }}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Open Plot Builder
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Templates */}
+              {onOpenTemplates && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <Library className="w-5 h-5 text-green-500" />
+                      <CardTitle className="text-base">Code Templates</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Quick-start code snippets for common tasks
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={() => {
+                        onOpenTemplates();
+                        onOpenChange(false);
+                      }}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <Library className="w-4 h-4 mr-2" />
+                      Browse Templates
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* R Templates (conditional) */}
+              {onOpenRTemplates && currentLanguage === 'r' && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5 text-blue-600" />
+                      <CardTitle className="text-base">R Templates</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Statistical analysis templates for R
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={() => {
+                        onOpenRTemplates();
+                        onOpenChange(false);
+                      }}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Browse R Templates
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Portfolio Export */}
+              {onExportPortfolio && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <FileDown className="w-5 h-5 text-orange-500" />
+                      <CardTitle className="text-base">Export Portfolio</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Generate PDF/HTML portfolio of your projects
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button
+                      onClick={() => {
+                        onExportPortfolio();
+                        onOpenChange(false);
+                      }}
+                      variant="outline"
+                      className="w-full"
+                      size="sm"
+                    >
+                      <FileDown className="w-4 h-4 mr-2" />
+                      Export Portfolio
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+            
             <TabsContent value="ai" className="mt-0 space-y-4">
               {/* Notebook Mode Feature Card */}
               {onToggleNotebook && (

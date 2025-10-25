@@ -1542,6 +1542,12 @@ Jack,30,Miami,86`,
           about={<AboutSection />}
           onToggleNotebook={!activeFile ? () => setIsNotebookMode(!isNotebookMode) : undefined}
           isNotebookMode={isNotebookMode}
+          onOpenTranslate={() => setTranslateDialogOpen(true)}
+          onOpenPlotBuilder={() => setPlotBuilderOpen(true)}
+          onOpenTemplates={() => setTemplateLibraryOpen(true)}
+          onOpenRTemplates={() => setRTemplateLibraryOpen(true)}
+          onExportPortfolio={() => setPortfolioExportOpen(true)}
+          currentLanguage={scratchLanguage}
           recipeGallery={
             <div className="space-y-4">
               <div>
