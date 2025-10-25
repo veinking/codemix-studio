@@ -292,7 +292,10 @@ export const NotebookMode: React.FC<NotebookModeProps> = ({
       </div>
 
       {/* Cells - Mobile Optimized Scrolling */}
-      <ScrollArea className={cn("flex-1", isMobile ? "px-2 py-2" : "px-4 py-4")}>
+      <ScrollArea 
+        className={cn("flex-1", isMobile ? "px-2 py-2" : "px-4 py-4")}
+        style={{ overscrollBehaviorX: 'contain' }}
+      >
         {cells.length === 0 ? (
           <div className={cn("text-center text-muted-foreground", isMobile ? "py-8" : "py-12")}>
             <p className={cn("mb-4", isMobile ? "text-sm" : "text-sm")}>No cells yet. Add your first cell below!</p>

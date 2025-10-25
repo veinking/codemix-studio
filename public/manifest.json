@@ -1,12 +1,13 @@
 {
-  "name": "bIDE - Python & R Browser IDE",
+  "name": "bIDE - Browser IDE",
   "short_name": "bIDE",
-  "description": "Run Python and R code directly in your browser. Works offline, no installation required.",
-  "start_url": "/?source=pwa",
+  "description": "Run Python, R, JavaScript, SQL and more directly in your browser. Works offline, no installation required.",
+  "start_url": "/ide",
   "display": "standalone",
-  "background_color": "#1e1e1e",
-  "theme_color": "#00bcd4",
+  "background_color": "#0f0f1a",
+  "theme_color": "#a855f7",
   "orientation": "any",
+  "scope": "/",
   "icons": [
     {
       "src": "/icon-512.png",
@@ -19,6 +20,29 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Python File",
+      "short_name": "Python",
+      "description": "Start coding in Python",
+      "url": "/ide?lang=python",
+      "icons": [{ "src": "/icon-512.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "New R File",
+      "short_name": "R",
+      "description": "Start coding in R",
+      "url": "/ide?lang=r",
+      "icons": [{ "src": "/icon-512.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Notebook Mode",
+      "short_name": "Notebook",
+      "description": "Open Jupyter-style notebook",
+      "url": "/ide?notebook=true",
+      "icons": [{ "src": "/icon-512.png", "sizes": "192x192" }]
     }
   ],
   "categories": ["development", "education", "productivity"]

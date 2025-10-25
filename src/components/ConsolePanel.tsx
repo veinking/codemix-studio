@@ -30,6 +30,7 @@ interface ConsolePanelProps {
 export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainEnglish, hasNewOutput, isCollapsed, onToggleCollapse }: ConsolePanelProps) => {
   const [showRawError, setShowRawError] = React.useState<number | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
   // Auto-scroll to bottom on new output
   React.useEffect(() => {
@@ -37,6 +38,9 @@ export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainE
       scrollRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
   }, [output.length]);
+
+  // Limit displayed messages on mobile to prevent performance issues
+  const displayedOutput = isMobile && output.length > 200 ? output.slice(-200) : output;
 
   const getOutputStyle = (message: ConsoleMessage) => {
     if (message.isError) {
@@ -107,8 +111,14 @@ export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainE
         {output.length === 0 ? (
           <p className="text-sm text-muted-foreground">No output yet. Run your code to see results.</p>
         ) : (
-          <div className="space-y-2">
-            {output.map((message, index) => {
+          <>
+            {isMobile && output.length > 200 && (
+              <div className="mb-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                Showing last 200 messages (total: {output.length})
+              </div>
+            )}
+            <div className="space-y-2">
+              {displayedOutput.map((message, index) => {
               const outputStyle = getOutputStyle(message);
               const isExplainedError = message.isError && message.explanation && plainEnglishMode;
               const showingRaw = showRawError === index;
@@ -203,6 +213,7 @@ export const ConsolePanel = ({ output, onClear, plainEnglishMode, onTogglePlainE
             })}
             <div ref={scrollRef} />
           </div>
+          </>
         )}
       </ScrollArea>
     </div>

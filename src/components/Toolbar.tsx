@@ -129,15 +129,20 @@ export const Toolbar = ({
               </Button>
             )}
             
+            {/* PRIORITY: Notebook Mode - Show prominently when available */}
             {onToggleNotebook && !currentFile && (
               <Button
-                variant={isNotebookMode ? "default" : "ghost"}
-                size="icon"
+                variant={isNotebookMode ? "default" : "outline"}
+                size="default"
                 onClick={onToggleNotebook}
-                className="h-8 w-8 flex-shrink-0"
+                className={cn(
+                  "h-8 px-2.5 flex-shrink-0 font-medium",
+                  !isNotebookMode && "border-primary/50 bg-primary/10 animate-pulse"
+                )}
                 title={isNotebookMode ? 'Exit Notebook' : 'Notebook Mode'}
               >
-                <BookOpen className="w-4 h-4" />
+                <BookOpen className="w-4 h-4 mr-1" />
+                <span className="text-xs">{isNotebookMode ? 'Exit' : 'Notebook'}</span>
               </Button>
             )}
 

@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import IDE from "./pages/IDE";
 import SharedCode from "./pages/SharedCode";
@@ -47,11 +48,12 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider delayDuration={0}>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
+        <ErrorBoundary>
+          <TooltipProvider delayDuration={0}>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/ide" element={<IDE />} />
               <Route path="/features" element={<Features />} />
@@ -96,11 +98,11 @@ const App = () => {
               <Route path="/docs/kotlin" element={<KotlinDocs />} />
               <Route path="/docs/csharp" element={<CSharpDocs />} />
               
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
+        </ErrorBoundary>
       </AuthProvider>
     </QueryClientProvider>
   );

@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Sparkles, Cloud, GraduationCap } from "lucide-react";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
 import { getCompatibilityMessage } from "@/utils/libraryCompatibility";
@@ -145,6 +146,7 @@ const IDE = () => {
   const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
   const { isMobile, deviceType } = useDeviceType();
   const { trackActivity } = useActivityTracking();
+  const isOnline = useOnlineStatus();
 
   // SEO
   useEffect(() => {
@@ -248,6 +250,22 @@ const IDE = () => {
     if (isFirstVisit) {
       setShowWelcome(true);
       localStorage.setItem('bide_visited', 'true');
+      
+      // Show notebook hint on mobile after 3 seconds (first-time users)
+      if (isMobile && !activeFile) {
+        setTimeout(() => {
+          if (!localStorage.getItem('notebook_hint_shown')) {
+            toast.info('💡 Try Notebook Mode for Jupyter-style cells!', {
+              duration: 5000,
+              action: {
+                label: 'Open',
+                onClick: () => setIsNotebookMode(true)
+              }
+            });
+            localStorage.setItem('notebook_hint_shown', 'true');
+          }
+        }, 3000);
+      }
       
       // Create demo files
       const demoFiles: FileItem[] = [
@@ -1522,6 +1540,8 @@ Jack,30,Miami,86`,
           mlOperations={mlOpsComponent}
           labTrainer={labTrainerComponent}
           about={<AboutSection />}
+          onToggleNotebook={!activeFile ? () => setIsNotebookMode(!isNotebookMode) : undefined}
+          isNotebookMode={isNotebookMode}
           recipeGallery={
             <div className="space-y-4">
               <div>

@@ -8,8 +8,9 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X, Sparkles as SparklesAlt, Cloud } from "lucide-react";
+import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X, Sparkles as SparklesAlt, Cloud, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface FeatureDrawerProps {
   open: boolean;
@@ -23,6 +24,8 @@ interface FeatureDrawerProps {
   about: ReactNode;
   recipeGallery?: ReactNode;
   workspaceManager?: ReactNode;
+  onToggleNotebook?: () => void;
+  isNotebookMode?: boolean;
 }
 
 export const FeatureDrawer = ({
@@ -37,6 +40,8 @@ export const FeatureDrawer = ({
   about,
   recipeGallery,
   workspaceManager,
+  onToggleNotebook,
+  isNotebookMode,
 }: FeatureDrawerProps) => {
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -98,7 +103,41 @@ export const FeatureDrawer = ({
           </TabsList>
 
           <div className="flex-1 overflow-y-auto p-4">
-            <TabsContent value="ai" className="mt-0">
+            <TabsContent value="ai" className="mt-0 space-y-4">
+              {/* Notebook Mode Feature Card */}
+              {onToggleNotebook && (
+                <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-5 h-5 text-primary" />
+                      <CardTitle className="text-base">Notebook Mode</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs">
+                      Jupyter-style interactive coding with cells
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      {isNotebookMode 
+                        ? "You're currently in Notebook Mode. Mix code and documentation in cells."
+                        : "Switch to Notebook Mode for a Jupyter-like experience with executable code cells and markdown documentation."}
+                    </p>
+                    <Button
+                      onClick={() => {
+                        onToggleNotebook();
+                        onOpenChange(false);
+                      }}
+                      variant={isNotebookMode ? "outline" : "default"}
+                      className="w-full"
+                      size="sm"
+                    >
+                      <BookOpen className="w-4 h-4 mr-2" />
+                      {isNotebookMode ? 'Exit Notebook Mode' : 'Enable Notebook Mode'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+              
               {aiAssistant}
             </TabsContent>
             <TabsContent value="packages" className="mt-0">

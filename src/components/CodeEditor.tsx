@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import Editor from "@monaco-editor/react";
 
 interface CodeEditorProps {
@@ -321,6 +322,32 @@ const registerCompletionProviders = (monaco: any) => {
 };
 
 export const CodeEditor = ({ value, language, onChange, isMobile = false, onEditorReady }: CodeEditorProps) => {
+  const [localValue, setLocalValue] = useState(value);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Update local value when prop changes
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  // Debounced onChange for mobile
+  const handleChange = (newValue: string | undefined) => {
+    setLocalValue(newValue || '');
+    
+    if (isMobile) {
+      // Debounce on mobile (250ms)
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = setTimeout(() => {
+        onChange(newValue);
+      }, 250);
+    } else {
+      // Immediate on desktop
+      onChange(newValue);
+    }
+  };
+
   const handleEditorMount = (editor: any, monaco: any) => {
     registerCompletionProviders(monaco);
     
@@ -420,8 +447,8 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false, onEdit
       height="100%"
       defaultLanguage={language}
       language={language}
-      value={value}
-      onChange={onChange}
+      value={localValue}
+      onChange={handleChange}
       onMount={handleEditorMount}
       theme="vs-dark"
       options={{
@@ -434,8 +461,8 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false, onEdit
         automaticLayout: true,
         tabSize: 4,
         wordWrap: 'on',
-        quickSuggestions: true,
-        suggestOnTriggerCharacters: true,
+        quickSuggestions: !isMobile,
+        suggestOnTriggerCharacters: !isMobile,
         acceptSuggestionOnEnter: 'on',
         tabCompletion: 'on',
         wordBasedSuggestions: 'matchingDocuments',
@@ -448,6 +475,12 @@ export const CodeEditor = ({ value, language, onChange, isMobile = false, onEdit
         occurrencesHighlight: 'multiFile',
         multiCursorModifier: 'ctrlCmd',
         wordSeparators: '`~!@#$%^&*()-=+[{]}\\|;:\'",.<>/?',
+        scrollbar: isMobile ? {
+          vertical: 'hidden' as const,
+          horizontal: 'hidden' as const
+        } : undefined,
+        smoothScrolling: !isMobile,
+        cursorBlinking: isMobile ? 'solid' as const : 'blink' as const,
         // Clipboard enhancements
         copyWithSyntaxHighlighting: true,
         emptySelectionClipboard: true,
