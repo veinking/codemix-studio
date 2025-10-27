@@ -61,7 +61,7 @@ export const UpgradeDialog = ({ open, onOpenChange }: UpgradeDialogProps) => {
           </ul>
           <div className="text-center border-t pt-4">
             <div>
-              <span className="text-3xl font-bold">$7.99</span>
+              <span className="text-3xl font-bold">$9.99</span>
               <span className="text-muted-foreground">/month</span>
             </div>
             <p className="text-xs text-muted-foreground mt-2">
