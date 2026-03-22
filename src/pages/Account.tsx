@@ -68,18 +68,6 @@ const Account = () => {
     };
   }, []);
   
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  if (!user && !isLoading) {
-    return <Navigate to="/auth" replace />;
-  }
-  
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
@@ -154,6 +142,18 @@ const Account = () => {
 
     return () => clearInterval(pollInterval);
   }, [user, profile?.subscription_tier]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (!user) {
+    return <Navigate to="/auth" replace />;
+  }
   
   const handleCancelSubscription = async () => {
     if (!confirm('Are you sure you want to cancel your Pro plan? You\'ll keep access until the end of this billing period.')) {
