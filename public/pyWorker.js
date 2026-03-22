@@ -20,10 +20,8 @@ async function tryLoadPyodide(url) {
     });
 
     importScripts(`${url}pyodide.js`);
-    // eslint-disable-next-line no-undef
     const loadPyodide = self.loadPyodide;
 
-    // eslint-disable-next-line no-undef
     const pyodideInstance = await loadPyodide({
       indexURL: url,
       stdout: (t) => self.postMessage({ type: "stdout", text: t }),
@@ -226,7 +224,6 @@ self.onmessage = async (e) => {
     try {
       await initPyodideSafe();
       await ensurePackage("micropip");
-      // eslint-disable-next-line no-undef
       await pyodide.runPythonAsync(`\nimport micropip\nawait micropip.install("${msg.name}")\n`);
       self.postMessage({
         type: "installed",
