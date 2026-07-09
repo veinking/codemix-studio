@@ -19,12 +19,12 @@ export default function PythonDocs() {
         <title>Python Documentation - bIDE | Complete Syntax Guide & Examples</title>
         <meta name="description" content="Comprehensive Python reference for bIDE. Variables, functions, data structures, file I/O, and more. Run examples instantly with 'Open in IDE' button. Perfect for students and developers." />
         <meta name="keywords" content="python documentation, python syntax, python tutorial, python examples, learn python, python reference guide, python data structures" />
-        <link rel="canonical" href="https://codemixapp.com/docs/python" />
+        <link rel="canonical" href="https://bideide.com/docs/python" />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'Python', url: 'https://codemixapp.com/docs/python' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'Python', url: 'https://bideide.com/docs/python' }
       ]} />
       <SoftwareApplicationSchema 
         language="python"

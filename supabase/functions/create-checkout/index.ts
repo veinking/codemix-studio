@@ -29,7 +29,17 @@ serve(async (req) => {
 
     console.log('[CREATE-CHECKOUT] Creating checkout for user:', user.id, user.email);
 
-    const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
+    const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY');
+    const priceId = Deno.env.get('STRIPE_PRO_PRICE_ID');
+
+    if (!stripeSecretKey || !priceId) {
+      return new Response(
+        JSON.stringify({ error: 'Stripe is not configured. Set STRIPE_SECRET_KEY and STRIPE_PRO_PRICE_ID.' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 503 }
+      );
+    }
+
+    const stripe = new Stripe(stripeSecretKey, {
       apiVersion: '2025-08-27.basil',
     });
 
@@ -48,9 +58,7 @@ serve(async (req) => {
         .eq('id', user.id);
     }
 
-    // OpenIDE Pro subscription - $9.99/month
-    const priceId = 'price_1SK9P0RsjT8BPnD7HlOmT2be';
-
+    // bIDE Pro subscription price is buyer-configurable via STRIPE_PRO_PRICE_ID.
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

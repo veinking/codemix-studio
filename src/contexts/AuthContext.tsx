@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
 import { getGuestFingerprint } from '@/utils/guestFingerprint';
 
 interface Profile {
@@ -52,6 +52,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   // Check AI usage limits
   const checkAIUsage = async () => {
+    if (!isSupabaseConfigured) {
+      setAiUsage({
+        allowed: false,
+        tier: isGuest ? 'guest' : 'free',
+        remaining: 0,
+        limit: isGuest ? 3 : 6,
+        used_today: 0,
+        message: 'AI features require Supabase and AI provider configuration.'
+      });
+      return;
+    }
+
     try {
       const { data, error } = await supabase.rpc('check_ai_usage_limit', {
         p_user_id: user?.id || null,
@@ -79,6 +91,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   // Record AI usage
   const recordAIUsage = async (feature: string, action?: string) => {
+    if (!isSupabaseConfigured) return;
+
     try {
       // Note: Parameter order changed to match SQL function signature
       await supabase.rpc('record_ai_usage', {
@@ -95,6 +109,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   // Fetch user profile
   const fetchProfile = async (userId: string) => {
+    if (!isSupabaseConfigured) return;
+
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -151,6 +167,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   
   // Initialize auth state
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setIsLoading(false);
+      return;
+    }
+
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {

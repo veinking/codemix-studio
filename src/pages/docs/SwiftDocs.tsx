@@ -16,9 +16,9 @@ export default function SwiftDocs() {
         <title>Swift Reference - bIDE Documentation</title>
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'Swift', url: 'https://codemixapp.com/docs/swift' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'Swift', url: 'https://bideide.com/docs/swift' }
       ]} />
       <SoftwareApplicationSchema 
         language="swift"

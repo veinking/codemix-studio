@@ -16,9 +16,9 @@ export default function CSharpDocs() {
         <title>C# Reference - bIDE Documentation</title>
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'C#', url: 'https://codemixapp.com/docs/csharp' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'C#', url: 'https://bideide.com/docs/csharp' }
       ]} />
       <SoftwareApplicationSchema 
         language="csharp"

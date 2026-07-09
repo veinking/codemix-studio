@@ -14,16 +14,16 @@ const DataScienceStudents = () => {
       title: 'Free Python IDE for Data Science Students | bIDE',
       description: 'Perfect Python IDE for data science students. Run pandas, numpy, matplotlib in your browser. Free Jupyter notebook alternative with AI assistance. Works on any device - no installation required.',
       keywords: 'python ide for students, data science ide, free jupyter alternative, pandas online, numpy browser, learn data science, student coding tools',
-      canonical: 'https://codemixapp.com/use-cases/data-science-students'
+      canonical: 'https://bideide.com/use-cases/data-science-students'
     });
   }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
       <BreadcrumbSchema items={[
-        { name: "Home", url: "https://codemixapp.com/" },
-        { name: "Use Cases", url: "https://codemixapp.com/use-cases/data-science-students" },
-        { name: "Data Science Students", url: "https://codemixapp.com/use-cases/data-science-students" }
+        { name: "Home", url: "https://bideide.com/" },
+        { name: "Use Cases", url: "https://bideide.com/use-cases/data-science-students" },
+        { name: "Data Science Students", url: "https://bideide.com/use-cases/data-science-students" }
       ]} />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

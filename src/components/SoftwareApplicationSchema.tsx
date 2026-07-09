@@ -20,7 +20,7 @@ export const SoftwareApplicationSchema = ({ language, languageName, description 
     "programmingLanguage": {
       "@type": "ComputerLanguage",
       "name": languageName,
-      "url": `https://codemixapp.com/docs/${language}`
+      "url": `https://bideide.com/docs/${language}`
     },
     "featureList": [
       "Online code editor",
@@ -31,7 +31,7 @@ export const SoftwareApplicationSchema = ({ language, languageName, description 
       "Offline support",
       "No installation required"
     ],
-    "screenshot": "https://codemixapp.com/bide-og-preview.png?v=2",
+    "screenshot": "https://bideide.com/bide-og-preview.png?v=2",
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": "4.8",

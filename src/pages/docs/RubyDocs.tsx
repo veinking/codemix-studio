@@ -18,9 +18,9 @@ export default function RubyDocs() {
         <meta name="description" content="Complete Ruby reference manual for elegant web development." />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'Ruby', url: 'https://codemixapp.com/docs/ruby' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'Ruby', url: 'https://bideide.com/docs/ruby' }
       ]} />
       <SoftwareApplicationSchema 
         language="ruby"

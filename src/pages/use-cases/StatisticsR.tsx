@@ -14,16 +14,16 @@ const StatisticsR = () => {
       title: 'Free Online R IDE for Statistics Students | Run R in Browser',
       description: 'Free R programming IDE for statistics courses. Run tidyverse, ggplot2, dplyr in your browser. Perfect for stats students - no RStudio installation needed. Works on mobile & desktop.',
       keywords: 'r programming online, r ide for students, rstudio alternative, free r editor, tidyverse online, ggplot2 browser, learn r statistics',
-      canonical: 'https://codemixapp.com/use-cases/statistics-r-programming'
+      canonical: 'https://bideide.com/use-cases/statistics-r-programming'
     });
   }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10">
       <BreadcrumbSchema items={[
-        { name: "Home", url: "https://codemixapp.com/" },
-        { name: "Use Cases", url: "https://codemixapp.com/use-cases/statistics-r-programming" },
-        { name: "Statistics & R Programming", url: "https://codemixapp.com/use-cases/statistics-r-programming" }
+        { name: "Home", url: "https://bideide.com/" },
+        { name: "Use Cases", url: "https://bideide.com/use-cases/statistics-r-programming" },
+        { name: "Statistics & R Programming", url: "https://bideide.com/use-cases/statistics-r-programming" }
       ]} />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

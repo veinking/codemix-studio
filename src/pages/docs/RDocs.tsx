@@ -18,12 +18,12 @@ export default function RDocs() {
         <title>R Documentation - bIDE | Statistical Programming Reference</title>
         <meta name="description" content="Complete R language reference for bIDE. Data analysis, visualization with ggplot2, statistical functions, and data manipulation. Run R code examples instantly in your browser." />
         <meta name="keywords" content="r documentation, r programming, r syntax, r tutorial, r examples, ggplot2, data analysis in r, statistical programming" />
-        <link rel="canonical" href="https://codemixapp.com/docs/r" />
+        <link rel="canonical" href="https://bideide.com/docs/r" />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'R', url: 'https://codemixapp.com/docs/r' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'R', url: 'https://bideide.com/docs/r' }
       ]} />
       <SoftwareApplicationSchema 
         language="r"

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { getGuestFingerprint } from '@/utils/guestFingerprint';
 
@@ -15,6 +15,13 @@ export const useAIFunction = (options?: UseAIFunctionOptions) => {
     functionName: string,
     body: any
   ): Promise<{ data: T | null; error: any; upgradeRequired?: boolean }> => {
+    if (!isSupabaseConfigured) {
+      return {
+        data: null,
+        error: { message: 'AI functions require buyer-configured Supabase Edge Functions and AI API credentials.' }
+      };
+    }
+
     // Check limits before calling
     if (aiUsage && !aiUsage.allowed) {
       options?.onUpgradeRequired?.();

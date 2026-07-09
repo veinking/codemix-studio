@@ -14,16 +14,16 @@ const MobileCoding = () => {
       title: 'Code Python on iPhone & Android | Mobile Python IDE',
       description: 'Full-featured Python and R IDE for mobile. Code on iPhone, iPad, or Android. Works offline, syncs across devices. Free mobile coding app - no installation required.',
       keywords: 'python on iphone, code on android, mobile python ide, iphone coding app, android code editor, mobile programming, pythonista alternative',
-      canonical: 'https://codemixapp.com/use-cases/mobile-coding'
+      canonical: 'https://bideide.com/use-cases/mobile-coding'
     });
   }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-accent/10">
       <BreadcrumbSchema items={[
-        { name: "Home", url: "https://codemixapp.com/" },
-        { name: "Use Cases", url: "https://codemixapp.com/use-cases/mobile-coding" },
-        { name: "Mobile Coding", url: "https://codemixapp.com/use-cases/mobile-coding" }
+        { name: "Home", url: "https://bideide.com/" },
+        { name: "Use Cases", url: "https://bideide.com/use-cases/mobile-coding" },
+        { name: "Mobile Coding", url: "https://bideide.com/use-cases/mobile-coding" }
       ]} />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -135,7 +135,7 @@ const MobileCoding = () => {
               <div>
                 <h3 className="font-semibold mb-1">1. Open in Browser</h3>
                 <p className="text-sm text-muted-foreground">
-                  Visit codemixapp.com on Safari (iOS) or Chrome (Android)
+                  Visit bideide.com on Safari (iOS) or Chrome (Android)
                 </p>
               </div>
               <div>

@@ -18,9 +18,9 @@ export default function TypeScriptDocs() {
         <meta name="description" content="Complete TypeScript reference manual for type-safe JavaScript development." />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'TypeScript', url: 'https://codemixapp.com/docs/typescript' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'TypeScript', url: 'https://bideide.com/docs/typescript' }
       ]} />
       <SoftwareApplicationSchema 
         language="typescript"

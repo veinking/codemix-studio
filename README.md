@@ -1,196 +1,80 @@
-# 🌐 bIDE — Browser-Based Python & R Environment
+# bIDE by CodeMix — Buyer-Ready Browser IDE Starter SaaS
 
-**bIDE** is an open-source, browser-based IDE inspired by RStudio — built for Python and R.
-It runs code *entirely in your browser*, powered by WebAssembly (Pyodide & webR), with an optional lightweight backend for cloud sync and collaboration.
+**bIDE** is the primary product brand and **bideide.com** is the primary domain. **CodeMix** is the package/studio name; use **“bIDE by CodeMix”** when referencing both. **codemixapp.com** is included as a secondary/redirect domain candidate.
 
-> "Run data science anywhere — instantly, securely, and open source."
+bIDE is a React + Vite browser IDE starter package for running and learning code in the browser. It includes a Monaco editor, multi-language runtime adapters, data-science utilities, docs/SEO pages, optional Supabase auth/cloud features, optional Supabase Edge Function AI tools, and optional Stripe subscription scaffolding.
 
----
+## Current status
 
-## 🚀 Features ##
+This repository is prepared as a buyer-configurable starter SaaS. The frontend installs, builds, previews, and runs without real backend secrets. Supabase, AI, and Stripe features are disabled/fail gracefully until the buyer supplies their own credentials and deploys the included backend.
 
-- 🧠 **Python & R runtimes in the browser** (via Pyodide + webR)
-- 🪶 **Lightweight server** — minimal backend for saving files & auth
-- 📄 **Integrated code editor** (Monaco Editor)
-- 🧩 **Plots & visualization support** (Matplotlib, ggplot2, Plotly)
-- 🧱 **Offline mode** with local storage (IndexedDB + File System Access API)
-- 🔐 **Secure sandboxed execution** (Web Workers)
-- 🌍 **Optional cloud sync & collaboration**
+## Tech stack
 
----
+- React 18, TypeScript, Vite
+- Tailwind CSS + shadcn/ui-style Radix components
+- Monaco Editor
+- Browser runtimes/adapters for JavaScript, Python/Pyodide, R, SQL/sql.js, PHP, Ruby, Lua, and editor-only languages
+- Supabase client, migrations, and Edge Functions for optional auth/cloud/share/AI/payment flows
+- Stripe Edge Function scaffolding for subscriptions
+- PWA support via vite-plugin-pwa
 
-## 🧩 Tech Stack
-
-| Layer | Technology |
-|-------|-------------|
-| Frontend | React / Svelte / SolidJS |
-| Editor | Monaco Editor (VS Code engine) |
-| Python Runtime | [Pyodide](https://pyodide.org) |
-| R Runtime | [webR](https://docs.r-wasm.org/webr/latest/) |
-| Storage | IndexedDB + File System Access API |
-| Backend (optional) | FastAPI / Supabase Functions |
-| Auth | Supabase Auth / OAuth 2.0 |
-| Hosting | Vercel / Netlify / Cloudflare Pages |
-
----
-
-## 🧱 Architecture Overview
-
-```
-Frontend (Browser)
-├── Monaco Editor
-├── Pyodide (Python Runtime)
-├── webR (R Runtime)
-├── Plot Renderer
-├── File Manager (IndexedDB / FS Access)
-└── API Client → (Optional) Backend
-
-Backend (optional)
-├── Auth (JWT / OAuth)
-├── File Storage (Supabase / Firebase)
-└── Remote Compute (Future)
-```
-
-🧠 **Client-heavy design:**  
-Most execution happens in the browser — no need for a heavy backend server.  
-The backend only handles saving, sharing, and optional collaboration.
-
----
-
-## ⚙️ Getting Started
-
-### Prerequisites
-- Node.js ≥ 18
-- Python ≥ 3.10 (if using FastAPI backend)
-- npm or yarn
-
-### 1. Clone the Repo
-```bash
-git clone https://github.com/yourusername/bide.git
-cd bide
-```
-
-### 2. Run the Frontend
+## Fresh clone setup
 
 ```bash
-cd client
 npm install
+cp .env.example .env
 npm run dev
 ```
 
-This launches the local dev server (Vite / Webpack) — the IDE will open in your browser.
+Open the dev server printed by Vite. This project is configured for `http://localhost:8080` by default.
 
-### 3. (Optional) Run the Backend
+## Common commands
 
 ```bash
-cd server
-pip install -r requirements.txt
-uvicorn main:app --reload
+npm install          # install pinned dependencies from package-lock.json
+npm run dev          # local Vite dev server
+npm run lint         # ESLint checks
+npm run build        # production build
+npm run preview      # preview the production build locally
 ```
 
-### 4. Try It Out
+## Environment variables
 
-* Open your browser to `http://localhost:5173`
-* Type some Python or R code in the editor
-* Hit **Run** — the output appears in the console below!
+Copy `.env.example` to `.env`. The app works in local/offline mode without these values, but buyer-owned values are required for hosted auth, cloud workspaces, sharing, AI Edge Functions, and paid plans.
 
----
+Frontend variables:
 
-## 📂 Project Structure
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_PUBLIC_SITE_URL`
 
-```
-/client
-  /src
-    /components
-    /runtimes
-      /python
-      /r
-    /hooks
-    /state
-  package.json
+Server/Edge Function secrets, configured in Supabase rather than exposed in frontend bundles:
 
-/server
-  /api
-  /models
-  main.py
-  requirements.txt
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `OPENAI_API_KEY` or buyer-selected AI gateway credentials
+- `LOVABLE_API_KEY` if continuing to use the current AI gateway implementation
+- `STRIPE_SECRET_KEY`
+- `STRIPE_WEBHOOK_SECRET`
+- `STRIPE_PRO_PRICE_ID`
 
-/docs
-  setup.md
-  contributing.md
-  architecture.md
+Never commit `.env` or real credentials.
 
-/examples
-  /python
-  /r
+## Deployment steps
 
-LICENSE
-README.md
-```
+1. Create buyer-owned Supabase and Stripe accounts.
+2. Apply Supabase migrations from `supabase/migrations`.
+3. Configure Supabase Edge Function secrets from `.env.example`.
+4. Deploy Edge Functions from `supabase/functions`.
+5. Configure Stripe products, prices, and webhooks.
+6. Deploy the Vite app to Vercel, Netlify, Cloudflare Pages, or similar.
+7. Point `bideide.com` at the frontend host and redirect `codemixapp.com` if desired.
 
----
+## Known limitations
 
-## 🧰 Roadmap
-
-| Stage              | Description                               | Status        |
-| ------------------ | ----------------------------------------- | ------------- |
-| **MVP**            | Run Python & R locally with Monaco editor | ✅ In progress |
-| **Offline Mode**   | IndexedDB + FS API for persistence        | 🧩 Planned    |
-| **Cloud Sync**     | Supabase or Firebase backend              | 🧩 Planned    |
-| **Collaboration**  | Real-time shared sessions                 | 🧠 Future     |
-| **Plugin API**     | Extend with Julia / SQL / AI tools        | 💡 Future     |
-| **Remote Compute** | Dockerized jobs for large workloads       | 💡 Future     |
-
----
-
-## 🧑‍💻 Contributing
-
-We'd love your help!
-
-1. Fork the repo & clone it locally
-2. Create a feature branch (`git checkout -b feature/awesome-thing`)
-3. Commit your changes (`git commit -m 'Add awesome thing'`)
-4. Push to your fork (`git push origin feature/awesome-thing`)
-5. Open a Pull Request 🚀
-
-Please read [`CONTRIBUTING.md`](./docs/contributing.md) before submitting.
-
----
-
-## 🔒 Security
-
-All code runs client-side in a sandboxed environment (Web Workers / iframes).
-The backend **never executes** user code — it only stores metadata and user files.
-
----
-
-## 🧑‍🎓 License
-
-Licensed under the [MIT License](./LICENSE).
-Feel free to fork, remix, and use in your own projects.
-
----
-
-## ❤️ Acknowledgements
-
-* [Pyodide](https://pyodide.org)
-* [webR](https://docs.r-wasm.org/webr/latest/)
-* [Monaco Editor](https://microsoft.github.io/monaco-editor/)
-* [Supabase](https://supabase.com)
-* [FastAPI](https://fastapi.tiangolo.com)
-* The open-source community 🙌
-
----
-
-## 🌟 Vision
-
-> Build a truly portable, browser-native IDE for data science —
-> No installs. No setup. Just open a tab and code.
-
----
-
-## 🔗 Lovable Project
-
-**URL**: https://lovable.dev/projects/495ca4b6-d8e1-4e4c-965e-594d39780d56
-
-This project was built with [Lovable](https://lovable.dev) - the AI-powered app builder.
+- Backend features are buyer-configurable, not live by default.
+- AI functions require server-side credentials and may need provider migration if the buyer does not use the included AI gateway pattern.
+- Stripe checkout is disabled until `STRIPE_SECRET_KEY` and `STRIPE_PRO_PRICE_ID` are set.
+- Some language runtimes rely on browser/WebAssembly support and CDN/runtime loading behavior.
+- Build emits large chunk warnings; this is acceptable for handoff but code-splitting is a recommended post-sale improvement.
