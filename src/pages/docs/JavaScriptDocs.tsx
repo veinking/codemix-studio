@@ -18,12 +18,12 @@ export default function JavaScriptDocs() {
         <title>JavaScript Documentation - bIDE | Modern JS Reference & Examples</title>
         <meta name="description" content="JavaScript reference guide for bIDE. ES6+ features, DOM manipulation, async/await, arrays, objects, and more. Interactive examples you can run instantly." />
         <meta name="keywords" content="javascript documentation, javascript syntax, javascript tutorial, es6 javascript, modern javascript, javascript examples, learn javascript" />
-        <link rel="canonical" href="https://codemixapp.com/docs/javascript" />
+        <link rel="canonical" href="https://bideide.com/docs/javascript" />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'JavaScript', url: 'https://codemixapp.com/docs/javascript' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'JavaScript', url: 'https://bideide.com/docs/javascript' }
       ]} />
       <SoftwareApplicationSchema 
         language="javascript"

@@ -18,9 +18,9 @@ export default function LuaDocs() {
         <meta name="description" content="Complete Lua reference manual for game scripting and embedded systems." />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'Lua', url: 'https://codemixapp.com/docs/lua' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'Lua', url: 'https://bideide.com/docs/lua' }
       ]} />
       <SoftwareApplicationSchema 
         language="lua"

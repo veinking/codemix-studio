@@ -18,12 +18,12 @@ export default function SQLDocs() {
         <title>SQL Documentation - bIDE | Database Query Reference</title>
         <meta name="description" content="Complete SQL reference for bIDE. SELECT, JOIN, aggregations, subqueries, and database operations. Practice SQL queries in your browser with instant execution." />
         <meta name="keywords" content="sql documentation, sql syntax, sql tutorial, sql queries, learn sql, database queries, sql examples" />
-        <link rel="canonical" href="https://codemixapp.com/docs/sql" />
+        <link rel="canonical" href="https://bideide.com/docs/sql" />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'SQL', url: 'https://codemixapp.com/docs/sql' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'SQL', url: 'https://bideide.com/docs/sql' }
       ]} />
       <SoftwareApplicationSchema 
         language="sql"

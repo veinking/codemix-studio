@@ -18,9 +18,9 @@ export default function JavaDocs() {
         <meta name="description" content="Complete Java reference manual for enterprise and Android development." />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'Java', url: 'https://codemixapp.com/docs/java' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'Java', url: 'https://bideide.com/docs/java' }
       ]} />
       <SoftwareApplicationSchema 
         language="java"

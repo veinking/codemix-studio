@@ -15,7 +15,7 @@ const BlogIndex = () => {
       title: 'bIDE Blog | Python & R Tutorials, Data Science Tips',
       description: 'Learn Python, R, and data science with bIDE tutorials. Free coding guides, tips, and best practices for students. Updated weekly.',
       keywords: 'python tutorials, r programming tutorials, data science blog, coding tips for students, learn programming',
-      canonical: 'https://codemixapp.com/blog'
+      canonical: 'https://bideide.com/blog'
     });
   }, []);
 
@@ -49,8 +49,8 @@ const BlogIndex = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
       <BreadcrumbSchema items={[
-        { name: "Home", url: "https://codemixapp.com/" },
-        { name: "Blog", url: "https://codemixapp.com/blog" }
+        { name: "Home", url: "https://bideide.com/" },
+        { name: "Blog", url: "https://bideide.com/blog" }
       ]} />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">

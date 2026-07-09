@@ -16,9 +16,9 @@ export default function GoDocs() {
         <title>Go Reference - bIDE Documentation</title>
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'Go', url: 'https://codemixapp.com/docs/go' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'Go', url: 'https://bideide.com/docs/go' }
       ]} />
       <SoftwareApplicationSchema 
         language="go"

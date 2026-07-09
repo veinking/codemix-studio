@@ -19,9 +19,9 @@ export default function PHPDocs() {
         <meta name="description" content="Complete PHP reference manual for server-side web development." />
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'PHP', url: 'https://codemixapp.com/docs/php' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'PHP', url: 'https://bideide.com/docs/php' }
       ]} />
       <SoftwareApplicationSchema 
         language="php"

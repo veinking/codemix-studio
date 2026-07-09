@@ -16,9 +16,9 @@ export default function KotlinDocs() {
         <title>Kotlin Reference - bIDE Documentation</title>
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'Kotlin', url: 'https://codemixapp.com/docs/kotlin' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'Kotlin', url: 'https://bideide.com/docs/kotlin' }
       ]} />
       <SoftwareApplicationSchema 
         language="kotlin"

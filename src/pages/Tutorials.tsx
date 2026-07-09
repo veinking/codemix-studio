@@ -138,8 +138,8 @@ const Tutorials = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/10">
       {/* Breadcrumb Schema for SEO */}
       <BreadcrumbSchema items={[
-        { name: "Home", url: "https://codemixapp.com/" },
-        { name: "Tutorials", url: "https://codemixapp.com/tutorials" }
+        { name: "Home", url: "https://bideide.com/" },
+        { name: "Tutorials", url: "https://bideide.com/tutorials" }
       ]} />
       
       {/* Header */}

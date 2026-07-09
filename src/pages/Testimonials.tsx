@@ -15,7 +15,7 @@ const Testimonials = () => {
       title: 'Student Reviews & Testimonials - bIDE | Real User Feedback',
       description: 'See what students and educators say about bIDE. Real reviews from users who code Python, R, JavaScript, and 13+ languages in their browser for coursework and projects.',
       keywords: 'bide reviews, student testimonials, python ide reviews, r ide reviews, user feedback, online ide reviews, programming tool reviews',
-      canonical: 'https://codemixapp.com/testimonials'
+      canonical: 'https://bideide.com/testimonials'
     });
   }, []);
 

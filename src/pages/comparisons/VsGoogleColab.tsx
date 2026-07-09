@@ -14,16 +14,16 @@ const VsGoogleColab = () => {
       title: 'bIDE vs Google Colab | Best Free Python IDE Comparison 2025',
       description: 'Compare bIDE and Google Colab for students. Learn which free Python IDE is better for data science, machine learning, and coursework. Side-by-side feature comparison.',
       keywords: 'bide vs colab, google colab alternative, free python ide comparison, best jupyter alternative, student coding tools',
-      canonical: 'https://codemixapp.com/comparisons/bide-vs-google-colab'
+      canonical: 'https://bideide.com/comparisons/bide-vs-google-colab'
     });
   }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
       <BreadcrumbSchema items={[
-        { name: "Home", url: "https://codemixapp.com/" },
-        { name: "Comparisons", url: "https://codemixapp.com/comparisons/bide-vs-google-colab" },
-        { name: "bIDE vs Google Colab", url: "https://codemixapp.com/comparisons/bide-vs-google-colab" }
+        { name: "Home", url: "https://bideide.com/" },
+        { name: "Comparisons", url: "https://bideide.com/comparisons/bide-vs-google-colab" },
+        { name: "bIDE vs Google Colab", url: "https://bideide.com/comparisons/bide-vs-google-colab" }
       ]} />
 
       <div className="container mx-auto px-4 py-8 max-w-5xl">

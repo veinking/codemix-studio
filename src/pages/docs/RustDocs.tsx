@@ -16,9 +16,9 @@ export default function RustDocs() {
         <title>Rust Reference - bIDE Documentation</title>
       </Helmet>
       <BreadcrumbSchema items={[
-        { name: 'Home', url: 'https://codemixapp.com/' },
-        { name: 'Documentation', url: 'https://codemixapp.com/docs' },
-        { name: 'Rust', url: 'https://codemixapp.com/docs/rust' }
+        { name: 'Home', url: 'https://bideide.com/' },
+        { name: 'Documentation', url: 'https://bideide.com/docs' },
+        { name: 'Rust', url: 'https://bideide.com/docs/rust' }
       ]} />
       <SoftwareApplicationSchema 
         language="rust"
