@@ -21,7 +21,7 @@ const Support = () => {
         "name": "How do I contact bIDE support?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Email us at Support@proairesume.com for technical support, billing questions, or general inquiries. We're here to help you get the most out of bIDE."
+          "text": "Email us at support@bideide.com for technical support, billing questions, or general inquiries. We're here to help you get the most out of bIDE."
         }
       },
       {
@@ -78,10 +78,10 @@ const Support = () => {
               <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
                 <Mail className="h-5 w-5 text-primary" />
                 <a 
-                  href="mailto:Support@proairesume.com"
+                  href="mailto:support@bideide.com"
                   className="text-lg font-medium hover:text-primary transition-colors"
                 >
-                  Support@proairesume.com
+                  support@bideide.com
                 </a>
               </div>
             </div>

@@ -137,7 +137,7 @@ This guide provides step-by-step instructions for submitting bIDE to web directo
   - "R programming without installation"
   - "Jupyter notebook alternatives"
 - [ ] Provide genuinely helpful answers
-- [ ] Mention OpenIDE naturally if it solves their problem
+- [ ] Mention bIDE naturally if it solves their problem
 - [ ] Include link in your profile
 
 **Warning:** Don't spam. Only mention when truly relevant.
@@ -156,7 +156,7 @@ Hi Professor [Name],
 
 I'm [Your Name], a [Year] student at [University]. I noticed your [Course Name] course requires Python/R programming.
 
-I built bIDE (codemixapp.com) - a free, browser-based IDE specifically for students. Key features:
+I built bIDE (bideide.com) - a free, browser-based IDE specifically for students. Key features:
 
 - Works on any device (including phones/tablets)
 - No installation required
@@ -189,7 +189,7 @@ Best,
 - [ ] Edit with captions
 - [ ] Upload with SEO-friendly title: "bIDE Tutorial: Free Python & R IDE in Your Browser"
 - [ ] Add timestamps in description
-- [ ] Include link to codemixapp.com
+- [ ] Include link to bideide.com
 
 **Platforms:**
 - YouTube (primary)
@@ -211,7 +211,7 @@ Best,
 **How:**
 - Search: "free programming tools for students"
 - Reach out to page maintainers
-- Suggest adding OpenIDE to their list
+- Suggest adding bIDE to their list
 - Provide 1-sentence description
 
 ---
@@ -320,4 +320,4 @@ Keep these ready for journalists/bloggers who want to write about bIDE:
 
 **Good luck with your launch! 🚀**
 
-For questions, contact: Support@proairesume.com
+For questions, contact: support@bideide.com

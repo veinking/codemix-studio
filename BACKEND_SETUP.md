@@ -4,6 +4,11 @@
 
 The included backend is **buyer-configurable**. This sale package includes Supabase migrations and Edge Functions, but no live Supabase project credentials. The old project ref was removed from the app and `supabase/config.toml` now uses `your-project-ref`.
 
+
+## Sale boundaries
+
+The buyer must create their own Supabase project. No Supabase project, production database, customer database, email list, service role key, Stripe/payment account, OpenAI/AI credentials, or social media accounts are included with this repository unless separately transferred in writing. `bideide.com` is the primary domain; `codemixapp.com` is only a secondary/redirect domain if the seller chooses to include it.
+
 ## Supabase setup
 
 1. Create a new Supabase project owned by the buyer.
