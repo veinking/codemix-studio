@@ -331,7 +331,7 @@ export const generatePortfolioHTML = (
 
   html += `
     <footer>
-      <p>Created with <a href="https://openide.dev" target="_blank">OpenIDE</a></p>
+      <p>Created with <a href="https://bideide.com" target="_blank">bIDE</a></p>
     </footer>
   </div>
   

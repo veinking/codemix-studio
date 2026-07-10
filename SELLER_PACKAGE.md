@@ -14,7 +14,7 @@ bIDE by CodeMix is a buyer-ready starter SaaS for a browser-based coding and dat
 ## Included domains
 
 - Primary: `bideide.com`
-- Secondary/redirect candidate: `codemixapp.com`
+- Secondary/redirect candidate: `codemixapp.com` if the seller chooses to include/transfer it separately
 
 ## Main features
 
@@ -34,7 +34,7 @@ React, TypeScript, Vite, Tailwind CSS, Radix UI, Monaco Editor, Supabase, Supaba
 
 ## Current status
 
-Buyer-ready starter package. The app installs, lints, builds, runs, and previews. Live backend/payment/AI credentials are intentionally not included.
+Buyer-ready starter SaaS package, not a revenue-generating business. The app installs, lints, builds, runs, and previews. Live backend/payment/AI credentials are intentionally not included.
 
 ## Growth opportunities
 
@@ -49,8 +49,8 @@ Buyer-ready starter package. The app installs, lints, builds, runs, and previews
 
 - Supabase, Stripe, and AI require buyer credentials.
 - Some runtime behavior needs manual browser QA after deployment.
-- Large production JavaScript chunk warning remains.
-- No real payment account, AI key, private email, or service credentials are included.
+- Large production JavaScript chunk warning remains because of browser IDE dependencies such as Monaco, Pyodide/runtime adapters, sql.js-style tools, docs pages, and data tools; lazy loading these areas is a recommended post-sale improvement.
+- No customer database, email list, Stripe/payment account transfer, social media accounts, AI key, private email, or service credentials are included unless explicitly transferred separately.
 
 ## Assets included in sale
 
@@ -58,3 +58,11 @@ Buyer-ready starter package. The app installs, lints, builds, runs, and previews
 - Supabase migrations and Edge Functions.
 - Public app icons, PWA manifest, Open Graph preview image, sitemap, and robots file.
 - Buyer handoff/setup/QA documentation.
+
+## Buyer responsibilities
+
+- Create a buyer-owned Supabase project.
+- Add buyer-owned Stripe credentials, product, price, and webhook.
+- Add buyer-owned OpenAI or AI gateway credentials.
+- Point `bideide.com` to the production frontend.
+- Use `codemixapp.com` only as a secondary/redirect domain if included by the seller.

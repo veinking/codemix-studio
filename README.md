@@ -8,6 +8,11 @@ bIDE is a React + Vite browser IDE starter package for running and learning code
 
 This repository is prepared as a buyer-configurable starter SaaS. The frontend installs, builds, previews, and runs without real backend secrets. Supabase, AI, and Stripe features are disabled/fail gracefully until the buyer supplies their own credentials and deploys the included backend.
 
+
+## Sale scope and buyer responsibilities
+
+This repository is a starter SaaS package, not a revenue-generating business. The buyer must create and own their Supabase project, Stripe account/credentials, and OpenAI or AI provider credentials. No customer database, email list, social media accounts, Stripe/payment account transfer, Supabase project, or live API credentials are included unless separately transferred in writing.
+
 ## Tech stack
 
 - React 18, TypeScript, Vite

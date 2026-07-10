@@ -1,5 +1,5 @@
 /**
- * SEO utility functions for OpenIDE
+ * SEO utility functions for bIDE
  * Manages document title and meta tags for each page
  */
 
