@@ -53,12 +53,13 @@ Server/Edge Function secrets belong in the backend environment, never in the fro
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- AI provider credentials such as `OPENAI_API_KEY`
+- `LOVABLE_API_KEY` — currently consumed by the existing AI Edge Functions (`ai-code-assistant`, `code-translator`, `data-advisor`, `explain-error`, and related gateway-backed features)
+- `OPENAI_API_KEY` — only required after/if an Edge Function is explicitly migrated to call OpenAI directly; setting it alone does not enable the current gateway-backed functions
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_PRO_PRICE_ID`
 
-Never commit `.env` or real credentials.
+Never commit `.env` or real credentials. Before enabling AI publicly, verify the deployed Edge Functions against the provider actually configured in production rather than assuming a generic API key is sufficient.
 
 ## Product URLs
 
