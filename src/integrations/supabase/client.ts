@@ -13,8 +13,15 @@ const clientKey = isSupabaseConfigured ? SUPABASE_PUBLISHABLE_KEY : 'placeholder
 
 if (!isSupabaseConfigured) {
   console.info(
-    '[bIDE] Supabase is not configured. Auth, cloud sync, AI functions, and payments are disabled until .env is set.'
+    '[bIDE] Local Mode active. Auth, cloud sync, AI functions, sharing, and payments are disabled until Supabase is configured.'
   );
+
+  // Plain-English error explanations depend on a Supabase Edge Function.
+  // Clear a previously persisted opt-in so Local Mode never attempts a
+  // placeholder cloud request after a user has used a configured deployment.
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem('plainEnglishMode', 'false');
+  }
 }
 
 export const supabase = createClient<Database>(clientUrl, clientKey, {
