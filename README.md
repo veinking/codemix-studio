@@ -1,51 +1,46 @@
-# bIDE by CodeMix — Buyer-Ready Browser IDE Starter SaaS
+# bIDE — a PocketBI product
 
-**bIDE** is the primary product brand and **bideide.com** is the primary domain. **CodeMix** is the package/studio name; use **“bIDE by CodeMix”** when referencing both. **codemixapp.com** is included as a secondary/redirect domain candidate.
+**bIDE** is a browser-based IDE for coding, data science, and lightweight analysis. Its primary domain is **bideide.com** and it remains technically separate from PocketBI while sharing the PocketBI product family, support identity, and privacy center.
 
-bIDE is a React + Vite browser IDE starter package for running and learning code in the browser. It includes a Monaco editor, multi-language runtime adapters, data-science utilities, docs/SEO pages, optional Supabase auth/cloud features, optional Supabase Edge Function AI tools, and optional Stripe subscription scaffolding.
+## Product model
 
-## Current status
+- **PocketBI** is the shared public product hub at `pocketbi.app`.
+- **bIDE** remains its own web application and domain at `bideide.com`.
+- Core browser workflows are designed to work in **local mode** without a configured cloud backend.
+- Optional Supabase, AI, sharing, and payment features can be enabled independently later.
 
-This repository is prepared as a buyer-configurable starter SaaS. The frontend installs, builds, previews, and runs without real backend secrets. Supabase, AI, and Stripe features are disabled/fail gracefully until the buyer supplies their own credentials and deploys the included backend.
+## Core capabilities
 
+- Monaco-based code editor
+- Python/Pyodide browser runtime
+- R/webR browser runtime
+- JavaScript and SQL/browser runtime support
+- Additional runtime adapters and editor-only languages
+- Notebook mode
+- Dataset viewer and data operations
+- Plot builder/viewer
+- Templates and learning tools
+- Local browser persistence
+- Optional Supabase auth/cloud/share features
+- Optional AI Edge Functions
+- Optional Stripe subscription scaffolding
 
-## Sale scope and buyer responsibilities
+## Local mode
 
-This repository is a starter SaaS package, not a revenue-generating business. The buyer must create and own their Supabase project, Stripe account/credentials, and OpenAI or AI provider credentials. No customer database, email list, social media accounts, Stripe/payment account transfer, Supabase project, or live API credentials are included unless separately transferred in writing.
+When Supabase is not configured, bIDE intentionally falls back to local mode. The app should not require a login to launch the IDE. Cloud sync, AI, account, sharing, and payment features are disabled until their required backend services are configured.
 
-## Tech stack
-
-- React 18, TypeScript, Vite
-- Tailwind CSS + shadcn/ui-style Radix components
-- Monaco Editor
-- Browser runtimes/adapters for JavaScript, Python/Pyodide, R, SQL/sql.js, PHP, Ruby, Lua, and editor-only languages
-- Supabase client, migrations, and Edge Functions for optional auth/cloud/share/AI/payment flows
-- Stripe Edge Function scaffolding for subscriptions
-- PWA support via vite-plugin-pwa
-
-## Fresh clone setup
+## Fresh clone
 
 ```bash
 npm install
-cp .env.example .env
 npm run dev
 ```
 
-Open the dev server printed by Vite. This project is configured for `http://localhost:8080` by default.
+The local Vite development server is configured around port `8080` by default.
 
-## Common commands
+## Optional environment configuration
 
-```bash
-npm install          # install pinned dependencies from package-lock.json
-npm run dev          # local Vite dev server
-npm run lint         # ESLint checks
-npm run build        # production build
-npm run preview      # preview the production build locally
-```
-
-## Environment variables
-
-Copy `.env.example` to `.env`. The app works in local/offline mode without these values, but buyer-owned values are required for hosted auth, cloud workspaces, sharing, AI Edge Functions, and paid plans.
+Copy `.env.example` to `.env` only when enabling hosted services.
 
 Frontend variables:
 
@@ -53,33 +48,31 @@ Frontend variables:
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
 - `VITE_PUBLIC_SITE_URL`
 
-Server/Edge Function secrets, configured in Supabase rather than exposed in frontend bundles:
+Server/Edge Function secrets belong in the backend environment, never in the frontend bundle:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `OPENAI_API_KEY` or buyer-selected AI gateway credentials
-- `LOVABLE_API_KEY` if continuing to use the current AI gateway implementation
+- AI provider credentials such as `OPENAI_API_KEY`
 - `STRIPE_SECRET_KEY`
 - `STRIPE_WEBHOOK_SECRET`
 - `STRIPE_PRO_PRICE_ID`
 
 Never commit `.env` or real credentials.
 
-## Deployment steps
+## Product URLs
 
-1. Create buyer-owned Supabase and Stripe accounts.
-2. Apply Supabase migrations from `supabase/migrations`.
-3. Configure Supabase Edge Function secrets from `.env.example`.
-4. Deploy Edge Functions from `supabase/functions`.
-5. Configure Stripe products, prices, and webhooks.
-6. Deploy the Vite app to Vercel, Netlify, Cloudflare Pages, or similar.
-7. Point `bideide.com` at the frontend host and redirect `codemixapp.com` if desired.
+- bIDE: `https://bideide.com`
+- PocketBI hub: `https://pocketbi.app`
+- Shared privacy center: `https://pocketbi.app/privacy-center.html`
+- bIDE privacy policy: `https://pocketbi.app/privacy-bide.html`
 
-## Known limitations
+## Support
 
-- Backend features are buyer-configurable, not live by default.
-- AI functions require server-side credentials and may need provider migration if the buyer does not use the included AI gateway pattern.
-- Stripe checkout is disabled until `STRIPE_SECRET_KEY` and `STRIPE_PRO_PRICE_ID` are set.
-- Some language runtimes rely on browser/WebAssembly support and CDN/runtime loading behavior.
-- Build emits large chunk warnings; this is acceptable for handoff but code-splitting is a recommended post-sale improvement.
+Shared developer support: **support@proairesume.com**
+
+Include `bIDE` in the subject line for bIDE-specific requests.
+
+## Deployment notes
+
+The frontend can be deployed independently from PocketBI. Keeping separate deployments reduces the blast radius of failures while allowing both products to share public branding and support resources. Backend services should be enabled only after their environment variables, migrations, security policies, and production behavior have been validated.
