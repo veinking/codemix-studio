@@ -1,143 +1,67 @@
-import { useEffect } from 'react';
-import { ArrowLeft } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
+import { useEffect } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
 
 const Terms = () => {
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.terms);
   }, []);
-  
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
       <div className="container max-w-4xl py-12">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')} 
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+        <Button variant="ghost" onClick={() => navigate("/")} className="mb-6">
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back
         </Button>
-        
+
         <div className="prose dark:prose-invert max-w-none">
-          <h1>Terms of Service</h1>
-          <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
-          
-          <h2>1. Acceptance of Terms</h2>
-          <p>
-            By accessing and using bIDE, you accept and agree to be bound by the terms and provision of this agreement.
-          </p>
-          
-          <h2>2. Use License</h2>
-          <p>
-            bIDE grants you a personal, non-exclusive, non-transferable license to use the service for your personal or commercial projects,
-            subject to these Terms of Service.
-          </p>
-          
-          <h2>3. User Accounts</h2>
-          <p>
-            When you create an account with us, you must provide accurate and complete information. You are responsible for safeguarding 
-            your account and for all activities that occur under your account.
-          </p>
-          
-          <h2>4. Subscription Tiers</h2>
-          <p>
-            bIDE offers different subscription tiers:
-          </p>
+          <h1>bIDE Terms of Service</h1>
+          <p className="text-muted-foreground">Effective August 11, 2026</p>
+
+          <h2>1. Use of bIDE</h2>
+          <p>bIDE is a browser-based development environment and a PocketBI product. You may use it for lawful personal, educational, or commercial coding and data work.</p>
+
+          <h2>2. Local mode</h2>
+          <p>Core browser workflows may be available without an account. Local project data can be stored in browser storage and may be lost if you clear browser data, change devices, or remove local storage.</p>
+
+          <h2>3. Optional online services</h2>
+          <p>Accounts, cloud save, sharing, AI assistance, usage limits, subscriptions, and other online features may be enabled or disabled depending on the current service configuration. Availability of one feature does not guarantee availability of every online feature.</p>
+
+          <h2>4. Your code and content</h2>
+          <p>You retain rights in the code and content you create, subject to any third-party rights that apply. You are responsible for ensuring that content you run, upload, share, or submit to an AI feature is lawful and that you have permission to use it.</p>
+
+          <h2>5. AI and generated output</h2>
+          <p>AI-generated code, explanations, translations, or recommendations can be inaccurate. Review and test generated output before relying on it, especially for security-sensitive, production, or high-impact uses.</p>
+
+          <h2>6. Payments and subscriptions</h2>
+          <p>If paid plans are enabled, pricing, billing intervals, cancellation terms, and refund rules will be presented in the applicable checkout flow. Payment processing may be handled by a third-party payment provider.</p>
+
+          <h2>7. Shared content</h2>
+          <p>If code-sharing features are enabled, anyone with a valid share link may be able to view the shared content. Do not share passwords, API keys, access tokens, regulated data, or confidential code unless you intend the recipient to access it.</p>
+
+          <h2>8. Prohibited uses</h2>
           <ul>
-            <li><strong>Guest:</strong> No AI access, no account required</li>
-            <li><strong>Free Account:</strong> 3 AI uses every 5 days, includes code sharing and progress tracking</li>
-            <li><strong>Pro Account:</strong> Unlimited AI usage, priority processing, and advanced features for $7.99/month</li>
+            <li>Violating law or third-party rights</li>
+            <li>Distributing malware or intentionally harmful code</li>
+            <li>Attempting unauthorized access to accounts or infrastructure</li>
+            <li>Abusing automated requests or service limits</li>
           </ul>
-          
-          <h2>5. AI Usage Limits</h2>
-          <p>
-            AI usage limits use a 5-day rolling window. Usage is counted over the past 5 days from the current moment. 
-            Usage limits apply across all AI features including code assistance, error explanations, code translation, 
-            lab training, and data analysis.
-          </p>
-          
-          <h2>6. User Content</h2>
-          <p>
-            You retain all rights to the code and content you create using bIDE. By using our service, you grant us the right 
-            to store and process your code for the purpose of providing the service.
-          </p>
-          
-          <h2>7. Refunds and Cancellations</h2>
-          <p>
-            <strong>All payments are non-refundable.</strong> Subscriptions renew automatically each billing period unless canceled 
-            prior to renewal. You may cancel your subscription at any time from your account settings, and you will retain access 
-            to Pro features until the end of the current billing cycle.
-          </p>
-          <p>
-            No refunds or credits will be issued for:
-          </p>
-          <ul>
-            <li>Partial billing periods</li>
-            <li>Unused AI features or usage limits</li>
-            <li>Subscription downgrades from Pro to Free</li>
-            <li>Account deletions or suspensions</li>
-          </ul>
-          <p>
-            <strong>Cancellation Process:</strong> You may cancel your Pro subscription anytime from your Account → Subscription page. 
-            Upon cancellation, you will not be charged for subsequent billing periods, but your access will continue until the end of 
-            the current paid period.
-          </p>
-          
-          <h2>8. Code Sharing</h2>
-          <p>
-            When you share code using our sharing feature, you understand that:
-          </p>
-          <ul>
-            <li>Shared code is accessible to anyone with the link</li>
-            <li>Free users can share code with 30-day expiration</li>
-            <li>Pro users can share code with up to 365-day expiration</li>
-            <li>You are responsible for not sharing sensitive or confidential information</li>
-          </ul>
-          
-          <h2>9. Prohibited Uses</h2>
-          <p>
-            You may not use bIDE to:
-          </p>
-          <ul>
-            <li>Violate any laws or regulations</li>
-            <li>Infringe on intellectual property rights</li>
-            <li>Transmit malicious code or viruses</li>
-            <li>Attempt to gain unauthorized access to our systems</li>
-            <li>Use automated systems to access the service excessively</li>
-          </ul>
-          
-          <h2>10. Service Modifications</h2>
-          <p>
-            We reserve the right to modify or discontinue the service at any time, with or without notice. We will not be liable 
-            to you or any third party for any modification, suspension, or discontinuance of the service.
-          </p>
-          
-          <h2>11. Limitation of Liability</h2>
-          <p>
-            bIDE is provided "as is" without warranties of any kind. We are not liable for any damages arising from your use of 
-            the service, including but not limited to loss of data, loss of profits, or service interruptions.
-          </p>
-          
-          <h2>12. Privacy</h2>
-          <p>
-            Your use of bIDE is also governed by our Privacy Policy. Please review our Privacy Policy to understand our practices.
-          </p>
-          
-          <h2>13. Changes to Terms</h2>
-          <p>
-            We may update these Terms of Service from time to time. We will notify you of any changes by posting the new Terms on this page 
-            and updating the "Last updated" date.
-          </p>
-          
-          <h2>14. Contact Us</h2>
-          <p>
-            If you have any questions about these Terms, please contact us through the feedback form on our website.
-          </p>
+
+          <h2>9. Availability</h2>
+          <p>bIDE may change, suspend, or remove features as the product evolves. Local and cloud capabilities may differ, and online services may occasionally be unavailable.</p>
+
+          <h2>10. Disclaimer</h2>
+          <p>bIDE is provided on an “as available” basis. You are responsible for maintaining backups of important work and validating code or data outputs before using them in production or other consequential settings.</p>
+
+          <h2>11. Privacy</h2>
+          <p>Your use of bIDE is also subject to the bIDE Privacy Policy and the shared PocketBI Privacy Center.</p>
+
+          <h2>12. Contact</h2>
+          <p>Questions can be sent to <a href="mailto:support@proairesume.com?subject=bIDE%20Terms">support@proairesume.com</a>.</p>
         </div>
       </div>
     </div>
