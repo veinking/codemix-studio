@@ -4,6 +4,7 @@ import { X, UserPlus, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { isSupabaseConfigured } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
 export const GuestPrompt = () => {
@@ -13,7 +14,9 @@ export const GuestPrompt = () => {
   });
   const navigate = useNavigate();
 
-  if (!isGuest || dismissed) return null;
+  // Local mode is intentionally account-free. Do not advertise signup or AI
+  // when the corresponding backend is not configured.
+  if (!isSupabaseConfigured || !isGuest || dismissed) return null;
 
   const handleDismiss = () => {
     localStorage.setItem('guest-prompt-dismissed', 'true');
@@ -25,11 +28,11 @@ export const GuestPrompt = () => {
   };
 
   return (
-    <Card 
+    <Card
       className={cn(
-        "fixed bottom-4 right-4 z-50 max-w-sm p-4",
-        "bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm",
-        "border-primary/20 shadow-lg animate-in slide-in-from-bottom-4"
+        'fixed bottom-4 right-4 z-50 max-w-sm p-4',
+        'bg-gradient-to-br from-primary/10 to-accent/10 backdrop-blur-sm',
+        'border-primary/20 shadow-lg animate-in slide-in-from-bottom-4'
       )}
     >
       <button
@@ -53,20 +56,11 @@ export const GuestPrompt = () => {
       </div>
 
       <div className="flex gap-2">
-        <Button 
-          size="sm" 
-          className="flex-1" 
-          onClick={handleSignup}
-        >
+        <Button size="sm" className="flex-1" onClick={handleSignup}>
           <UserPlus className="h-3.5 w-3.5 mr-1.5" />
           Sign Up Free
         </Button>
-        <Button 
-          size="sm" 
-          variant="ghost" 
-          onClick={handleDismiss}
-          className="text-xs"
-        >
+        <Button size="sm" variant="ghost" onClick={handleDismiss} className="text-xs">
           Maybe Later
         </Button>
       </div>
