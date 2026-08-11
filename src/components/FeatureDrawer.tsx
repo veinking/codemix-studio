@@ -8,9 +8,10 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X, Sparkles as SparklesAlt, Cloud, BookOpen, Wrench, Languages, BarChart3, Library, FileDown } from "lucide-react";
+import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X, Sparkles as SparklesAlt, Cloud, BookOpen, Wrench, Languages, BarChart3, Library, FileDown, CloudOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { isSupabaseConfigured } from "@/integrations/supabase/client";
 
 interface FeatureDrawerProps {
   open: boolean;
@@ -55,6 +56,8 @@ export const FeatureDrawer = ({
   onExportPortfolio,
   currentLanguage = 'python',
 }: FeatureDrawerProps) => {
+  const localMode = !isSupabaseConfigured;
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent className="h-[80vh] pb-safe">
@@ -62,14 +65,16 @@ export const FeatureDrawer = ({
           <div className="flex items-center justify-between">
             <div>
               <DrawerTitle>Tools & Features</DrawerTitle>
-              <DrawerDescription>
-                AI assistance, packages, data operations, and learning tools
+              <DrawerDescription className="flex items-center gap-1.5">
+                {localMode ? (
+                  <><CloudOff className="h-3.5 w-3.5" /> Local Mode · browser tools only</>
+                ) : (
+                  <>AI assistance, packages, data operations, and learning tools</>
+                )}
               </DrawerDescription>
             </div>
             <DrawerClose asChild>
-              <Button variant="ghost" size="icon">
-                <X className="h-4 w-4" />
-              </Button>
+              <Button variant="ghost" size="icon"><X className="h-4 w-4" /></Button>
             </DrawerClose>
           </div>
         </DrawerHeader>
@@ -80,10 +85,12 @@ export const FeatureDrawer = ({
               <Wrench className="h-4 w-4" />
               <span className="hidden sm:inline">Tools</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">AI</span>
-            </TabsTrigger>
+            {!localMode && (
+              <TabsTrigger value="ai" className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">AI</span>
+              </TabsTrigger>
+            )}
             <TabsTrigger value="packages" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Packages</span>
@@ -96,17 +103,19 @@ export const FeatureDrawer = ({
               <BrainCircuit className="h-4 w-4" />
               <span className="hidden sm:inline">ML</span>
             </TabsTrigger>
-            <TabsTrigger value="learn" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              <span className="hidden sm:inline">Learn</span>
-            </TabsTrigger>
+            {!localMode && (
+              <TabsTrigger value="learn" className="flex items-center gap-2">
+                <GraduationCap className="h-4 w-4" />
+                <span className="hidden sm:inline">Learn</span>
+              </TabsTrigger>
+            )}
             {recipeGallery && (
               <TabsTrigger value="recipes" className="flex items-center gap-2">
                 <SparklesAlt className="h-4 w-4" />
                 <span className="hidden sm:inline">Recipes</span>
               </TabsTrigger>
             )}
-            {workspaceManager && (
+            {!localMode && workspaceManager && (
               <TabsTrigger value="cloud" className="flex items-center gap-2">
                 <Cloud className="h-4 w-4" />
                 <span className="hidden sm:inline">Cloud</span>
@@ -120,36 +129,23 @@ export const FeatureDrawer = ({
 
           <div className="flex-1 overflow-y-auto p-4">
             <TabsContent value="tools" className="mt-0 space-y-3">
-              {/* Translate Code */}
-              {onOpenTranslate && (
+              {!localMode && onOpenTranslate && (
                 <Card>
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-2">
                       <Languages className="w-5 h-5 text-blue-500" />
                       <CardTitle className="text-base">Translate Code</CardTitle>
                     </div>
-                    <CardDescription className="text-xs">
-                      Convert code between Python, R, JavaScript, and more
-                    </CardDescription>
+                    <CardDescription className="text-xs">Convert code between Python, R, JavaScript, and more</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button
-                      onClick={() => {
-                        onOpenTranslate();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <Languages className="w-4 h-4 mr-2" />
-                      Open Translator
+                    <Button onClick={() => { onOpenTranslate(); onOpenChange(false); }} variant="outline" className="w-full" size="sm">
+                      <Languages className="w-4 h-4 mr-2" /> Open Translator
                     </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Plot Builder */}
               {onOpenPlotBuilder && (
                 <Card>
                   <CardHeader className="pb-3">
@@ -157,28 +153,16 @@ export const FeatureDrawer = ({
                       <BarChart3 className="w-5 h-5 text-purple-500" />
                       <CardTitle className="text-base">Plot Builder</CardTitle>
                     </div>
-                    <CardDescription className="text-xs">
-                      Create charts and visualizations with guided wizard
-                    </CardDescription>
+                    <CardDescription className="text-xs">Create charts and visualizations with a guided wizard</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button
-                      onClick={() => {
-                        onOpenPlotBuilder();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Open Plot Builder
+                    <Button onClick={() => { onOpenPlotBuilder(); onOpenChange(false); }} variant="outline" className="w-full" size="sm">
+                      <BarChart3 className="w-4 h-4 mr-2" /> Open Plot Builder
                     </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Templates */}
               {onOpenTemplates && (
                 <Card>
                   <CardHeader className="pb-3">
@@ -186,28 +170,16 @@ export const FeatureDrawer = ({
                       <Library className="w-5 h-5 text-green-500" />
                       <CardTitle className="text-base">Code Templates</CardTitle>
                     </div>
-                    <CardDescription className="text-xs">
-                      Quick-start code snippets for common tasks
-                    </CardDescription>
+                    <CardDescription className="text-xs">Quick-start code snippets for common tasks</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button
-                      onClick={() => {
-                        onOpenTemplates();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <Library className="w-4 h-4 mr-2" />
-                      Browse Templates
+                    <Button onClick={() => { onOpenTemplates(); onOpenChange(false); }} variant="outline" className="w-full" size="sm">
+                      <Library className="w-4 h-4 mr-2" /> Browse Templates
                     </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {/* R Templates (conditional) */}
               {onOpenRTemplates && currentLanguage === 'r' && (
                 <Card>
                   <CardHeader className="pb-3">
@@ -215,59 +187,16 @@ export const FeatureDrawer = ({
                       <BarChart3 className="w-5 h-5 text-blue-600" />
                       <CardTitle className="text-base">R Templates</CardTitle>
                     </div>
-                    <CardDescription className="text-xs">
-                      Statistical analysis templates for R
-                    </CardDescription>
+                    <CardDescription className="text-xs">Statistical analysis templates for R</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button
-                      onClick={() => {
-                        onOpenRTemplates();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Browse R Templates
+                    <Button onClick={() => { onOpenRTemplates(); onOpenChange(false); }} variant="outline" className="w-full" size="sm">
+                      <BarChart3 className="w-4 h-4 mr-2" /> Browse R Templates
                     </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Portfolio Export */}
-              {onExportPortfolio && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <FileDown className="w-5 h-5 text-orange-500" />
-                      <CardTitle className="text-base">Export Portfolio</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs">
-                      Generate PDF/HTML portfolio of your projects
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {
-                        onExportPortfolio();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <FileDown className="w-4 h-4 mr-2" />
-                      Export Portfolio
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-            
-            <TabsContent value="ai" className="mt-0 space-y-4">
-              {/* Notebook Mode Feature Card */}
               {onToggleNotebook && (
                 <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10">
                   <CardHeader className="pb-3">
@@ -275,37 +204,36 @@ export const FeatureDrawer = ({
                       <BookOpen className="w-5 h-5 text-primary" />
                       <CardTitle className="text-base">Notebook Mode</CardTitle>
                     </div>
-                    <CardDescription className="text-xs">
-                      Jupyter-style interactive coding with cells
-                    </CardDescription>
+                    <CardDescription className="text-xs">Jupyter-style interactive coding with cells</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      {isNotebookMode 
-                        ? "You're currently in Notebook Mode. Mix code and documentation in cells."
-                        : "Switch to Notebook Mode for a Jupyter-like experience with executable code cells and markdown documentation."}
-                    </p>
-                    <Button
-                      onClick={() => {
-                        onToggleNotebook();
-                        onOpenChange(false);
-                      }}
-                      variant={isNotebookMode ? "outline" : "default"}
-                      className="w-full"
-                      size="sm"
-                    >
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      {isNotebookMode ? 'Exit Notebook Mode' : 'Enable Notebook Mode'}
+                  <CardContent>
+                    <Button onClick={() => { onToggleNotebook(); onOpenChange(false); }} variant={isNotebookMode ? "outline" : "default"} className="w-full" size="sm">
+                      <BookOpen className="w-4 h-4 mr-2" /> {isNotebookMode ? 'Exit Notebook Mode' : 'Enable Notebook Mode'}
                     </Button>
                   </CardContent>
                 </Card>
               )}
-              
-              {aiAssistant}
+
+              {onExportPortfolio && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <FileDown className="w-5 h-5 text-orange-500" />
+                      <CardTitle className="text-base">Export Portfolio</CardTitle>
+                    </div>
+                    <CardDescription className="text-xs">Generate a portable HTML/PDF-style portfolio of your local work</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button onClick={() => { onExportPortfolio(); onOpenChange(false); }} variant="outline" className="w-full" size="sm">
+                      <FileDown className="w-4 h-4 mr-2" /> Export Portfolio
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
-            <TabsContent value="packages" className="mt-0">
-              {packageManager}
-            </TabsContent>
+
+            {!localMode && <TabsContent value="ai" className="mt-0 space-y-4">{aiAssistant}</TabsContent>}
+            <TabsContent value="packages" className="mt-0">{packageManager}</TabsContent>
             <TabsContent value="data" className="mt-0 space-y-4">
               {dataLab}
               <div className="pt-4 border-t border-border">
@@ -313,25 +241,11 @@ export const FeatureDrawer = ({
                 {dataOperations}
               </div>
             </TabsContent>
-            <TabsContent value="ml" className="mt-0">
-              {mlOperations}
-            </TabsContent>
-            <TabsContent value="learn" className="mt-0">
-              {labTrainer}
-            </TabsContent>
-            {recipeGallery && (
-              <TabsContent value="recipes" className="mt-0">
-                {recipeGallery}
-              </TabsContent>
-            )}
-            {workspaceManager && (
-              <TabsContent value="cloud" className="mt-0">
-                {workspaceManager}
-              </TabsContent>
-            )}
-            <TabsContent value="about" className="mt-0">
-              {about}
-            </TabsContent>
+            <TabsContent value="ml" className="mt-0">{mlOperations}</TabsContent>
+            {!localMode && <TabsContent value="learn" className="mt-0">{labTrainer}</TabsContent>}
+            {recipeGallery && <TabsContent value="recipes" className="mt-0">{recipeGallery}</TabsContent>}
+            {!localMode && workspaceManager && <TabsContent value="cloud" className="mt-0">{workspaceManager}</TabsContent>}
+            <TabsContent value="about" className="mt-0">{about}</TabsContent>
           </div>
         </Tabs>
       </DrawerContent>
