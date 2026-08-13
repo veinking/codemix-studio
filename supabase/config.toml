@@ -1,4 +1,4 @@
-project_id = "your-project-ref"
+project_id = "bozkwngfioubgwzvzfif"
 
 [functions.ai-code-assistant]
 verify_jwt = false
