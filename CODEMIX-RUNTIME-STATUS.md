@@ -1,165 +1,98 @@
-# 🔥 Codemix Runtime Status Report
+# bIDE Runtime Status
 
-**Date:** 2025-01-17  
-**Status:** ✅ **PRODUCTION READY**
+**Updated:** 2026-08-14
 
----
+This file is a release checklist, not a marketing claim. A runtime is only marked ready after the current bIDE editor, execution path, error handling, and mobile behavior have been tested together.
 
-## ✅ Current Implementation
+## Enabled today
 
-### 🐍 Python Runtime (`src/runtimes/PythonRuntime.ts`)
-- **Architecture:** Worker-based execution (stable, isolated)
-- **Pyodide Version:** `0.28.3` (pinned via CDN)
-- **Worker Location:** `/public/pyWorker.js`
-- **Features:**
-  - ✅ Automatic package detection and lazy loading
-  - ✅ Safari/iOS compatible (no SharedArrayBuffer issues)
-  - ✅ Retry logic with timeout handling (40s)
-  - ✅ Micropip integration for package installation
-  - ✅ stdout/stderr capture
-- **Status:** Fully operational, no init errors
+| Language | Editor | Execute in bIDE | Status |
+| --- | --- | --- | --- |
+| Python | Yes | Browser/Pyodide | Enabled; release smoke test still required |
+| R | Yes | Browser/webR | Enabled; release smoke test still required |
+| JavaScript | Yes | Browser | Enabled; release smoke test still required |
+| SQL | Yes | Browser | Enabled; release smoke test still required |
 
-### 📊 R Runtime (`src/runtimes/RRuntime.ts`)
-- **Architecture:** webR WASM integration
-- **webR Version:** `0.3.3` (latest stable)
-- **Features:**
-  - ✅ Mobile-optimized (`PostMessage` channel on iOS)
-  - ✅ Desktop optimized (`SharedArrayBuffer` where available)
-  - ✅ Plot capture with base64enc fallback
-  - ✅ Graphics device detection
-  - ✅ Safe error handling for plot operations
-- **Status:** Fully operational, mobile + desktop tested
+These four languages are the only languages currently wired through the full `IDE.tsx` scratch/file state and runtime registration path.
 
-### ✍️ Code Editor (`src/components/CodeEditor.tsx`)
-- **Engine:** Monaco Editor (VS Code base)
-- **Features:**
-  - ✅ **NEW:** Context-aware snippets for Python & R
-  - ✅ Smart filtering (shows only matching completions)
-  - ✅ Common library imports (pandas, ggplot2, dplyr)
-  - ✅ Boilerplate templates (for loops, data reading)
-  - ✅ Mobile-optimized (13px font, disabled minimap)
-- **Status:** Enhanced with snippet support
+## Runtime candidates under validation
 
----
+| Language | Editor support | Runtime implementation | Selector state |
+| --- | --- | --- | --- |
+| Ruby | Monaco snippets | ruby.wasm browser runtime refreshed | Runtime next |
+| Lua | Monaco snippets | Fengari runtime corrected | Runtime next |
+| PHP | Monaco snippets | Existing runtime needs API/browser validation | Runtime next |
 
-## 🎯 What Changed in This Update
+Ruby and Lua must stay disabled in the user-facing language selector until their runtime initialization, stdout/stderr, syntax/runtime errors, repeated runs, and iPhone behavior pass a browser smoke test.
 
-### Editor Enhancements
-1. **Python Snippets Added:**
-   - `import pandas as pd`
-   - `import numpy as np`
-   - `import matplotlib.pyplot as plt`
-   - `pd.read_csv()`, `df.head()`
-   - `for` loop template
+PHP must not be enabled merely because a runtime class exists. Its current third-party browser bootstrap must be verified or replaced first.
 
-2. **R Snippets Added:**
-   - `library(ggplot2)`, `library(dplyr)`, `library(tidyr)`
-   - `read.csv()`
-   - `ggplot()` template with aes()
-   - `for` loop template
+## Editor-first languages
 
-3. **Smart Filtering:**
-   - Completions now filter as you type
-   - Snippets shown first (higher priority)
-   - Context-aware suggestions
+bIDE already has editor/completion definitions for these languages, but does not promise local compilation/execution yet:
 
----
+- TypeScript
+- Java
+- C
+- C++
+- C#
+- Rust
+- Go
+- Swift
+- Kotlin
 
-## 🚀 Integration Guide
+These should remain **Editor next** until the file model supports them end-to-end. Remote execution, if added later, should use an explicit isolated execution service rather than pretending every compiler belongs inside the browser.
 
-### Using the Runtimes
+## Mobile editor release gate
 
-```typescript
-import { RuntimeRegistry } from '@/runtimes/RuntimeRegistry';
-import { PythonRuntime } from '@/runtimes/PythonRuntime';
-import { RRuntime } from '@/runtimes/RRuntime';
+The current mobile Monaco configuration intentionally removes expensive background/editor behavior that is not essential while typing:
 
-// Register runtimes
-RuntimeRegistry.register(new PythonRuntime());
-RuntimeRegistry.register(new RRuntime());
+- no automatic suggestions on every character
+- no trigger-character suggestions
+- no parameter hints/hover links
+- no word-based suggestions
+- no bracket-pair coloring/guides
+- no sticky scroll or occurrence highlighting
+- no smooth caret animation
+- additional bottom padding for the software keyboard
+- no forced editor focus when the editor mounts on mobile
 
-// Initialize
-const runtime = RuntimeRegistry.get('python');
-await runtime?.initialize(isMobile);
+Desktop keeps the richer completion experience.
 
-// Execute code
-const result = await runtime?.execute(code, (output) => {
-  console.log(output);
-});
-```
+Before packaging bIDE as a native app/WebView, verify on an iPhone-sized viewport:
 
-### Package Installation
+1. tap into an existing line and type continuously for at least 30 seconds
+2. insert/delete text in the middle of a line without cursor jumps
+3. paste a multi-line block
+4. select/copy text with native handles
+5. open/close the software keyboard repeatedly
+6. rotate portrait/landscape and keep the active document/cursor usable
+7. open the console and return to the editor without losing the document
+8. switch files and confirm the correct buffer is shown
 
-**Python:**
-```python
-import micropip
-await micropip.install(['pandas', 'matplotlib', 'numpy'])
-```
+## Execution release gate
 
-**R:**
-```r
-install.packages('ggplot2')
-library(ggplot2)
-```
+Every executable runtime must satisfy the same contract:
 
----
+1. initialize once and expose a stable Ready state
+2. stream stdout without duplicating it in the final result
+3. return runtime errors as errors, not success text
+4. never show `Execution completed` after `result.error`
+5. isolate output from consecutive runs
+6. recover cleanly after a failed run
+7. enforce a reasonable timeout or provide cancellation for long-running work
+8. avoid leaking browser/WASM implementation noise when a clearer runtime error is available
 
-## 🧪 Testing Checklist
+The current IDE controller still needs work on items 4-7. Console-side filtering prevents some misleading success text, but the source execution path should be corrected before calling the runtime layer finished.
 
-- ✅ Python execution on desktop (Chrome, Firefox, Safari)
-- ✅ Python execution on mobile (iOS Safari, Android Chrome)
-- ✅ R execution on desktop
-- ✅ R execution on mobile (iOS Safari with PostMessage)
-- ✅ CSV data preview in DataLab
-- ✅ Editor completions and snippets
-- ✅ Package auto-loading (pandas, matplotlib)
-- ✅ Plot rendering (both Python & R)
+## Architecture work still needed
 
----
+`src/pages/IDE.tsx` still owns too many responsibilities: files, scratch buffers, runtime registration/execution, console state, datasets, plots, storage, mobile drawers, AI, and feature modals. Continued hardening should move toward separate controllers/hooks for:
 
-## 📋 Known Limitations
+- editor/document state
+- persistence/files
+- runtime execution
+- console/output
+- workspace/datasets
 
-1. **Package Support:**
-   - Python: Limited to Pyodide-compatible packages
-   - R: Limited to webR-compatible packages (no Bioconductor yet)
-
-2. **Performance:**
-   - First load takes 5-10s (WASM download)
-   - Mobile devices: reduced thread count for stability
-
-3. **Plot Capture:**
-   - R plots require `base64enc` package
-   - Only captures if graphics devices are active
-
----
-
-## 🔧 Troubleshooting
-
-### "micropip not installed" Error
-- **Fixed:** Worker now auto-loads packages before execution
-- Ensure `pyWorker.js` is version 0.28.3+
-
-### R Not Working on iPhone
-- **Fixed:** Uses `PostMessage` channel (no SharedArrayBuffer)
-- Ensure webR 0.3.3 is loaded
-
-### Editor Completions Not Showing
-- **Fixed:** Snippets now registered with proper filtering
-- Type at least 1 character to trigger
-
----
-
-## 🎉 Summary
-
-Your runtime is **production-ready** with:
-- ✅ Stable Pyodide 0.28.3 (no init errors)
-- ✅ Mobile-optimized webR 0.3.3
-- ✅ Enhanced editor with smart snippets
-- ✅ Automatic package detection
-- ✅ Full CSV workflow support
-
-**No breaking changes were made** — existing features preserved while adding snippet enhancements.
-
----
-
-**For your team:** All changes maintain backward compatibility. The editor now provides better DX with context-aware snippets, and both runtimes are battle-tested on mobile + desktop.
+That separation is a prerequisite for a smooth native wrapper and for safely expanding the executable-language set.

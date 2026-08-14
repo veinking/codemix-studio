@@ -3,13 +3,34 @@ import { RuntimeExecutor, RuntimeConfig, ExecutionResult } from './RuntimeInterf
 declare global {
   interface Window {
     fengari?: {
-      load(code: string): any;
-      interop: any;
       lua: any;
       lauxlib: any;
       lualib: any;
+      to_luastring(value: string): Uint8Array;
+      to_jsstring(value: Uint8Array): string;
     };
   }
+}
+
+const FENGARI_SCRIPT_ID = 'bide-fengari-runtime';
+const FENGARI_URL = 'https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js';
+
+function loadScriptOnce(id: string, src: string): Promise<void> {
+  const existing = document.getElementById(id) as HTMLScriptElement | null;
+  if (existing?.dataset.loaded === 'true') return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const script = existing || document.createElement('script');
+    script.id = id;
+    script.src = src;
+    script.async = true;
+    script.addEventListener('load', () => {
+      script.dataset.loaded = 'true';
+      resolve();
+    }, { once: true });
+    script.addEventListener('error', () => reject(new Error('Failed to load Lua runtime')), { once: true });
+    if (!existing) document.head.appendChild(script);
+  });
 }
 
 export class LuaRuntime implements RuntimeExecutor {
@@ -19,49 +40,26 @@ export class LuaRuntime implements RuntimeExecutor {
     fileExtensions: ['.lua'],
     color: 'hsl(220, 91%, 60%)',
     supportsPackages: false,
-    availableOn: 'all'
+    availableOn: 'all',
+    executionMode: 'browser',
   };
 
   isInitialized = false;
   private L: any = null;
 
-  async initialize(isMobile: boolean): Promise<void> {
+  async initialize(_isMobile: boolean): Promise<void> {
     if (this.isInitialized) return;
 
-    try {
-      // Load fengari (Lua VM in JS)
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js';
-      script.async = true;
+    await loadScriptOnce(FENGARI_SCRIPT_ID, FENGARI_URL);
 
-      await new Promise<void>((resolve, reject) => {
-        script.onload = () => resolve();
-        script.onerror = () => reject(new Error('Failed to load Lua runtime'));
-        document.head.appendChild(script);
-      });
+    const fengari = window.fengari;
+    if (!fengari) throw new Error('Lua runtime loaded without exposing Fengari');
 
-      // Wait for fengari to be available
-      let attempts = 0;
-      while (!window.fengari && attempts < 50) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      if (!window.fengari) {
-        throw new Error('Lua runtime not available');
-      }
-
-      // Create Lua state
-      const { lua, lauxlib, lualib } = window.fengari;
-      this.L = lauxlib.luaL_newstate();
-      lualib.luaL_openlibs(this.L);
-
-      this.isInitialized = true;
-      console.log('Lua runtime initialized');
-    } catch (error) {
-      console.error('Failed to initialize Lua:', error);
-      throw error;
-    }
+    const { lauxlib, lualib } = fengari;
+    this.L = lauxlib.luaL_newstate();
+    if (!this.L) throw new Error('Lua state could not be created');
+    lualib.luaL_openlibs(this.L);
+    this.isInitialized = true;
   }
 
   async execute(code: string, onOutput: (text: string) => void): Promise<ExecutionResult> {
@@ -69,64 +67,56 @@ export class LuaRuntime implements RuntimeExecutor {
       throw new Error('Lua runtime not initialized');
     }
 
-    try {
-      const { lua, lauxlib, interop } = window.fengari;
-      
-      // Capture print output
-      let output = '';
-      const wrappedCode = `
+    const { lua, lauxlib, to_luastring, to_jsstring } = window.fengari;
+    lua.lua_settop(this.L, 0);
+
+    const wrappedCode = `
 local original_print = print
 local output_buffer = {}
 print = function(...)
   local args = {...}
-  local str = ""
-  for i, v in ipairs(args) do
-    if i > 1 then str = str .. "\\t" end
-    str = str .. tostring(v)
+  local line = ""
+  for i, value in ipairs(args) do
+    if i > 1 then line = line .. "\\t" end
+    line = line .. tostring(value)
   end
-  table.insert(output_buffer, str)
+  table.insert(output_buffer, line)
 end
 
-local status, result = pcall(function()
-  ${code}
+local ok, err = pcall(function()
+${code}
 end)
 
 print = original_print
-
-if not status then
-  return "Error: " .. tostring(result)
-else
-  return table.concat(output_buffer, "\\n"), result
+if not ok then
+  return "__BIDE_ERROR__" .. tostring(err)
 end
-      `;
+return table.concat(output_buffer, "\\n")
+    `.trim();
 
-      if (lauxlib.luaL_dostring(this.L, interop.tostring(wrappedCode)) !== lua.LUA_OK) {
-        const error = lua.lua_tostring(this.L, -1);
-        return {
-          output: '',
-          error: `Lua Error: ${interop.tostring(error)}`
-        };
+    try {
+      const status = lauxlib.luaL_dostring(this.L, to_luastring(wrappedCode));
+      if (status !== lua.LUA_OK) {
+        const raw = lua.lua_tostring(this.L, -1);
+        const message = raw ? to_jsstring(raw) : 'Unknown Lua parser/runtime error';
+        lua.lua_settop(this.L, 0);
+        return { output: '', error: `Lua Error: ${message}` };
       }
 
-      // Get output
-      if (lua.lua_gettop(this.L) > 0) {
-        output = interop.tostring(lua.lua_tostring(this.L, -1)) || '';
-        lua.lua_pop(this.L, 1);
+      const raw = lua.lua_tostring(this.L, -1);
+      const result = raw ? to_jsstring(raw) : '';
+      lua.lua_settop(this.L, 0);
+
+      if (result.startsWith('__BIDE_ERROR__')) {
+        return { output: '', error: `Lua Error: ${result.slice('__BIDE_ERROR__'.length)}` };
       }
 
-      const isError = output.startsWith('Error:');
-      onOutput(isError ? '' : output);
-
-      return {
-        output: isError ? '' : output,
-        error: isError ? output : undefined
-      };
+      if (result) onOutput(result);
+      return { output: result };
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      return {
-        output: '',
-        error: `Lua Error: ${errorMsg}`
-      };
+      lua.lua_settop(this.L, 0);
+      const message = error instanceof Error ? error.message : String(error);
+      return { output: '', error: `Lua Error: ${message}` };
     }
   }
 }

@@ -177,10 +177,6 @@ export const CodeEditor = ({
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  // Monaco owns the text while the user is typing. React only pushes a value into
-  // the model when another file/scratch buffer actually replaces the document.
-  // This avoids re-controlling Monaco on every keystroke, which is especially
-  // expensive inside iOS/Android WebViews.
   useEffect(() => {
     const editor = editorRef.current;
     const model = editor?.getModel?.();
@@ -191,9 +187,11 @@ export const CodeEditor = ({
     model.setValue(value || "");
     if (position) {
       const lastLine = Math.max(1, model.getLineCount());
+      const lineNumber = Math.min(position.lineNumber, lastLine);
+      const maxColumn = model.getLineMaxColumn(lineNumber);
       editor.setPosition({
-        lineNumber: Math.min(position.lineNumber, lastLine),
-        column: 1,
+        lineNumber,
+        column: Math.min(position.column, maxColumn),
       });
     }
     syncingExternalValue.current = false;
@@ -218,12 +216,9 @@ export const CodeEditor = ({
       );
     });
 
-    // Do not force contenteditable on Monaco's root, intercept native paste, or
-    // synthesize long-press menus. Monaco already owns its hidden textarea and
-    // those DOM overrides interfere with IME, selection, dictation, and iOS paste.
     requestAnimationFrame(() => {
       editor.layout();
-      editor.focus();
+      if (!isMobile) editor.focus();
     });
   };
 
@@ -241,7 +236,7 @@ export const CodeEditor = ({
       options={{
         automaticLayout: true,
         minimap: { enabled: !isMobile },
-        fontSize: isMobile ? 14 : 14,
+        fontSize: 14,
         fontFamily: "JetBrains Mono, Fira Code, Consolas, Monaco, monospace",
         fontLigatures: !isMobile,
         lineHeight: isMobile ? 24 : 22,
@@ -258,31 +253,34 @@ export const CodeEditor = ({
         formatOnPaste: false,
         formatOnType: false,
         quickSuggestions: isMobile
-          ? { other: true, comments: false, strings: false }
+          ? false
           : { other: true, comments: false, strings: true },
-        quickSuggestionsDelay: isMobile ? 220 : 80,
-        suggestOnTriggerCharacters: true,
+        quickSuggestionsDelay: 80,
+        suggestOnTriggerCharacters: !isMobile,
         acceptSuggestionOnEnter: "smart",
-        tabCompletion: "on",
-        wordBasedSuggestions: "matchingDocuments",
+        tabCompletion: isMobile ? "off" : "on",
+        wordBasedSuggestions: isMobile ? "off" : "matchingDocuments",
+        parameterHints: { enabled: !isMobile },
+        hover: { enabled: !isMobile },
+        links: !isMobile,
         suggest: {
           showKeywords: true,
           showSnippets: true,
           preview: !isMobile,
-          localityBonus: true,
+          localityBonus: !isMobile,
         },
-        bracketPairColorization: { enabled: true },
+        bracketPairColorization: { enabled: !isMobile },
         guides: {
           bracketPairs: !isMobile,
-          indentation: true,
+          indentation: !isMobile,
         },
         stickyScroll: { enabled: !isMobile },
-        selectionHighlight: true,
-        occurrencesHighlight: "singleFile",
+        selectionHighlight: !isMobile,
+        occurrencesHighlight: isMobile ? "off" : "singleFile",
         multiCursorModifier: "ctrlCmd",
         cursorBlinking: isMobile ? "blink" : "smooth",
-        cursorSmoothCaretAnimation: "on",
-        cursorSurroundingLines: 2,
+        cursorSmoothCaretAnimation: isMobile ? "off" : "on",
+        cursorSurroundingLines: isMobile ? 1 : 2,
         renderLineHighlight: isMobile ? "line" : "all",
         renderLineHighlightOnlyWhenFocus: true,
         renderWhitespace: "selection",
@@ -290,7 +288,7 @@ export const CodeEditor = ({
         copyWithSyntaxHighlighting: !isMobile,
         emptySelectionClipboard: false,
         contextmenu: true,
-        padding: { top: 8, bottom: 12 },
+        padding: { top: 8, bottom: isMobile ? 72 : 12 },
         overviewRulerLanes: isMobile ? 0 : 3,
         hideCursorInOverviewRuler: isMobile,
         scrollbar: {
