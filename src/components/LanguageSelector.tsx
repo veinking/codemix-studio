@@ -1,4 +1,4 @@
-import { Code2, ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,240 +18,121 @@ interface LanguageSelectorProps {
   initializedRuntimes: Set<string>;
   loadingRuntimes?: Set<string>;
   isMobile?: boolean;
+  /** Languages fully wired through the current IDE state/execution flow. */
+  enabledLanguages?: SupportedLanguage[];
 }
 
-const EXECUTABLE_LANGUAGES = [
-  { 
-    value: 'python' as const, 
-    label: 'Python', 
-    icon: '🐍',
-    color: 'hsl(var(--chart-1))',
-    availableOn: 'all',
-    executable: true
-  },
-  { 
-    value: 'r' as const, 
-    label: 'R', 
-    icon: '📊',
-    color: 'hsl(var(--chart-2))',
-    availableOn: 'all',
-    executable: true
-  },
-  { 
-    value: 'javascript' as const, 
-    label: 'JavaScript', 
-    icon: '⚡',
-    color: 'hsl(var(--chart-3))',
-    availableOn: 'all',
-    executable: true
-  },
-  { 
-    value: 'sql' as const, 
-    label: 'SQL', 
-    icon: '🗄️',
-    color: 'hsl(var(--chart-4))',
-    availableOn: 'all',
-    executable: true
-  },
-  { 
-    value: 'php' as const, 
-    label: 'PHP', 
-    icon: '🐘',
-    color: 'hsl(var(--chart-5))',
-    availableOn: 'all',
-    executable: true
-  },
-  { 
-    value: 'ruby' as const, 
-    label: 'Ruby', 
-    icon: '💎',
-    color: 'hsl(var(--destructive))',
-    availableOn: 'all',
-    executable: true
-  },
-  { 
-    value: 'lua' as const, 
-    label: 'Lua', 
-    icon: '🌙',
-    color: 'hsl(220, 91%, 60%)',
-    availableOn: 'all',
-    executable: true
-  },
+type LanguageOption = {
+  value: SupportedLanguage;
+  label: string;
+  icon: string;
+  mode: "browser" | "experimental" | "editor";
+};
+
+const LANGUAGES: LanguageOption[] = [
+  { value: "python", label: "Python", icon: "🐍", mode: "browser" },
+  { value: "r", label: "R", icon: "📊", mode: "browser" },
+  { value: "javascript", label: "JavaScript", icon: "⚡", mode: "browser" },
+  { value: "sql", label: "SQL", icon: "🗄️", mode: "browser" },
+  { value: "php", label: "PHP", icon: "🐘", mode: "experimental" },
+  { value: "ruby", label: "Ruby", icon: "💎", mode: "experimental" },
+  { value: "lua", label: "Lua", icon: "🌙", mode: "experimental" },
+  { value: "typescript", label: "TypeScript", icon: "📘", mode: "editor" },
+  { value: "java", label: "Java", icon: "☕", mode: "editor" },
+  { value: "cpp", label: "C++", icon: "⚙️", mode: "editor" },
+  { value: "c", label: "C", icon: "🔧", mode: "editor" },
+  { value: "csharp", label: "C#", icon: "♯", mode: "editor" },
+  { value: "rust", label: "Rust", icon: "🦀", mode: "editor" },
+  { value: "go", label: "Go", icon: "🐹", mode: "editor" },
+  { value: "swift", label: "Swift", icon: "🦅", mode: "editor" },
+  { value: "kotlin", label: "Kotlin", icon: "🅺", mode: "editor" },
 ];
 
-const EDITOR_ONLY_LANGUAGES = [
-  { 
-    value: 'java' as const, 
-    label: 'Java', 
-    icon: '☕',
-    color: 'hsl(25, 95%, 53%)',
-    availableOn: 'all',
-    executable: false
-  },
-  { 
-    value: 'cpp' as const, 
-    label: 'C++', 
-    icon: '⚙️',
-    color: 'hsl(209, 100%, 50%)',
-    availableOn: 'all',
-    executable: false
-  },
-  { 
-    value: 'c' as const, 
-    label: 'C', 
-    icon: '🔧',
-    color: 'hsl(209, 70%, 45%)',
-    availableOn: 'all',
-    executable: false
-  },
-  { 
-    value: 'rust' as const, 
-    label: 'Rust', 
-    icon: '🦀',
-    color: 'hsl(16, 75%, 45%)',
-    availableOn: 'all',
-    executable: false
-  },
-  { 
-    value: 'go' as const, 
-    label: 'Go', 
-    icon: '🐹',
-    color: 'hsl(185, 100%, 40%)',
-    availableOn: 'all',
-    executable: false
-  },
-  { 
-    value: 'swift' as const, 
-    label: 'Swift', 
-    icon: '🦅',
-    color: 'hsl(12, 100%, 50%)',
-    availableOn: 'all',
-    executable: false
-  },
-  { 
-    value: 'kotlin' as const, 
-    label: 'Kotlin', 
-    icon: '🅺',
-    color: 'hsl(268, 100%, 45%)',
-    availableOn: 'all',
-    executable: false
-  },
-  { 
-    value: 'typescript' as const, 
-    label: 'TypeScript', 
-    icon: '📘',
-    color: 'hsl(211, 60%, 48%)',
-    availableOn: 'all',
-    executable: false
-  },
-  { 
-    value: 'csharp' as const, 
-    label: 'C#', 
-    icon: '♯',
-    color: 'hsl(280, 65%, 60%)',
-    availableOn: 'all',
-    executable: false
-  },
-];
+const CURRENTLY_WIRED: SupportedLanguage[] = ["python", "r", "javascript", "sql"];
 
-const ALL_LANGUAGES = [...EXECUTABLE_LANGUAGES, ...EDITOR_ONLY_LANGUAGES];
-
-export const LanguageSelector = ({ 
-  currentLanguage, 
-  onLanguageChange, 
+export const LanguageSelector = ({
+  currentLanguage,
+  onLanguageChange,
   initializedRuntimes,
   loadingRuntimes = new Set(),
-  isMobile = false 
+  isMobile = false,
+  enabledLanguages = CURRENTLY_WIRED,
 }: LanguageSelectorProps) => {
-  const currentLang = ALL_LANGUAGES.find(l => l.value === currentLanguage);
+  const current = LANGUAGES.find((language) => language.value === currentLanguage) || LANGUAGES[0];
+  const enabled = new Set(enabledLanguages);
+  const ready = LANGUAGES.filter((language) => enabled.has(language.value));
+  const coming = LANGUAGES.filter((language) => !enabled.has(language.value));
   const isCurrentLoading = loadingRuntimes.has(currentLanguage);
-  
+
+  const renderOption = (language: LanguageOption, active: boolean) => {
+    const isEnabled = enabled.has(language.value);
+    const isInitialized = initializedRuntimes.has(language.value);
+    const isLoading = loadingRuntimes.has(language.value);
+
+    return (
+      <DropdownMenuItem
+        key={language.value}
+        onClick={() => isEnabled && onLanguageChange(language.value)}
+        disabled={!isEnabled || isLoading}
+        className={`flex items-center justify-between gap-2 ${active ? "bg-accent" : ""} ${isEnabled ? "cursor-pointer" : "cursor-default"}`}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-lg shrink-0">{language.icon}</span>
+          <span className="font-medium truncate">{language.label}</span>
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {isLoading ? (
+            <Loader2 className="w-3 h-3 animate-spin text-primary" />
+          ) : isInitialized && isEnabled ? (
+            <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">Ready</Badge>
+          ) : !isEnabled ? (
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
+              {language.mode === "editor" ? "Editor next" : "Runtime next"}
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">Available</Badge>
+          )}
+        </div>
+      </DropdownMenuItem>
+    );
+  };
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size={isMobile ? "sm" : "default"}
-          className="gap-2 min-w-[140px] justify-between touch-manipulation"
+          className="gap-2 min-w-[132px] justify-between touch-manipulation"
         >
-          <div className="flex items-center gap-2">
-            <span className="text-lg">{currentLang?.icon}</span>
-            <span className="font-medium">{currentLang?.label}</span>
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-lg shrink-0">{current.icon}</span>
+            <span className="font-medium truncate">{current.label}</span>
             {isCurrentLoading ? (
-              <Loader2 className="w-3 h-3 animate-spin text-primary" />
+              <Loader2 className="w-3 h-3 animate-spin text-primary shrink-0" />
             ) : initializedRuntimes.has(currentLanguage) ? (
               <Badge variant="secondary" className="h-4 px-1 text-[10px]">✓</Badge>
             ) : null}
           </div>
-          <ChevronDown className="w-4 h-4 opacity-50" />
+          <ChevronDown className="w-4 h-4 opacity-50 shrink-0" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-[240px] max-h-[400px] overflow-y-auto">
-        <DropdownMenuLabel>Executable Languages</DropdownMenuLabel>
+
+      <DropdownMenuContent align="start" className="w-[250px] max-h-[min(70vh,460px)] overflow-y-auto">
+        <DropdownMenuLabel>Ready in bIDE</DropdownMenuLabel>
         <DropdownMenuGroup>
-          {EXECUTABLE_LANGUAGES.map((lang) => {
-            const isActive = lang.value === currentLanguage;
-            const isInitialized = initializedRuntimes.has(lang.value);
-            const isLoading = loadingRuntimes.has(lang.value);
-            
-            return (
-              <DropdownMenuItem
-                key={lang.value}
-                onClick={() => onLanguageChange(lang.value)}
-                disabled={isLoading}
-                className={`
-                  flex items-center justify-between gap-2 cursor-pointer
-                  ${isActive ? 'bg-accent' : ''}
-                `}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{lang.icon}</span>
-                  <span className="font-medium">{lang.label}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  {isLoading ? (
-                    <Loader2 className="w-3 h-3 animate-spin text-primary" />
-                  ) : isInitialized ? (
-                    <Badge variant="secondary" className="h-4 px-1 text-[10px]">Ready</Badge>
-                  ) : null}
-                </div>
-              </DropdownMenuItem>
-            );
-          })}
+          {ready.map((language) => renderOption(language, language.value === currentLanguage))}
         </DropdownMenuGroup>
-        
+
         <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs text-muted-foreground">
-          Editor Only (No Browser Execution)
-        </DropdownMenuLabel>
+        <DropdownMenuLabel className="text-xs text-muted-foreground">Additional languages</DropdownMenuLabel>
         <DropdownMenuGroup>
-          {EDITOR_ONLY_LANGUAGES.map((lang) => {
-            const isActive = lang.value === currentLanguage;
-            
-            return (
-              <DropdownMenuItem
-                key={lang.value}
-                onClick={() => onLanguageChange(lang.value)}
-                className={`
-                  flex items-center justify-between gap-2 cursor-pointer
-                  ${isActive ? 'bg-accent' : ''}
-                `}
-              >
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{lang.icon}</span>
-                  <span className="font-medium">{lang.label}</span>
-                </div>
-                <Badge variant="outline" className="h-4 px-1 text-[10px]">Editor</Badge>
-              </DropdownMenuItem>
-            );
-          })}
+          {coming.map((language) => renderOption(language, language.value === currentLanguage))}
         </DropdownMenuGroup>
-        
+
         <DropdownMenuSeparator />
-        <div className="px-2 py-1.5 text-xs text-muted-foreground">
-          {currentLang?.executable 
-            ? '✓ Full execution • Code auto-saves' 
-            : '📝 Syntax highlighting only • Export to compile'}
+        <div className="px-2 py-2 text-xs leading-5 text-muted-foreground">
+          Languages are only enabled here after the editor, file model, runtime, and error handling are wired end-to-end. This prevents a selectable language from failing after you start typing.
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
