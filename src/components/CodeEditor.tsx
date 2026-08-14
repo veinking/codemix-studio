@@ -172,15 +172,40 @@ export const CodeEditor = ({
   const editorRef = useRef<any>(null);
   const onChangeRef = useRef(onChange);
   const syncingExternalValue = useRef(false);
+  const pendingChangeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingValue = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
 
+  const flushPendingChange = () => {
+    if (pendingChangeTimer.current) {
+      clearTimeout(pendingChangeTimer.current);
+      pendingChangeTimer.current = null;
+    }
+    if (pendingValue.current === undefined) return;
+    const nextValue = pendingValue.current;
+    pendingValue.current = undefined;
+    onChangeRef.current(nextValue);
+  };
+
+  useEffect(() => {
+    return () => {
+      flushPendingChange();
+    };
+  }, []);
+
   useEffect(() => {
     const editor = editorRef.current;
     const model = editor?.getModel?.();
     if (!model || model.getValue() === value) return;
+
+    if (pendingChangeTimer.current) {
+      clearTimeout(pendingChangeTimer.current);
+      pendingChangeTimer.current = null;
+    }
+    pendingValue.current = undefined;
 
     syncingExternalValue.current = true;
     const position = editor.getPosition?.();
@@ -229,7 +254,14 @@ export const CodeEditor = ({
       language={language}
       defaultValue={value}
       onChange={(nextValue) => {
-        if (!syncingExternalValue.current) onChangeRef.current(nextValue);
+        if (syncingExternalValue.current) return;
+
+        pendingValue.current = nextValue ?? "";
+        if (pendingChangeTimer.current) clearTimeout(pendingChangeTimer.current);
+        pendingChangeTimer.current = setTimeout(
+          flushPendingChange,
+          isMobile ? 90 : 35,
+        );
       }}
       onMount={handleEditorMount}
       theme="vs-dark"
@@ -284,7 +316,7 @@ export const CodeEditor = ({
         renderLineHighlight: isMobile ? "line" : "all",
         renderLineHighlightOnlyWhenFocus: true,
         renderWhitespace: "selection",
-        renderValidationDecorations: "on",
+        renderValidationDecorations: isMobile ? "off" : "on",
         copyWithSyntaxHighlighting: !isMobile,
         emptySelectionClipboard: false,
         contextmenu: true,
