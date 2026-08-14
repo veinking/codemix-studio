@@ -76,7 +76,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    const { data, error } = await supabase.rpc('get_my_entitlements');
+    // The checked-in generated types predate the shared PocketBI entitlement RPC.
+    // Keep this cast isolated here until types are regenerated from the canonical schema.
+    const { data, error } = await (supabase.rpc as any)('get_my_entitlements');
     if (error) {
       console.error('[AUTH] Entitlement refresh failed:', error);
       setEntitlements([]);
@@ -84,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    setEntitlements((data || []) as unknown as EntitlementRow[]);
+    setEntitlements((data || []) as EntitlementRow[]);
     setEntitlementError(false);
   };
 
