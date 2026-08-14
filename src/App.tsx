@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import IDE from "./pages/IDE";
+import RuntimeLab from "./pages/RuntimeLab";
 import SharedCode from "./pages/SharedCode";
 import NotFound from "./pages/NotFound";
 import Features from "./pages/Features";
@@ -56,6 +57,7 @@ const App = () => {
               <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/ide" element={<IDE />} />
+              <Route path="/runtime-lab" element={<RuntimeLab />} />
               <Route path="/features" element={<Features />} />
               <Route path="/tutorials" element={<Tutorials />} />
               <Route path="/auth" element={<Auth />} />
