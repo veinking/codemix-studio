@@ -5,6 +5,12 @@ export interface RuntimeConfig {
   color: string;
   supportsPackages: boolean;
   availableOn: 'all' | 'desktop' | 'mobile';
+  /**
+   * Whether bIDE can execute this language inside the product or only edit it.
+   * Optional for backward compatibility; existing concrete runtimes are treated
+   * as browser runtimes unless they explicitly mark themselves editor-only.
+   */
+  executionMode?: 'browser' | 'editor-only';
 }
 
 export interface Dataset {
