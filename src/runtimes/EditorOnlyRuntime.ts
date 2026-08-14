@@ -3,45 +3,33 @@ import { RuntimeExecutor, RuntimeConfig, ExecutionResult } from './RuntimeInterf
 /**
  * Generic runtime for languages that only have editor support (syntax highlighting)
  * but cannot execute in the browser without compilation.
- * Used for: Java, C, C++, Rust, Go, Swift, Kotlin, TypeScript (needs compilation), etc.
+ * Used for: Java, C, C++, Rust, Go, Swift, Kotlin, TypeScript, C#, etc.
  */
 export class EditorOnlyRuntime implements RuntimeExecutor {
   config: RuntimeConfig;
-  isInitialized = true; // Always initialized since it's editor-only
+  isInitialized = true;
 
   constructor(config: RuntimeConfig) {
     this.config = {
       ...config,
       supportsPackages: false,
-      availableOn: 'all'
+      availableOn: 'all',
+      executionMode: 'editor-only',
     };
   }
 
   async initialize(_isMobile: boolean): Promise<void> {
-    // No initialization needed for editor-only
     this.isInitialized = true;
   }
 
   async execute(_code: string, onOutput: (text: string) => void): Promise<ExecutionResult> {
     const message = `⚠️ ${this.config.displayName} execution is not supported in the browser.\n\n` +
-      `This language requires compilation before execution. ` +
-      `You can use the editor to write and download your ${this.config.displayName} code, ` +
-      `but it must be compiled externally to run.\n\n` +
-      `Features available:\n` +
-      `✓ Syntax highlighting\n` +
-      `✓ Code editing\n` +
-      `✓ AI assistance\n` +
-      `✓ Code translation\n` +
-      `✓ File export\n\n` +
-      `To execute this code, download it and use:\n` +
-      this.getExecutionInstructions();
+      `You can still write, edit, translate, and export ${this.config.displayName} code in bIDE. ` +
+      `Running it currently requires an external compiler/interpreter.\n\n` +
+      `To execute this code externally:\n${this.getExecutionInstructions()}`;
 
     onOutput(message);
-    
-    return {
-      output: message,
-      error: undefined
-    };
+    return { output: message };
   }
 
   private getExecutionInstructions(): string {
@@ -63,7 +51,7 @@ export class EditorOnlyRuntime implements RuntimeExecutor {
       case 'typescript':
         return '• tsc yourfile.ts && node yourfile.js';
       case 'csharp':
-        return '• csc yourfile.cs && mono yourfile.exe';
+        return '• dotnet run (recommended) or compile with your installed C# toolchain';
       default:
         return `• Use a ${this.config.displayName} compiler/interpreter on your system`;
     }
