@@ -3,7 +3,11 @@ import { useEffect, useRef, useState } from "react";
 const DB_NAME = "bIDE";
 const STORE_NAME = "files";
 const DB_VERSION = 1;
-const WRITE_INTERVAL_MS = 350;
+// Monaco already owns the in-memory editing buffer. Persisting several times per
+// second only adds IndexedDB/structured-clone pressure, especially on iOS. Keep
+// the latest edit and flush at most about once every 700ms; pagehide/visibility
+// handlers below still force pending writes before the page is backgrounded.
+const WRITE_INTERVAL_MS = 700;
 
 export interface StoredFile {
   id: string;
