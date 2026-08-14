@@ -18,11 +18,40 @@ export type SupportedLanguage =
   | 'typescript'
   | 'csharp';
 
+const NORMALIZED_EXECUTE = Symbol('bide.normalizedExecute');
+
+type NormalizedRuntime = RuntimeExecutor & {
+  [NORMALIZED_EXECUTE]?: boolean;
+};
+
+function normalizeRuntimeExecution(runtime: RuntimeExecutor): RuntimeExecutor {
+  const managed = runtime as NormalizedRuntime;
+  if (managed[NORMALIZED_EXECUTE]) return runtime;
+
+  const execute = runtime.execute.bind(runtime);
+
+  // The current IDE success path assumes execute() rejects when execution fails.
+  // Several browser runtimes historically returned { error } instead, which made
+  // the UI print an error and then immediately print "Execution completed ✓".
+  // Normalize that contract in one place without hiding runtime-specific methods
+  // such as PythonRuntime.writeCSVToFS().
+  runtime.execute = async (code, onOutput) => {
+    const result = await execute(code, onOutput);
+    if (result.error) {
+      throw new Error(result.error);
+    }
+    return result;
+  };
+
+  managed[NORMALIZED_EXECUTE] = true;
+  return runtime;
+}
+
 export class RuntimeRegistry {
   private static runtimes = new Map<string, RuntimeExecutor>();
 
   static register(runtime: RuntimeExecutor): void {
-    this.runtimes.set(runtime.config.name, runtime);
+    this.runtimes.set(runtime.config.name, normalizeRuntimeExecution(runtime));
   }
 
   static get(language: string): RuntimeExecutor | undefined {
