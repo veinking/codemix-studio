@@ -1,12 +1,12 @@
 import { RuntimeExecutor, RuntimeConfig } from './RuntimeInterface';
 
-export type SupportedLanguage = 
-  | 'python' 
-  | 'r' 
-  | 'javascript' 
-  | 'sql' 
-  | 'php' 
-  | 'ruby' 
+export type SupportedLanguage =
+  | 'python'
+  | 'r'
+  | 'javascript'
+  | 'sql'
+  | 'php'
+  | 'ruby'
   | 'lua'
   | 'java'
   | 'cpp'
@@ -30,20 +30,21 @@ export class RuntimeRegistry {
   }
 
   static getAllLanguages(): RuntimeConfig[] {
-    return Array.from(this.runtimes.values()).map(r => r.config);
+    return Array.from(this.runtimes.values()).map((runtime) => runtime.config);
   }
 
   static getAvailableOnDevice(isMobile: boolean): RuntimeConfig[] {
-    return this.getAllLanguages().filter(cfg => 
-      cfg.availableOn === 'all' || 
-      (isMobile ? cfg.availableOn === 'mobile' : cfg.availableOn === 'desktop')
+    return this.getAllLanguages().filter((config) =>
+      config.availableOn === 'all' ||
+      (isMobile ? config.availableOn === 'mobile' : config.availableOn === 'desktop')
     );
   }
 
   static detectLanguage(filename: string): string | undefined {
+    const normalized = filename.toLowerCase();
     for (const runtime of this.runtimes.values()) {
-      const ext = runtime.config.fileExtensions.find(e => filename.endsWith(e));
-      if (ext) return runtime.config.name;
+      const extension = runtime.config.fileExtensions.find((value) => normalized.endsWith(value.toLowerCase()));
+      if (extension) return runtime.config.name;
     }
     return undefined;
   }
@@ -55,6 +56,7 @@ export class RuntimeRegistry {
 
   static isExecutableRuntime(language: string): boolean {
     const runtime = this.get(language);
-    return runtime?.config.supportsPackages !== undefined;
+    if (!runtime) return false;
+    return runtime.config.executionMode !== 'editor-only';
   }
 }
