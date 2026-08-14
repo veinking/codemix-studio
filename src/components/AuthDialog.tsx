@@ -19,9 +19,15 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [activeTab, setActiveTab] = useState<"login" | "signup" | "reset">("login");
   const { toast } = useToast();
   const isMobile = useIsMobile();
+
+  const clearPasswords = () => {
+    setPassword("");
+    setConfirmPassword("");
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,20 +35,20 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) throw error;
 
       toast({
-        title: "Welcome back!",
-        description: "You've successfully signed in.",
+        title: "Welcome back",
+        description: "Your PocketBI ID is signed in to bIDE.",
       });
-      
+
       onOpenChange(false);
       setEmail("");
-      setPassword("");
+      clearPasswords();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -56,29 +62,48 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Passwords do not match",
+        description: "Enter the same password twice before creating your PocketBI ID.",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/ide`,
+        },
       });
 
       if (error) throw error;
 
-      toast({
-        title: "Account created!",
-        description: "Welcome to bIDE. You're now signed in.",
-      });
-      
-      onOpenChange(false);
-      setEmail("");
-      setPassword("");
+      if (data.session) {
+        toast({
+          title: "PocketBI ID created",
+          description: "You're signed in and can continue in bIDE.",
+        });
+        onOpenChange(false);
+        setEmail("");
+      } else {
+        toast({
+          title: "Check your email",
+          description: "Your PocketBI ID was created. Confirm the email if requested, then sign in here.",
+        });
+        setActiveTab("login");
+      }
+      clearPasswords();
     } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Sign up failed",
-        description: error.message || "Could not create account",
+        description: error.message || "Could not create PocketBI ID",
       });
     } finally {
       setIsLoading(false);
@@ -91,8 +116,8 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
 
     try {
       const redirectUrl = `${window.location.origin}/ide`;
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
         redirectTo: redirectUrl,
       });
 
@@ -102,10 +127,10 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         title: "Check your email",
         description: "We've sent you a password reset link. Click it to set a new password.",
       });
-      
-      // Switch back to login tab after successful request
+
       setActiveTab("login");
       setEmail("");
+      clearPasswords();
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -121,12 +146,17 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     onOpenChange(false);
     toast({
       title: "Continuing as guest",
-      description: "Sign in anytime to save your work and access premium features.",
+      description: "You can sign in with PocketBI ID later when you want account-backed features.",
     });
   };
 
+  const changeTab = (value: string) => {
+    setActiveTab(value as "login" | "signup" | "reset");
+    clearPasswords();
+  };
+
   const authForm = (
-    <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "login" | "signup" | "reset")} className="w-full">
+    <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
       <TabsList className="grid w-full grid-cols-2">
         <TabsTrigger value="login">Sign In</TabsTrigger>
         <TabsTrigger value="signup">Sign Up</TabsTrigger>
@@ -136,46 +166,16 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="login-email">Email</Label>
-            <Input
-              id="login-email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+            <Input id="login-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="login-password">Password</Label>
-            <Input
-              id="login-password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+            <Input id="login-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required disabled={isLoading} />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </>
-            ) : (
-              "Sign In"
-            )}
+            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : "Sign In"}
           </Button>
-          <Button
-            type="button"
-            variant="link"
-            size="sm"
-            onClick={() => setActiveTab("reset")}
-            disabled={isLoading}
-            className="text-xs text-muted-foreground hover:text-primary"
-          >
+          <Button type="button" variant="link" size="sm" onClick={() => changeTab("reset")} disabled={isLoading} className="text-xs text-muted-foreground hover:text-primary">
             Forgot password?
           </Button>
         </form>
@@ -185,38 +185,18 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         <form onSubmit={handleSignup} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="signup-email">Email</Label>
-            <Input
-              id="signup-email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+            <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="signup-password">Password</Label>
-            <Input
-              id="signup-password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={isLoading}
-              minLength={6}
-            />
+            <Input id="signup-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required disabled={isLoading} minLength={8} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="signup-confirm-password">Confirm password</Label>
+            <Input id="signup-confirm-password" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" required disabled={isLoading} minLength={8} />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Creating account...
-              </>
-            ) : (
-              "Create Account"
-            )}
+            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : "Create PocketBI ID"}
           </Button>
         </form>
       </TabsContent>
@@ -225,34 +205,12 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
         <form onSubmit={handlePasswordReset} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="reset-email">Email</Label>
-            <Input
-              id="reset-email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={isLoading}
-            />
+            <Input id="reset-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading} />
           </div>
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending reset link...
-              </>
-            ) : (
-              "Send Reset Link"
-            )}
+            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending reset link...</> : "Send Reset Link"}
           </Button>
-          <Button
-            type="button"
-            variant="link"
-            size="sm"
-            onClick={() => setActiveTab("login")}
-            disabled={isLoading}
-            className="w-full text-xs text-muted-foreground hover:text-primary"
-          >
+          <Button type="button" variant="link" size="sm" onClick={() => changeTab("login")} disabled={isLoading} className="w-full text-xs text-muted-foreground hover:text-primary">
             Back to sign in
           </Button>
         </form>
@@ -262,36 +220,23 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
 
   const footer = (
     <div className="mt-4 pt-4 border-t border-border">
-      <Button
-        variant="ghost"
-        className="w-full"
-        onClick={handleContinueAsGuest}
-        disabled={isLoading}
-      >
+      <Button variant="ghost" className="w-full" onClick={handleContinueAsGuest} disabled={isLoading}>
         Continue as Guest
       </Button>
     </div>
   );
 
+  const title = activeTab === "reset" ? "Reset Password" : "PocketBI ID for bIDE";
+  const description = activeTab === "reset"
+    ? "Enter your email to receive a password reset link"
+    : "Use one PocketBI identity across the product family, or keep coding as a guest.";
+
   if (isMobile) {
     return (
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent>
-          <DrawerHeader>
-            <DrawerTitle>
-              {activeTab === "reset" ? "Reset Password" : "Welcome to bIDE"}
-            </DrawerTitle>
-            <DrawerDescription>
-              {activeTab === "reset"
-                ? "Enter your email to receive a password reset link"
-                : "Sign in to save your work and unlock premium features"
-              }
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className="px-4 pb-8">
-            {authForm}
-            {activeTab !== "reset" && footer}
-          </div>
+          <DrawerHeader><DrawerTitle>{title}</DrawerTitle><DrawerDescription>{description}</DrawerDescription></DrawerHeader>
+          <div className="px-4 pb-8">{authForm}{activeTab !== "reset" && footer}</div>
         </DrawerContent>
       </Drawer>
     );
@@ -300,17 +245,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {activeTab === "reset" ? "Reset Password" : "Welcome to bIDE"}
-          </DialogTitle>
-          <DialogDescription>
-            {activeTab === "reset" 
-              ? "Enter your email to receive a password reset link"
-              : "Sign in to save your work and unlock premium features"
-            }
-          </DialogDescription>
-        </DialogHeader>
+        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
         {authForm}
         {activeTab !== "reset" && footer}
       </DialogContent>

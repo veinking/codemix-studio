@@ -13,19 +13,20 @@ import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
-  const mode = searchParams.get('mode') || 'login';
+  const requestedMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
+  const [activeTab, setActiveTab] = useState<'login' | 'signup'>(requestedMode);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
   const { toast } = useToast();
-  
+
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.auth);
-    
-    // Add noindex meta tag to prevent indexing of auth pages
+
     let metaRobots = document.querySelector('meta[name="robots"]') as HTMLMetaElement;
     if (!metaRobots) {
       metaRobots = document.createElement('meta');
@@ -33,104 +34,115 @@ const Auth = () => {
       document.head.appendChild(metaRobots);
     }
     metaRobots.setAttribute('content', 'noindex, nofollow');
-    
+
     return () => {
-      // Clean up - restore default robots behavior
-      if (metaRobots) {
-        metaRobots.setAttribute('content', 'index, follow');
-      }
+      if (metaRobots) metaRobots.setAttribute('content', 'index, follow');
     };
   }, []);
-  
-  // Redirect if already logged in (but not if still loading)
+
   useEffect(() => {
     if (!isLoading && user) {
-      console.log('[AUTH] User already logged in, redirecting to IDE');
       navigate('/ide', { replace: true });
     }
   }, [user, isLoading, navigate]);
-  
-  // Don't render auth form if we're loading or already have a user
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  if (user) {
-    return null; // Will redirect via useEffect
-  }
-  
+
+  const clearPasswords = () => {
+    setPassword('');
+    setConfirmPassword('');
+  };
+
+  const changeTab = (value: string) => {
+    setActiveTab(value === 'signup' ? 'signup' : 'login');
+    clearPasswords();
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
-      
+
       if (error) throw error;
-      
+
       toast({
-        title: 'Welcome back!',
-        description: 'Successfully logged in',
+        title: 'Welcome back',
+        description: 'Your PocketBI ID is signed in to bIDE.',
       });
-      
+      clearPasswords();
       navigate('/ide');
     } catch (error: any) {
       toast({
         title: 'Login failed',
-        description: error.message,
+        description: error.message || 'Invalid email or password',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Passwords do not match',
+        description: 'Enter the same password twice before creating your PocketBI ID.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
-    
+
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
           data: {
-            full_name: fullName,
+            full_name: fullName.trim(),
           },
           emailRedirectTo: `${window.location.origin}/ide`,
         },
       });
-      
+
       if (error) throw error;
-      
-      toast({
-        title: 'Account created!',
-        description: 'Welcome to bIDE. You now have 3 AI uses every 5 days.',
-      });
-      
-      navigate('/ide');
+
+      clearPasswords();
+
+      if (data.session) {
+        toast({
+          title: 'PocketBI ID created',
+          description: 'Your account is ready and signed in to bIDE.',
+        });
+        navigate('/ide');
+      } else {
+        toast({
+          title: 'Check your email',
+          description: 'Your PocketBI ID was created. Confirm the email if requested, then sign in here.',
+        });
+        setActiveTab('login');
+      }
     } catch (error: any) {
       toast({
         title: 'Signup failed',
-        description: error.message,
+        description: error.message || 'Could not create PocketBI ID',
         variant: 'destructive',
       });
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handleGuestContinue = () => {
     navigate('/ide');
   };
-  
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted">
@@ -138,7 +150,9 @@ const Auth = () => {
       </div>
     );
   }
-  
+
+  if (user) return null;
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
       <Card className="w-full max-w-md">
@@ -146,19 +160,19 @@ const Auth = () => {
           <div className="flex justify-center mb-4">
             <Code2 className="h-12 w-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Welcome to bIDE</CardTitle>
+          <CardTitle className="text-2xl">PocketBI ID for bIDE</CardTitle>
           <CardDescription>
-            Your browser-based coding environment for Python & R
+            Sign in once for account-backed bIDE features, or keep coding locally as a guest.
           </CardDescription>
         </CardHeader>
-        
+
         <CardContent>
-          <Tabs defaultValue={mode} className="w-full">
+          <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="signup">Sign Up</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="login" className="space-y-4 mt-4">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
@@ -169,6 +183,7 @@ const Auth = () => {
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -180,16 +195,17 @@ const Auth = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="current-password"
                     required
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Log In
+                  Sign In
                 </Button>
               </form>
             </TabsContent>
-            
+
             <TabsContent value="signup" className="space-y-4 mt-4">
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="space-y-2">
@@ -197,9 +213,10 @@ const Auth = () => {
                   <Input
                     id="signup-name"
                     type="text"
-                    placeholder="John Doe"
+                    placeholder="Your name"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
+                    autoComplete="name"
                     required
                   />
                 </div>
@@ -211,6 +228,7 @@ const Auth = () => {
                     placeholder="your@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
+                    autoComplete="email"
                     required
                   />
                 </div>
@@ -222,8 +240,22 @@ const Auth = () => {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
                     required
-                    minLength={6}
+                    minLength={8}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm-password">Confirm password</Label>
+                  <Input
+                    id="signup-confirm-password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    autoComplete="new-password"
+                    required
+                    minLength={8}
                   />
                 </div>
                 <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
@@ -240,32 +272,28 @@ const Auth = () => {
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  Create Free Account
+                  Create PocketBI ID
                 </Button>
               </form>
             </TabsContent>
           </Tabs>
         </CardContent>
-        
+
         <CardFooter className="flex flex-col gap-4">
           <div className="relative w-full">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
             </div>
             <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue as
-              </span>
+              <span className="bg-card px-2 text-muted-foreground">Or</span>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={handleGuestContinue}
-          >
+          <Button variant="outline" className="w-full" onClick={handleGuestContinue}>
             Continue as Guest
-            <span className="ml-2 text-xs text-muted-foreground">(3 AI uses/day)</span>
           </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            bIDE is a browser coding and data workspace across PocketBI-supported runtimes.
+          </p>
         </CardFooter>
       </Card>
     </div>
