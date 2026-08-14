@@ -70,7 +70,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const guestFingerprint = isGuest ? getGuestFingerprint() : null;
 
   const refreshEntitlements = async () => {
-    if (!isSupabaseConfigured || !user) {
+    if (!isSupabaseConfigured) {
       setEntitlements([]);
       setEntitlementError(false);
       return;
@@ -200,16 +200,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       if (currentSession?.user) {
-        setUser(currentSession.user);
-        await fetchProfile(currentSession.user.id);
-        const { data, error } = await supabase.rpc('get_my_entitlements');
-        if (error) {
-          setEntitlementError(true);
-          setEntitlements([]);
-        } else {
-          setEntitlementError(false);
-          setEntitlements((data || []) as unknown as EntitlementRow[]);
-        }
+        await Promise.all([fetchProfile(currentSession.user.id), refreshEntitlements()]);
       }
       setIsLoading(false);
     });
