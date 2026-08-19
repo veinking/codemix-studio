@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import Landing from "./pages/Landing";
 import IDE from "./pages/IDE";
+import PocketBIHandoff from "./pages/PocketBIHandoff";
 import RuntimeLab from "./pages/RuntimeLab";
 import SharedCode from "./pages/SharedCode";
 import NotFound from "./pages/NotFound";
@@ -57,6 +58,7 @@ const App = () => {
               <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/ide" element={<IDE />} />
+              <Route path="/pocketbi-handoff" element={<PocketBIHandoff />} />
               <Route path="/runtime-lab" element={<RuntimeLab />} />
               <Route path="/features" element={<Features />} />
               <Route path="/tutorials" element={<Tutorials />} />
@@ -68,20 +70,12 @@ const App = () => {
               <Route path="/support" element={<Support />} />
               <Route path="/testimonials" element={<Testimonials />} />
               <Route path="/share/:shortId" element={<SharedCode />} />
-              
-              {/* Use Case Pages */}
               <Route path="/use-cases/data-science-students" element={<DataScienceStudents />} />
               <Route path="/use-cases/statistics-r-programming" element={<StatisticsR />} />
               <Route path="/use-cases/mobile-coding" element={<MobileCoding />} />
-              
-              {/* Comparison Pages */}
               <Route path="/comparisons/bide-vs-google-colab" element={<VsGoogleColab />} />
               <Route path="/comparisons/openide-vs-google-colab" element={<VsGoogleColab />} />
-              
-              {/* Blog */}
               <Route path="/blog" element={<BlogIndex />} />
-              
-              {/* Documentation */}
               <Route path="/docs" element={<DocsIndex />} />
               <Route path="/docs/python" element={<PythonDocs />} />
               <Route path="/docs/r" element={<RDocs />} />
@@ -99,7 +93,6 @@ const App = () => {
               <Route path="/docs/swift" element={<SwiftDocs />} />
               <Route path="/docs/kotlin" element={<KotlinDocs />} />
               <Route path="/docs/csharp" element={<CSharpDocs />} />
-              
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
