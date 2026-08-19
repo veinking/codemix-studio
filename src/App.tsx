@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import DatasetCompletionBootstrap from "./components/DatasetCompletionBootstrap";
 import Landing from "./pages/Landing";
 import IDE from "./pages/IDE";
 import PocketBIHandoff from "./pages/PocketBIHandoff";
@@ -55,6 +56,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
+              <DatasetCompletionBootstrap />
               <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/ide" element={<IDE />} />
