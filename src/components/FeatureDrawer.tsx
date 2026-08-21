@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { BarChart3, BookOpen, Cloud, Database, KeyRound, Library, Package, Wrench, X } from "lucide-react";
 import {
   Drawer,
   DrawerClose,
@@ -8,7 +9,6 @@ import {
   DrawerTitle,
 } from "@/components/ui/drawer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sparkles, Package, Database, BrainCircuit, GraduationCap, Coffee, X, Sparkles as SparklesAlt, Cloud, BookOpen, Wrench, Languages, BarChart3, Library, FileDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -41,296 +41,112 @@ export const FeatureDrawer = ({
   packageManager,
   dataLab,
   dataOperations,
-  mlOperations,
-  labTrainer,
-  about,
-  recipeGallery,
   workspaceManager,
   onToggleNotebook,
   isNotebookMode,
-  onOpenTranslate,
   onOpenPlotBuilder,
   onOpenTemplates,
-  onOpenRTemplates,
-  onExportPortfolio,
-  currentLanguage = 'python',
 }: FeatureDrawerProps) => {
+  const closeThen = (action?: () => void) => () => {
+    action?.();
+    onOpenChange(false);
+  };
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="h-[80vh] pb-safe">
-        <DrawerHeader className="border-b border-border">
+      <DrawerContent className="h-[76vh] pb-safe">
+        <DrawerHeader className="border-b border-border px-4 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <DrawerTitle>Tools & Features</DrawerTitle>
-              <DrawerDescription>
-                AI assistance, packages, data operations, and learning tools
-              </DrawerDescription>
+            <div className="text-left">
+              <DrawerTitle>Workspace tools</DrawerTitle>
+              <DrawerDescription>Secondary tools stay here so the editor stays focused.</DrawerDescription>
             </div>
             <DrawerClose asChild>
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" className="h-9 w-9">
                 <X className="h-4 w-4" />
               </Button>
             </DrawerClose>
           </div>
         </DrawerHeader>
 
-        <Tabs defaultValue="tools" className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="w-full justify-start border-b rounded-none bg-background px-4">
-            <TabsTrigger value="tools" className="flex items-center gap-2">
-              <Wrench className="h-4 w-4" />
-              <span className="hidden sm:inline">Tools</span>
+        <Tabs defaultValue="data" className="flex min-h-0 flex-1 flex-col">
+          <TabsList className="h-12 w-full justify-start gap-1 rounded-none border-b bg-background px-3">
+            <TabsTrigger value="data" className="gap-1.5 text-xs">
+              <Database className="h-4 w-4" /> Data
             </TabsTrigger>
-            <TabsTrigger value="ai" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">AI</span>
+            <TabsTrigger value="packages" className="gap-1.5 text-xs">
+              <Package className="h-4 w-4" /> Packages
             </TabsTrigger>
-            <TabsTrigger value="packages" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Packages</span>
+            <TabsTrigger value="assist" className="gap-1.5 text-xs">
+              <KeyRound className="h-4 w-4" /> Assist
             </TabsTrigger>
-            <TabsTrigger value="data" className="flex items-center gap-2">
-              <Database className="h-4 w-4" />
-              <span className="hidden sm:inline">Data</span>
-            </TabsTrigger>
-            <TabsTrigger value="ml" className="flex items-center gap-2">
-              <BrainCircuit className="h-4 w-4" />
-              <span className="hidden sm:inline">ML</span>
-            </TabsTrigger>
-            <TabsTrigger value="learn" className="flex items-center gap-2">
-              <GraduationCap className="h-4 w-4" />
-              <span className="hidden sm:inline">Learn</span>
-            </TabsTrigger>
-            {recipeGallery && (
-              <TabsTrigger value="recipes" className="flex items-center gap-2">
-                <SparklesAlt className="h-4 w-4" />
-                <span className="hidden sm:inline">Recipes</span>
-              </TabsTrigger>
-            )}
-            {workspaceManager && (
-              <TabsTrigger value="cloud" className="flex items-center gap-2">
-                <Cloud className="h-4 w-4" />
-                <span className="hidden sm:inline">Cloud</span>
-              </TabsTrigger>
-            )}
-            <TabsTrigger value="about" className="flex items-center gap-2">
-              <Coffee className="h-4 w-4" />
-              <span className="hidden sm:inline">About</span>
+            <TabsTrigger value="more" className="gap-1.5 text-xs">
+              <Wrench className="h-4 w-4" /> More
             </TabsTrigger>
           </TabsList>
 
-          <div className="flex-1 overflow-y-auto p-4">
-            <TabsContent value="tools" className="mt-0 space-y-3">
-              {/* Translate Code */}
-              {onOpenTranslate && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <Languages className="w-5 h-5 text-blue-500" />
-                      <CardTitle className="text-base">Translate Code</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs">
-                      Convert code between Python, R, JavaScript, and more
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {
-                        onOpenTranslate();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <Languages className="w-4 h-4 mr-2" />
-                      Open Translator
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Plot Builder */}
-              {onOpenPlotBuilder && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5 text-purple-500" />
-                      <CardTitle className="text-base">Plot Builder</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs">
-                      Create charts and visualizations with guided wizard
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {
-                        onOpenPlotBuilder();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Open Plot Builder
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Templates */}
-              {onOpenTemplates && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <Library className="w-5 h-5 text-green-500" />
-                      <CardTitle className="text-base">Code Templates</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs">
-                      Quick-start code snippets for common tasks
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {
-                        onOpenTemplates();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <Library className="w-4 h-4 mr-2" />
-                      Browse Templates
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* R Templates (conditional) */}
-              {onOpenRTemplates && currentLanguage === 'r' && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5 text-blue-600" />
-                      <CardTitle className="text-base">R Templates</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs">
-                      Statistical analysis templates for R
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {
-                        onOpenRTemplates();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <BarChart3 className="w-4 h-4 mr-2" />
-                      Browse R Templates
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Portfolio Export */}
-              {onExportPortfolio && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <FileDown className="w-5 h-5 text-orange-500" />
-                      <CardTitle className="text-base">Export Portfolio</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs">
-                      Generate PDF/HTML portfolio of your projects
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Button
-                      onClick={() => {
-                        onExportPortfolio();
-                        onOpenChange(false);
-                      }}
-                      variant="outline"
-                      className="w-full"
-                      size="sm"
-                    >
-                      <FileDown className="w-4 h-4 mr-2" />
-                      Export Portfolio
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+          <div className="tools-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
+            <TabsContent value="data" className="mt-0 space-y-5">
+              {dataLab}
+              <div className="border-t border-border pt-4">{dataOperations}</div>
             </TabsContent>
-            
-            <TabsContent value="ai" className="mt-0 space-y-4">
-              {/* Notebook Mode Feature Card */}
-              {onToggleNotebook && (
-                <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-accent/10">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <BookOpen className="w-5 h-5 text-primary" />
-                      <CardTitle className="text-base">Notebook Mode</CardTitle>
-                    </div>
-                    <CardDescription className="text-xs">
-                      Jupyter-style interactive coding with cells
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    <p className="text-sm text-muted-foreground">
-                      {isNotebookMode 
-                        ? "You're currently in Notebook Mode. Mix code and documentation in cells."
-                        : "Switch to Notebook Mode for a Jupyter-like experience with executable code cells and markdown documentation."}
-                    </p>
-                    <Button
-                      onClick={() => {
-                        onToggleNotebook();
-                        onOpenChange(false);
-                      }}
-                      variant={isNotebookMode ? "outline" : "default"}
-                      className="w-full"
-                      size="sm"
-                    >
-                      <BookOpen className="w-4 h-4 mr-2" />
-                      {isNotebookMode ? 'Exit Notebook Mode' : 'Enable Notebook Mode'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-              
-              {aiAssistant}
-            </TabsContent>
+
             <TabsContent value="packages" className="mt-0">
               {packageManager}
             </TabsContent>
-            <TabsContent value="data" className="mt-0 space-y-4">
-              {dataLab}
-              <div className="pt-4 border-t border-border">
-                <h3 className="text-sm font-semibold mb-3">Quick Operations</h3>
-                {dataOperations}
-              </div>
+
+            <TabsContent value="assist" className="mt-0">
+              {aiAssistant}
             </TabsContent>
-            <TabsContent value="ml" className="mt-0">
-              {mlOperations}
-            </TabsContent>
-            <TabsContent value="learn" className="mt-0">
-              {labTrainer}
-            </TabsContent>
-            {recipeGallery && (
-              <TabsContent value="recipes" className="mt-0">
-                {recipeGallery}
-              </TabsContent>
-            )}
-            {workspaceManager && (
-              <TabsContent value="cloud" className="mt-0">
-                {workspaceManager}
-              </TabsContent>
-            )}
-            <TabsContent value="about" className="mt-0">
-              {about}
+
+            <TabsContent value="more" className="mt-0 grid gap-3">
+              {onToggleNotebook && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm"><BookOpen className="h-4 w-4" /> Notebook</CardTitle>
+                    <CardDescription>Switch between the lightweight editor and executable cells.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button variant="outline" className="w-full" onClick={closeThen(onToggleNotebook)}>
+                      {isNotebookMode ? "Exit notebook" : "Open notebook"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {onOpenPlotBuilder && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm"><BarChart3 className="h-4 w-4" /> Plot builder</CardTitle>
+                    <CardDescription>Build a chart from the current data workspace.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button variant="outline" className="w-full" onClick={closeThen(onOpenPlotBuilder)}>Open plot builder</Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {onOpenTemplates && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm"><Library className="h-4 w-4" /> Templates</CardTitle>
+                    <CardDescription>Start from a reusable code pattern when you actually need one.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Button variant="outline" className="w-full" onClick={closeThen(onOpenTemplates)}>Browse templates</Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {workspaceManager && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2 text-sm"><Cloud className="h-4 w-4" /> Cloud workspace</CardTitle>
+                    <CardDescription>Optional cross-device workspace sync.</CardDescription>
+                  </CardHeader>
+                  <CardContent>{workspaceManager}</CardContent>
+                </Card>
+              )}
             </TabsContent>
           </div>
         </Tabs>
