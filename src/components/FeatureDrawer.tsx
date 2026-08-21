@@ -39,7 +39,6 @@ export const FeatureDrawer = ({
   onOpenChange,
   aiAssistant,
   packageManager,
-  dataLab,
   dataOperations,
   workspaceManager,
   onToggleNotebook,
@@ -62,42 +61,29 @@ export const FeatureDrawer = ({
               <DrawerDescription>Secondary tools stay here so the editor stays focused.</DrawerDescription>
             </div>
             <DrawerClose asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9">
-                <X className="h-4 w-4" />
-              </Button>
+              <Button variant="ghost" size="icon" className="h-9 w-9"><X className="h-4 w-4" /></Button>
             </DrawerClose>
           </div>
         </DrawerHeader>
 
         <Tabs defaultValue="data" className="flex min-h-0 flex-1 flex-col">
           <TabsList className="h-12 w-full justify-start gap-1 rounded-none border-b bg-background px-3">
-            <TabsTrigger value="data" className="gap-1.5 text-xs">
-              <Database className="h-4 w-4" /> Data
-            </TabsTrigger>
-            <TabsTrigger value="packages" className="gap-1.5 text-xs">
-              <Package className="h-4 w-4" /> Packages
-            </TabsTrigger>
-            <TabsTrigger value="assist" className="gap-1.5 text-xs">
-              <KeyRound className="h-4 w-4" /> Assist
-            </TabsTrigger>
-            <TabsTrigger value="more" className="gap-1.5 text-xs">
-              <Wrench className="h-4 w-4" /> More
-            </TabsTrigger>
+            <TabsTrigger value="data" className="gap-1.5 text-xs"><Database className="h-4 w-4" /> Data</TabsTrigger>
+            <TabsTrigger value="packages" className="gap-1.5 text-xs"><Package className="h-4 w-4" /> Packages</TabsTrigger>
+            <TabsTrigger value="assist" className="gap-1.5 text-xs"><KeyRound className="h-4 w-4" /> Assist</TabsTrigger>
+            <TabsTrigger value="more" className="gap-1.5 text-xs"><Wrench className="h-4 w-4" /> More</TabsTrigger>
           </TabsList>
 
           <div className="tools-scrollbar min-h-0 flex-1 overflow-y-auto p-4">
-            <TabsContent value="data" className="mt-0 space-y-5">
-              {dataLab}
-              <div className="border-t border-border pt-4">{dataOperations}</div>
+            <TabsContent value="data" className="mt-0">
+              <div>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Data operations</p>
+                {dataOperations}
+              </div>
             </TabsContent>
 
-            <TabsContent value="packages" className="mt-0">
-              {packageManager}
-            </TabsContent>
-
-            <TabsContent value="assist" className="mt-0">
-              {aiAssistant}
-            </TabsContent>
+            <TabsContent value="packages" className="mt-0">{packageManager}</TabsContent>
+            <TabsContent value="assist" className="mt-0">{aiAssistant}</TabsContent>
 
             <TabsContent value="more" className="mt-0 grid gap-3">
               {onToggleNotebook && (
@@ -107,9 +93,7 @@ export const FeatureDrawer = ({
                     <CardDescription>Switch between the lightweight editor and executable cells.</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <Button variant="outline" className="w-full" onClick={closeThen(onToggleNotebook)}>
-                      {isNotebookMode ? "Exit notebook" : "Open notebook"}
-                    </Button>
+                    <Button variant="outline" className="w-full" onClick={closeThen(onToggleNotebook)}>{isNotebookMode ? "Exit notebook" : "Open notebook"}</Button>
                   </CardContent>
                 </Card>
               )}
@@ -120,9 +104,7 @@ export const FeatureDrawer = ({
                     <CardTitle className="flex items-center gap-2 text-sm"><BarChart3 className="h-4 w-4" /> Plot builder</CardTitle>
                     <CardDescription>Build a chart from the current data workspace.</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Button variant="outline" className="w-full" onClick={closeThen(onOpenPlotBuilder)}>Open plot builder</Button>
-                  </CardContent>
+                  <CardContent><Button variant="outline" className="w-full" onClick={closeThen(onOpenPlotBuilder)}>Open plot builder</Button></CardContent>
                 </Card>
               )}
 
@@ -132,9 +114,7 @@ export const FeatureDrawer = ({
                     <CardTitle className="flex items-center gap-2 text-sm"><Library className="h-4 w-4" /> Templates</CardTitle>
                     <CardDescription>Start from a reusable code pattern when you actually need one.</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <Button variant="outline" className="w-full" onClick={closeThen(onOpenTemplates)}>Browse templates</Button>
-                  </CardContent>
+                  <CardContent><Button variant="outline" className="w-full" onClick={closeThen(onOpenTemplates)}>Browse templates</Button></CardContent>
                 </Card>
               )}
 
