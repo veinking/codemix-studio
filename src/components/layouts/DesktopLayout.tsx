@@ -1,6 +1,5 @@
 import { ReactNode, useState, ReactElement, cloneElement, isValidElement } from "react";
-import { Button } from "@/components/ui/button";
-import { Home } from "lucide-react";
+import { Code2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 
@@ -11,59 +10,53 @@ interface DesktopLayoutProps {
   console: ReactNode;
 }
 
-export const DesktopLayout = ({
-  toolbar,
-  fileExplorer,
-  editor,
-  console: consolePanel,
-}: DesktopLayoutProps) => {
+export const DesktopLayout = ({ toolbar, fileExplorer, editor, console: consolePanel }: DesktopLayoutProps) => {
   const navigate = useNavigate();
   const [consoleCollapsed, setConsoleCollapsed] = useState(true);
-  
+
   return (
-    <div className="h-screen w-full flex flex-col bg-background overflow-hidden">
-      <div className="h-10 bg-background/95 backdrop-blur-sm border-b border-primary/20 flex items-center px-3 gap-2">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate('/')}
-          className="h-8 w-8 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background">
+      <header className="flex h-12 shrink-0 items-center border-b border-border bg-toolbar px-3">
+        <button
+          type="button"
+          onClick={() => navigate("/")}
+          className="mr-3 flex h-8 shrink-0 items-center gap-2 rounded-md px-2 text-left transition-colors hover:bg-muted"
+          title="bIDE home"
         >
-          <Home className="w-3.5 h-3.5" />
-        </Button>
-        <div className="flex-1 overflow-x-auto scrollbar-hide">
-          {toolbar}
-        </div>
-      </div>
-      
-      <div className="flex-1 flex overflow-hidden">
-        {/* File Explorer Sidebar */}
-        <div className="w-64 flex-shrink-0 border-r border-border">
-          {fileExplorer}
-        </div>
-        
-        {/* Main Content Area - Resizable Editor & Console */}
-          <ResizablePanelGroup direction="vertical" className="flex-1">
-            <ResizablePanel defaultSize={consoleCollapsed ? 97 : 70} minSize={5}>
-              <div className="h-full bg-editor overflow-hidden">
-                {editor}
-              </div>
-            </ResizablePanel>
-            
-            <ResizableHandle withHandle />
-            
-            <ResizablePanel 
-              defaultSize={consoleCollapsed ? 3 : 30} 
-              minSize={3} 
-              maxSize={95}
-              collapsible={true}
-              collapsedSize={3}
-            >
-            <div className="h-full">
-              {isValidElement(consolePanel) 
-                ? cloneElement(consolePanel as ReactElement, { 
-                    isCollapsed: consoleCollapsed, 
-                    onToggleCollapse: () => setConsoleCollapsed(!consoleCollapsed) 
+          <span className="grid h-6 w-6 place-items-center rounded-md bg-primary/15 text-primary">
+            <Code2 className="h-3.5 w-3.5" />
+          </span>
+          <span className="leading-none">
+            <strong className="block text-xs font-semibold tracking-tight">bIDE</strong>
+            <span className="mt-0.5 block text-[9px] uppercase tracking-[0.12em] text-muted-foreground">workspace</span>
+          </span>
+        </button>
+        <div className="h-6 w-px shrink-0 bg-border" />
+        <div className="min-w-0 flex-1 pl-3">{toolbar}</div>
+      </header>
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <aside className="w-60 shrink-0 border-r border-border bg-sidebar">{fileExplorer}</aside>
+
+        <ResizablePanelGroup direction="vertical" className="min-w-0 flex-1">
+          <ResizablePanel defaultSize={consoleCollapsed ? 96 : 70} minSize={8}>
+            <div className="h-full overflow-hidden bg-editor">{editor}</div>
+          </ResizablePanel>
+
+          <ResizableHandle withHandle className="bg-border/70" />
+
+          <ResizablePanel
+            defaultSize={consoleCollapsed ? 4 : 30}
+            minSize={4}
+            maxSize={92}
+            collapsible
+            collapsedSize={4}
+          >
+            <div className="h-full bg-console">
+              {isValidElement(consolePanel)
+                ? cloneElement(consolePanel as ReactElement, {
+                    isCollapsed: consoleCollapsed,
+                    onToggleCollapse: () => setConsoleCollapsed(!consoleCollapsed),
                   })
                 : consolePanel}
             </div>
