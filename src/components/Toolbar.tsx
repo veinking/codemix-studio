@@ -1,14 +1,29 @@
-import { Play, Download, Code2, Save, Copy, Languages, Share2, FileDown, BarChart3, BookOpen, Settings, Library, Beaker, Trash2, User, LogOut, Book, Sparkles, Cloud } from "lucide-react";
+import {
+  Book,
+  Cloud,
+  Languages,
+  Library,
+  LogOut,
+  MoreHorizontal,
+  Play,
+  Save,
+  Settings2,
+  Share2,
+  User,
+  BarChart3,
+  BookOpen,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { DataOperations } from "@/components/DataOperations";
-import { MLOperations } from "@/components/MLOperations";
 import { LanguageSelector } from "@/components/LanguageSelector";
-import { AIUsageIndicator } from "@/components/AIUsageIndicator";
-import { cn } from "@/lib/utils";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface ToolbarProps {
@@ -31,8 +46,8 @@ interface ToolbarProps {
   isNotebookMode?: boolean;
   currentFile: string | null;
   isRunning: boolean;
-  scratchLanguage: 'python' | 'r' | 'javascript' | 'sql';
-  onScratchLanguageChange: (lang: 'python' | 'r' | 'javascript' | 'sql') => void;
+  scratchLanguage: "python" | "r" | "javascript" | "sql";
+  onScratchLanguageChange: (lang: "python" | "r" | "javascript" | "sql") => void;
   onInsertCode?: (code: string) => void;
   onOpenFeatures?: () => void;
   onOpenTools?: () => void;
@@ -42,331 +57,191 @@ interface ToolbarProps {
   isMobile?: boolean;
 }
 
-export const Toolbar = ({ 
-  onRun, 
-  onDownload, 
+export const Toolbar = ({
+  onRun,
   onSaveScratchAsFile,
-  onCopyAll,
-  onClearAll,
   onShare,
   onOpenTranslate,
-  onExportPortfolio,
   onOpenPlotBuilder,
   onToggleNotebook,
   onOpenTemplates,
-  onOpenRTemplates,
-  onOpenLabTrainer,
-  onOpenRecipeGallery,
   onOpenWorkspaceManager,
-  currentLanguage = 'python',
+  currentLanguage = "python",
   isNotebookMode = false,
-  currentFile, 
+  currentFile,
   isRunning,
   scratchLanguage,
   onScratchLanguageChange,
-  onInsertCode = () => {},
   onOpenFeatures,
   onOpenTools,
   onAuthClick,
   initializedRuntimes = new Set(),
   loadingRuntimes = new Set(),
-  isMobile = false
+  isMobile = false,
 }: ToolbarProps) => {
   const navigate = useNavigate();
   const { user, isGuest, signOut } = useAuth();
+
+  const accountControl = isGuest ? (
+    <Button
+      variant="ghost"
+      size={isMobile ? "icon" : "sm"}
+      onClick={onAuthClick}
+      className={isMobile ? "h-9 w-9" : "h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"}
+      title="Sign in"
+    >
+      <User className="h-4 w-4" />
+      {!isMobile && <span className="ml-1.5">Sign in</span>}
+    </Button>
+  ) : (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : "h-8 px-2"}>
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="bg-primary/15 text-primary text-xs">
+              {user?.email?.charAt(0).toUpperCase() || "U"}
+            </AvatarFallback>
+          </Avatar>
+          {!isMobile && <span className="ml-2 max-w-[90px] truncate text-xs">{user?.email?.split("@")[0]}</span>}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => navigate("/account")}>
+          <User className="mr-2 h-4 w-4" /> Account
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={signOut}>
+          <LogOut className="mr-2 h-4 w-4" /> Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  if (isMobile) {
+    return (
+      <div className="flex w-full items-center justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          {!currentFile && (
+            <LanguageSelector
+              currentLanguage={scratchLanguage}
+              onLanguageChange={onScratchLanguageChange}
+              initializedRuntimes={initializedRuntimes}
+              loadingRuntimes={loadingRuntimes}
+              isMobile
+            />
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")}
+            className="h-9 w-9"
+            title="Language reference"
+          >
+            <Book className="h-4 w-4" />
+          </Button>
+          {onOpenFeatures && (
+            <Button variant="ghost" size="icon" onClick={onOpenFeatures} className="h-9 w-9" title="Workspace tools">
+              <Settings2 className="h-4 w-4" />
+            </Button>
+          )}
+          {accountControl}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex items-center justify-between w-full gap-1.5">
-      {/* Left Side - Language Selector */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <AIUsageIndicator />
-        
+    <div className="flex w-full items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2">
         {!currentFile && (
           <LanguageSelector
             currentLanguage={scratchLanguage}
             onLanguageChange={onScratchLanguageChange}
             initializedRuntimes={initializedRuntimes}
             loadingRuntimes={loadingRuntimes}
-            isMobile={isMobile}
+            isMobile={false}
           />
         )}
+        {currentFile && <span className="truncate text-xs text-muted-foreground">File workspace</span>}
       </div>
-      
-      {/* Right Side - Action Buttons */}
-      <div className="flex items-center gap-0.5 overflow-x-auto scrollbar-hide flex-shrink-0">
-        {isMobile ? (
-          <>
-            {/* Mobile: Essential buttons only - no horizontal scroll needed */}
-            
-            {/* Docs - Quick Reference */}
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => window.open(`/docs/${currentLanguage}`, '_blank')}
-              className="h-9 w-9 flex-shrink-0"
-              title="Language Reference"
-            >
-              <Book className="w-4 h-4" />
-            </Button>
 
-            {/* Share - High-value feature */}
-            {onShare && (
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={onShare}
-                className="h-9 w-9 flex-shrink-0"
-                title="Share Code"
-              >
-                <Share2 className="w-4 h-4" />
-              </Button>
-            )}
-            
-            {/* Tools - Primary gateway to all features */}
-            {onOpenFeatures && (
-              <Button
-                variant="default"
-                size="default"
-                onClick={onOpenFeatures}
-                className="h-9 px-3 flex-shrink-0 bg-gradient-to-r from-primary to-accent relative"
-                title="All Tools & Features"
-              >
-                <Settings className="w-4 h-4 mr-1.5" />
-                <span className="text-sm font-semibold">Tools</span>
-                <Badge className="absolute -top-1 -right-1 h-4 px-1 text-[10px] bg-accent border-0">8+</Badge>
-              </Button>
-            )}
-            
-            {/* Account (mobile) */}
-            {isGuest ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onAuthClick}
-                className="h-9 w-9 flex-shrink-0"
-                title="Sign In"
-              >
-                <User className="w-4 h-4" />
-              </Button>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 flex-shrink-0"
-                  >
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                        {user?.email?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="z-[9999]">
-                  <DropdownMenuItem onClick={() => navigate('/account')}>
-                    <User className="w-4 h-4 mr-2" />
-                    Account
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut}>
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </>
-) : (<>
-            {/* Desktop: Compact buttons with consistent styling */}
-            {onOpenTools && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenTools}
-                className="h-8 px-3 text-xs bg-gradient-to-r from-primary/20 to-accent/20 hover:from-primary/30 hover:to-accent/30 border border-primary/30 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <Settings className="w-3.5 h-3.5 mr-1.5" />
-                Tools
-              </Button>
-            )}
+      <div className="flex shrink-0 items-center gap-1">
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onRun}
+          disabled={isRunning}
+          className="h-8 px-3 text-xs shadow-none"
+        >
+          <Play className="mr-1.5 h-3.5 w-3.5" />
+          {isRunning ? "Running…" : "Run"}
+        </Button>
 
-            {onOpenTemplates && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenTemplates}
-                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <Library className="w-3.5 h-3.5 mr-1.5" />
-                Templates
-              </Button>
-            )}
-
-            {onOpenRTemplates && scratchLanguage === 'r' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenRTemplates}
-                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
-                R Templates
-              </Button>
-            )}
-
-            {onOpenRecipeGallery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenRecipeGallery}
-                className="h-8 px-3 text-xs bg-gradient-to-r from-purple-500/20 to-pink-500/20 hover:from-purple-500/30 hover:to-pink-500/30 border border-purple-500/30 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                Recipes
-              </Button>
-            )}
-
-            {onOpenWorkspaceManager && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenWorkspaceManager}
-                className="h-8 px-3 text-xs bg-gradient-to-r from-blue-500/20 to-cyan-500/20 hover:from-blue-500/30 hover:to-cyan-500/30 border border-blue-500/30 hover:shadow-[0_0_8px_rgba(59,130,246,0.4)] transition-all"
-              >
-                <Cloud className="w-3.5 h-3.5 mr-1.5" />
-                Cloud
-              </Button>
-            )}
-            
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => window.open(`/docs/${currentLanguage}`, '_blank')}
-              className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-            >
-              <Book className="w-3.5 h-3.5 mr-1.5" />
-              Docs
-            </Button>
-
-            {onOpenTranslate && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenTranslate}
-                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <Languages className="w-3.5 h-3.5 mr-1.5" />
-                Translate
-              </Button>
-            )}
-
-            {onOpenPlotBuilder && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onOpenPlotBuilder}
-                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <BarChart3 className="w-3.5 h-3.5 mr-1.5" />
-                Plot
-              </Button>
-            )}
-
-            {onToggleNotebook && !currentFile && (
-              <Button
-                variant={isNotebookMode ? "default" : "ghost"}
-                size="sm"
-                onClick={onToggleNotebook}
-                className={`h-8 px-3 text-xs transition-all ${
-                  isNotebookMode
-                    ? ""
-                    : "bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)]"
-                }`}
-              >
-                <BookOpen className="w-3.5 h-3.5 mr-1.5" />
-                {isNotebookMode ? 'Exit' : 'Notebook'}
-              </Button>
-            )}
-            
-            <Button
-              variant="default"
-              size="sm"
-              onClick={onRun}
-              disabled={isRunning}
-              className="h-8 px-3 text-xs bg-gradient-to-r from-primary to-accent hover:from-primary/90 hover:to-accent/90 text-white border-0 hover:shadow-[0_0_12px_rgba(168,85,247,0.6)] transition-all"
-            >
-              <Play className="w-3.5 h-3.5 mr-1.5" />
-              {isRunning ? 'Running...' : 'Run'}
-            </Button>
-
-            {onShare && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onShare}
-                className="h-8 px-3 text-xs bg-gradient-to-r from-primary/20 to-secondary/20 hover:from-primary/30 hover:to-secondary/30 border border-primary/30 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <Share2 className="w-3.5 h-3.5 mr-1.5" />
-                Share
-              </Button>
-            )}
-            
-            {!currentFile && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onSaveScratchAsFile}
-                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <Save className="w-3.5 h-3.5 mr-1.5" />
-                Save
-              </Button>
-            )}
-
-            {/* Account (desktop) */}
-            {isGuest ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onAuthClick}
-                className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-              >
-                <User className="w-3.5 h-3.5 mr-1.5" />
-                Sign In
-              </Button>
-            ) : (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 px-3 text-xs bg-background border border-primary/30 hover:border-primary/50 hover:bg-primary/10 hover:shadow-[0_0_8px_rgba(168,85,247,0.4)] transition-all"
-                  >
-                    <Avatar className="h-5 w-5 mr-1.5">
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                        {user?.email?.charAt(0).toUpperCase() || 'U'}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="max-w-[80px] truncate">
-                      {user?.email?.split('@')[0]}
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate('/account')}>
-                    <User className="w-4 h-4 mr-2" />
-                    Account
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={signOut}>
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Sign Out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-          </>
+        {!currentFile && (
+          <Button variant="ghost" size="sm" onClick={onSaveScratchAsFile} className="h-8 px-2.5 text-xs">
+            <Save className="mr-1.5 h-3.5 w-3.5" /> Save
+          </Button>
         )}
+
+        {onShare && (
+          <Button variant="ghost" size="sm" onClick={onShare} className="h-8 px-2.5 text-xs">
+            <Share2 className="mr-1.5 h-3.5 w-3.5" /> Share
+          </Button>
+        )}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")}
+          className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+        >
+          <Book className="mr-1.5 h-3.5 w-3.5" /> Docs
+        </Button>
+
+        {onOpenTools && (
+          <Button variant="ghost" size="sm" onClick={onOpenTools} className="h-8 px-2.5 text-xs">
+            <Settings2 className="mr-1.5 h-3.5 w-3.5" /> Tools
+          </Button>
+        )}
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title="More editor actions">
+              <MoreHorizontal className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            {onToggleNotebook && !currentFile && (
+              <DropdownMenuItem onClick={onToggleNotebook}>
+                <BookOpen className="mr-2 h-4 w-4" /> {isNotebookMode ? "Exit notebook" : "Notebook mode"}
+              </DropdownMenuItem>
+            )}
+            {onOpenPlotBuilder && (
+              <DropdownMenuItem onClick={onOpenPlotBuilder}>
+                <BarChart3 className="mr-2 h-4 w-4" /> Plot builder
+              </DropdownMenuItem>
+            )}
+            {onOpenTemplates && (
+              <DropdownMenuItem onClick={onOpenTemplates}>
+                <Library className="mr-2 h-4 w-4" /> Templates
+              </DropdownMenuItem>
+            )}
+            {onOpenTranslate && (
+              <DropdownMenuItem onClick={onOpenTranslate}>
+                <Languages className="mr-2 h-4 w-4" /> Translate code
+              </DropdownMenuItem>
+            )}
+            {onOpenWorkspaceManager && (
+              <DropdownMenuItem onClick={onOpenWorkspaceManager}>
+                <Cloud className="mr-2 h-4 w-4" /> Cloud workspace
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {accountControl}
       </div>
     </div>
   );
