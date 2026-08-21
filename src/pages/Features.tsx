@@ -7,12 +7,129 @@ import { useNavigate } from "react-router-dom";
 import { updatePageSEO, SEO_CONFIGS } from "@/utils/seo";
 import { BreadcrumbSchema } from "@/components/BreadcrumbSchema";
 import {
-  Code2, Zap, Brain, Database, FileCode, BarChart3, 
-  Palette, Package, Globe, Sparkles, BookOpen, 
-  ChevronRight, Home, Terminal, Lightbulb, FileText,
-  Share2, Download, Upload, Layout, Smartphone, Monitor,
-  CheckCircle2, Wrench
+  BarChart3,
+  BookOpen,
+  ChevronRight,
+  Code2,
+  Database,
+  FileCode,
+  FileText,
+  Home,
+  Package,
+  Share2,
+  Smartphone,
+  Sparkles,
+  Terminal,
+  Upload,
 } from "lucide-react";
+
+const features = [
+  {
+    category: "Core workspace",
+    description: "The things bIDE keeps in the foreground.",
+    icon: <Terminal className="w-6 h-6" />,
+    items: [
+      {
+        title: "Browser code execution",
+        description: "Run Python, R, JavaScript, and SQL from the browser workspace without installing a local toolchain.",
+        icon: <Code2 className="w-5 h-5" />,
+      },
+      {
+        title: "Monaco editor",
+        description: "Use a familiar code editor with files, syntax highlighting, keyboard workflows, and language-aware editing.",
+        icon: <FileCode className="w-5 h-5" />,
+      },
+      {
+        title: "Files + output",
+        description: "Keep code files, run output, downloads, and session work together instead of bouncing between separate tools.",
+        icon: <FileText className="w-5 h-5" />,
+      },
+    ],
+  },
+  {
+    category: "Data work",
+    description: "Useful data tools without turning the IDE into a dashboard of widgets.",
+    icon: <Database className="w-6 h-6" />,
+    items: [
+      {
+        title: "CSV workspace",
+        description: "Upload CSV data and use it from Python, R, SQL, or the built-in data workspace.",
+        icon: <Upload className="w-5 h-5" />,
+      },
+      {
+        title: "Data operations",
+        description: "Filter, sort, group, and transform data with guided operations when you do not want to write every step by hand.",
+        icon: <Database className="w-5 h-5" />,
+      },
+      {
+        title: "Plot tools",
+        description: "Build or inspect charts when the task needs a visual, while keeping plotting out of the main coding path by default.",
+        icon: <BarChart3 className="w-5 h-5" />,
+      },
+    ],
+  },
+  {
+    category: "Tools on demand",
+    description: "Secondary capabilities stay available without crowding the editor.",
+    icon: <Package className="w-6 h-6" />,
+    items: [
+      {
+        title: "Packages",
+        description: "Load supported Python packages and runtime dependencies from the tools panel when the project needs them.",
+        icon: <Package className="w-5 h-5" />,
+      },
+      {
+        title: "Notebook mode",
+        description: "Switch to a cell-based workflow for code, notes, and outputs when a notebook is a better fit than a normal file.",
+        icon: <BookOpen className="w-5 h-5" />,
+      },
+      {
+        title: "Templates + sharing",
+        description: "Start from reusable examples or share code without making templates and collaboration permanent toolbar clutter.",
+        icon: <Share2 className="w-5 h-5" />,
+      },
+    ],
+  },
+  {
+    category: "Optional Code Assist",
+    description: "Bring your own key. Nothing runs in the background.",
+    icon: <Sparkles className="w-6 h-6" />,
+    items: [
+      {
+        title: "Ask",
+        description: "Ask a focused question about the code already in your editor using your own Gemini API key.",
+        icon: <Sparkles className="w-5 h-5" />,
+      },
+      {
+        title: "Review",
+        description: "Request a concise code review for real bugs, correctness risks, and high-value improvements.",
+        icon: <Code2 className="w-5 h-5" />,
+      },
+      {
+        title: "Complete",
+        description: "Generate a proposed code completion, then choose whether to apply it. bIDE never silently rewrites the editor.",
+        icon: <FileCode className="w-5 h-5" />,
+      },
+    ],
+  },
+  {
+    category: "Browser + mobile",
+    description: "The same workspace adapts to the device you have with you.",
+    icon: <Smartphone className="w-6 h-6" />,
+    items: [
+      {
+        title: "Responsive workspace",
+        description: "Desktop keeps files, editor, and output visible; mobile condenses those surfaces into focused drawers and sheets.",
+        icon: <Smartphone className="w-5 h-5" />,
+      },
+      {
+        title: "PWA support",
+        description: "Install the web app to supported devices for an app-like launch experience while keeping one web codebase.",
+        icon: <FileCode className="w-5 h-5" />,
+      },
+    ],
+  },
+];
 
 const Features = () => {
   const navigate = useNavigate();
@@ -21,281 +138,77 @@ const Features = () => {
     updatePageSEO(SEO_CONFIGS.features);
   }, []);
 
-  const features = [
-    {
-      category: "Code Execution",
-      icon: <Terminal className="w-6 h-6" />,
-      items: [
-        {
-          title: "Python & R Support",
-          description: "Run Python and R code directly in your browser using WebAssembly (Pyodide & webR). No server required.",
-          icon: <Code2 className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "JavaScript & SQL",
-          description: "Execute JavaScript and SQL queries for web development and data manipulation.",
-          icon: <FileCode className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Package Manager",
-          description: "Install Python packages (numpy, pandas, matplotlib, etc.) on-the-fly without leaving the IDE.",
-          icon: <Package className="w-5 h-5" />,
-          status: "live"
-        }
-      ]
-    },
-    {
-      category: "AI-Powered Tools",
-      icon: <Brain className="w-6 h-6" />,
-      items: [
-        {
-          title: "AI Code Assistant",
-          description: "Get code suggestions, auto-complete, scan for bugs, and optimize your code with AI.",
-          icon: <Sparkles className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Plain English Error Explanations",
-          description: "Understand errors instantly with AI-powered explanations in simple language, including what happened, why, and how to fix it.",
-          icon: <Lightbulb className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Code Translation",
-          description: "Convert code between Python, R, JavaScript, and SQL seamlessly.",
-          icon: <Globe className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Lab Trainer",
-          description: "Generate programming challenges at different difficulty levels to practice your skills.",
-          icon: <BookOpen className="w-5 h-5" />,
-          status: "live"
-        }
-      ]
-    },
-    {
-      category: "Data Science Tools",
-      icon: <Database className="w-6 h-6" />,
-      items: [
-        {
-          title: "CSV Upload & Analysis",
-          description: "Upload CSV files, view them in a spreadsheet-like interface, and analyze with pandas/tidyverse.",
-          icon: <Upload className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "DataLab",
-          description: "Get AI-powered data cleaning recommendations and exploratory analysis suggestions.",
-          icon: <Wrench className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Data Operations",
-          description: "Filter, sort, group, and transform data with point-and-click operations that generate code.",
-          icon: <Database className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "ML Operations",
-          description: "Build machine learning models with linear regression, logistic regression, and decision trees.",
-          icon: <Brain className="w-5 h-5" />,
-          status: "live"
-        }
-      ]
-    },
-    {
-      category: "Visualization",
-      icon: <BarChart3 className="w-6 h-6" />,
-      items: [
-        {
-          title: "Plot Builder",
-          description: "Create beautiful visualizations (scatter, line, bar, histogram) with an intuitive interface.",
-          icon: <Palette className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Plot Viewer",
-          description: "View matplotlib/ggplot2 outputs directly in the IDE with download options.",
-          icon: <BarChart3 className="w-5 h-5" />,
-          status: "live"
-        }
-      ]
-    },
-    {
-      category: "Productivity",
-      icon: <Layout className="w-6 h-6" />,
-      items: [
-        {
-          title: "Notebook Mode",
-          description: "Jupyter-style notebook interface with markdown support for mixing code, visualizations, and notes.",
-          icon: <FileText className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "File Management",
-          description: "Create, organize, and manage multiple code files with a built-in file explorer.",
-          icon: <FileCode className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Code Templates",
-          description: "Start quickly with pre-built templates for data analysis, plotting, and machine learning.",
-          icon: <FileText className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Share Code",
-          description: "Generate shareable links to your code with optional expiration dates.",
-          icon: <Share2 className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Portfolio Export",
-          description: "Export your projects as beautiful HTML portfolios to showcase your work.",
-          icon: <Download className="w-5 h-5" />,
-          status: "live"
-        }
-      ]
-    },
-    {
-      category: "Cross-Platform",
-      icon: <Smartphone className="w-6 h-6" />,
-      items: [
-        {
-          title: "Responsive Design",
-          description: "Optimized layouts for both desktop and mobile devices - code anywhere, anytime.",
-          icon: <Monitor className="w-5 h-5" />,
-          status: "live"
-        },
-        {
-          title: "Offline Support",
-          description: "Works offline once loaded. Your code is saved locally using IndexedDB.",
-          icon: <Zap className="w-5 h-5" />,
-          status: "live"
-        }
-      ]
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
-      {/* Breadcrumb Schema for SEO */}
+    <div className="min-h-screen bg-background text-foreground">
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://bideide.com/" },
-        { name: "Features", url: "https://bideide.com/features" }
+        { name: "Features", url: "https://bideide.com/features" },
       ]} />
-      
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => navigate("/")}
-              >
-                <Home className="w-5 h-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">Features & Tools</h1>
-                <p className="text-sm text-muted-foreground">Everything you need to code, analyze, and learn</p>
-              </div>
+
+      <header className="border-b border-border/70 bg-background/90 backdrop-blur-xl sticky top-0 z-50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/")}><Home className="w-5 h-5" /></Button>
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-bold truncate">bIDE features</h1>
+              <p className="text-xs sm:text-sm text-muted-foreground truncate">Editor first. Secondary tools stay secondary.</p>
             </div>
-            <Button onClick={() => navigate("/ide")} size="lg" className="gap-2">
-              Try It Now
-              <ChevronRight className="w-4 h-4" />
-            </Button>
           </div>
+          <Button onClick={() => navigate("/ide")} className="gap-2 shrink-0">Open IDE <ChevronRight className="w-4 h-4" /></Button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-16 max-w-3xl mx-auto">
-          <Badge variant="secondary" className="mb-4">
-            <CheckCircle2 className="w-4 h-4 mr-2" />
-            25+ Powerful Features
-          </Badge>
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent">
-            A Complete IDE in Your Browser
-          </h2>
-          <p className="text-xl text-muted-foreground">
-            From code execution to AI assistance, data analysis to visualization - 
-            everything you need is built-in and ready to use.
+      <main className="container mx-auto px-4 py-14 max-w-6xl">
+        <section className="max-w-3xl mb-14">
+          <Badge variant="secondary" className="mb-4">Focused browser workspace</Badge>
+          <h2 className="text-4xl md:text-6xl font-black tracking-[-0.045em] leading-[1.02]">Enough tools to work. Not enough clutter to get lost.</h2>
+          <p className="mt-5 text-lg leading-8 text-muted-foreground">
+            bIDE keeps execution, editing, files, and output in the main path. Data utilities, packages, notebooks, templates, sharing, and optional Code Assist are there when a task needs them.
           </p>
-        </div>
+        </section>
 
-        {/* Feature Categories */}
         <div className="space-y-12">
-          {features.map((category, idx) => (
-            <section key={idx} id={category.category.toLowerCase().replace(/\s+/g, '-')}>
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 rounded-lg bg-primary/10 text-primary">
-                  {category.icon}
-                </div>
+          {features.map((category, index) => (
+            <section key={category.category} id={category.category.toLowerCase().replace(/\s+/g, "-")}>
+              <div className="flex items-start gap-3 mb-6">
+                <div className="p-3 rounded-xl bg-primary/10 text-primary shrink-0">{category.icon}</div>
                 <div>
-                  <h3 className="text-2xl font-bold text-foreground">{category.category}</h3>
-                  <p className="text-sm text-muted-foreground">{category.items.length} features available</p>
+                  <h3 className="text-2xl font-bold">{category.category}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{category.description}</p>
                 </div>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {category.items.map((item, itemIdx) => (
-                  <Card key={itemIdx} className="p-6 hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10">
-                    <div className="flex items-start gap-4 mb-3">
-                      <div className="p-2 rounded-lg bg-accent/10 text-accent">
-                        {item.icon}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between mb-1">
-                          <h4 className="font-semibold text-foreground">{item.title}</h4>
-                          <Badge variant="outline" className="text-xs">
-                            {item.status}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                      </div>
-                    </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {category.items.map((item) => (
+                  <Card key={item.title} className="p-5 border-border/70 bg-card/40">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary grid place-items-center mb-4">{item.icon}</div>
+                    <h4 className="font-semibold">{item.title}</h4>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
                   </Card>
                 ))}
               </div>
-              
-              {idx < features.length - 1 && <Separator className="mt-12" />}
+
+              {index < features.length - 1 && <Separator className="mt-12" />}
             </section>
           ))}
         </div>
 
-        {/* CTA Section */}
-        <div className="mt-20 text-center">
-          <Card className="p-12 bg-gradient-to-r from-primary/5 to-accent/5 border-primary/20">
-            <h3 className="text-3xl font-bold mb-4 text-foreground">Ready to Start Coding?</h3>
-            <p className="text-lg text-muted-foreground mb-6 max-w-2xl mx-auto">
-              All these features are completely free and available now. 
-              No signup required, no installation needed.
-            </p>
-            <div className="flex gap-4 justify-center flex-wrap">
-              <Button onClick={() => navigate("/ide")} size="lg" className="gap-2">
-                <Code2 className="w-5 h-5" />
-                Launch IDE
-              </Button>
-              <Button onClick={() => navigate("/tutorials")} variant="outline" size="lg" className="gap-2">
-                <BookOpen className="w-5 h-5" />
-                View Tutorials
-              </Button>
-            </div>
-          </Card>
-        </div>
+        <Card className="mt-16 p-7 sm:p-10 border-primary/20 bg-primary/5 grid md:grid-cols-[1fr_auto] gap-6 items-center">
+          <div>
+            <h3 className="text-2xl font-bold">Open the editor and start with the code.</h3>
+            <p className="mt-2 text-muted-foreground">No AI key is required. Add one only if you choose to use Code Assist.</p>
+          </div>
+          <Button onClick={() => navigate("/ide")} size="lg"><Terminal className="w-4 h-4 mr-2" />Launch bIDE</Button>
+        </Card>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border mt-20 py-8">
-        <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
-          <p>bIDE • Built by students, for students • Free forever</p>
+      <footer className="border-t border-border/70 py-8">
+        <div className="container mx-auto px-4 flex flex-wrap gap-4 items-center justify-between text-sm text-muted-foreground">
+          <p>bIDE by CodeMix · browser coding workspace</p>
+          <div className="flex gap-4">
+            <button onClick={() => navigate("/docs")} className="hover:text-foreground">Docs</button>
+            <button onClick={() => navigate("/support")} className="hover:text-foreground">Support</button>
+          </div>
         </div>
       </footer>
     </div>
