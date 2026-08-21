@@ -7,13 +7,12 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Crown, Loader2, LogOut, RefreshCw, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, Crown, KeyRound, Loader2, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
 
 const Account = () => {
   const {
     user,
-    aiUsage,
     signOut,
     isLoading,
     entitlementError,
@@ -37,17 +36,13 @@ const Account = () => {
   }, []);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   if (!user) return <Navigate to="/auth" replace />;
 
   const isPro = hasCapability('bide.pro');
-  const planLabel = entitlementError ? 'Access unavailable' : isPro ? 'PocketBI Pro' : 'PocketBI Free';
+  const accessLabel = entitlementError ? 'Access unavailable' : isPro ? 'PocketBI Pro access' : 'Standard access';
 
   async function refreshAccess() {
     setRefreshing(true);
@@ -69,14 +64,13 @@ const Account = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <div className="container max-w-4xl py-12">
+    <div className="min-h-screen bg-background">
+      <div className="container max-w-3xl py-10 sm:py-14 px-4">
         <Button variant="ghost" onClick={() => navigate('/ide')} className="mb-6">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to IDE
+          <ArrowLeft className="h-4 w-4 mr-2" />Back to IDE
         </Button>
 
-        <div className="space-y-6">
+        <div className="space-y-5">
           <Card>
             <CardHeader>
               <CardTitle>Account</CardTitle>
@@ -85,11 +79,11 @@ const Account = () => {
             <CardContent className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                  <Avatar className="h-16 w-16">
+                  <Avatar className="h-14 w-14">
                     <AvatarFallback className="text-lg">{user.email?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold text-lg">PocketBI ID</p>
+                    <p className="font-semibold">PocketBI ID</p>
                     <p className="text-sm text-muted-foreground">{user.email}</p>
                   </div>
                 </div>
@@ -103,32 +97,23 @@ const Account = () => {
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium">Membership</p>
+                  <p className="text-sm font-medium">Connected access</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className="font-bold">{planLabel}</span>
-                    {isPro && !entitlementError && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Crown className="h-3 w-3" /> PRO
-                      </Badge>
-                    )}
+                    <span className="font-bold">{accessLabel}</span>
+                    {isPro && !entitlementError && <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3" />PRO</Badge>}
                   </div>
                 </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={refreshAccess} disabled={refreshing}>
-                    {refreshing ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-2" />}
-                    Refresh access
-                  </Button>
-                  {!isPro && <Button size="sm" onClick={() => navigate('/upgrade')}>View membership</Button>}
-                </div>
+                <Button variant="outline" size="sm" onClick={refreshAccess} disabled={refreshing}>
+                  {refreshing ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <RefreshCw className="h-3 w-3 mr-2" />}
+                  Refresh access
+                </Button>
               </div>
 
               {entitlementError && (
                 <Alert>
                   <ShieldCheck className="h-4 w-4" />
                   <AlertTitle>Could not verify PocketBI access</AlertTitle>
-                  <AlertDescription>
-                    Pro-only capabilities remain locked until the entitlement service responds successfully.
-                  </AlertDescription>
+                  <AlertDescription>Connected capabilities remain conservative until the entitlement service responds successfully.</AlertDescription>
                 </Alert>
               )}
             </CardContent>
@@ -136,54 +121,36 @@ const Account = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-primary" />
-                AI usage
-              </CardTitle>
-              <CardDescription>
-                Usage is enforced by the shared PocketBI backend rather than a client-side plan label.
-              </CardDescription>
+              <CardTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-primary" />Code Assist</CardTitle>
+              <CardDescription>AI is optional and bring-your-own-key.</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <Stat label="Used today" value={String(aiUsage?.used_today ?? 0)} />
-                <Stat label="Remaining" value={String(aiUsage?.remaining ?? 0)} />
-                <Stat label="Current limit" value={String(aiUsage?.limit ?? 0)} />
-              </div>
-              {aiUsage?.message && <p className="text-sm text-muted-foreground mt-4">{aiUsage.message}</p>}
+            <CardContent className="space-y-3 text-sm text-muted-foreground leading-6">
+              <p>bIDE does not sell or meter AI requests. Add your own Gemini API key from Code Assist when you choose to use Ask, Review, or Complete.</p>
+              <p>The key is kept for the current browser session and can be forgotten from the assistant. Running code does not require an AI key.</p>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Membership management</CardTitle>
-              <CardDescription>bIDE does not maintain a separate subscription checkout.</CardDescription>
+              <CardTitle>Connected services</CardTitle>
+              <CardDescription>Account and product billing stay outside the editor.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground leading-6">
-                bIDE access follows the capabilities attached to your PocketBI ID. This keeps payment providers separate from product authorization and avoids duplicate billing paths.
+                bIDE can read capabilities attached to your PocketBI ID, but it does not maintain a separate AI subscription or token checkout.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button onClick={() => navigate('/upgrade')}>View access tiers</Button>
-                <Button variant="outline" asChild>
-                  <a href="https://pocketbi.app" target="_blank" rel="noreferrer">Open PocketBI</a>
-                </Button>
-              </div>
+              <Button variant="outline" asChild><a href="https://pocketbi.app" target="_blank" rel="noreferrer">Open PocketBI</a></Button>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Privacy and account requests</CardTitle>
-              <CardDescription>Need help with account access, data, or deletion?</CardDescription>
+              <CardDescription>Need help with access, data, or account deletion?</CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Contact the shared support inbox and include the email used for your PocketBI ID. Never send passwords or access tokens by email.
-              </p>
-              <Button variant="outline" asChild>
-                <a href="mailto:support@proairesume.com?subject=PocketBI%20Account%20Request">Contact support</a>
-              </Button>
+              <p className="text-sm text-muted-foreground mb-4">Never send passwords, API keys, or access tokens by email.</p>
+              <Button variant="outline" asChild><a href="mailto:support@bideide.com?subject=bIDE%20Account%20Request">Contact bIDE support</a></Button>
             </CardContent>
           </Card>
         </div>
@@ -191,14 +158,5 @@ const Account = () => {
     </div>
   );
 };
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="text-center p-4 bg-secondary rounded-lg">
-      <p className="text-2xl font-bold">{value}</p>
-      <p className="text-sm text-muted-foreground">{label}</p>
-    </div>
-  );
-}
 
 export default Account;
