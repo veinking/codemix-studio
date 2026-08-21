@@ -6,204 +6,110 @@ import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
 
 const Privacy = () => {
   const navigate = useNavigate();
-  
+
   useEffect(() => {
     updatePageSEO(SEO_CONFIGS.privacy);
   }, []);
-  
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted">
-      <div className="container max-w-4xl py-12">
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/')} 
-          className="mb-6"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back
+    <div className="min-h-screen bg-background">
+      <div className="container max-w-4xl py-12 px-4">
+        <Button variant="ghost" onClick={() => navigate('/')} className="mb-6">
+          <ArrowLeft className="h-4 w-4 mr-2" />Back
         </Button>
-        
+
         <div className="prose dark:prose-invert max-w-none">
           <h1>Privacy Policy</h1>
-          <p className="text-muted-foreground">Last updated: {new Date().toLocaleDateString()}</p>
-          
-          <h2>1. Information We Collect</h2>
-          
-          <h3>1.1 Account Information</h3>
+          <p className="text-muted-foreground">Last updated: August 21, 2026</p>
+
+          <h2>1. Local coding workspace</h2>
           <p>
-            When you create an account, we collect:
+            bIDE is designed to keep ordinary coding work local to your browser where possible. Code files and workspace state can be stored with browser storage such as IndexedDB, sessionStorage, or localStorage so you can continue working on the same device.
           </p>
           <ul>
-            <li>Email address</li>
-            <li>Full name</li>
-            <li>Password (encrypted)</li>
+            <li>Local code is not uploaded merely because you type or run it in a browser runtime.</li>
+            <li>Clearing browser or site data can remove locally stored work.</li>
+            <li>Features you explicitly choose—such as sharing, cloud workspaces, or Code Assist—can send the relevant data off-device to provide that feature.</li>
           </ul>
-          
-          <h3>1.2 Usage Data</h3>
+
+          <h2>2. Account information</h2>
           <p>
-            We automatically collect information about how you use bIDE:
+            If you sign in, bIDE may use a PocketBI-connected identity and authentication service. The service may process identifiers such as your account ID, email address, authentication/session information, and capability or entitlement state needed to provide connected features.
+          </p>
+          <p>You can use core browser coding features without creating a separate bIDE AI account or purchasing AI usage from bIDE.</p>
+
+          <h2>3. Optional cloud and sharing features</h2>
+          <p>
+            When you explicitly save a cloud workspace or create a share link, the content needed for that feature is sent to the configured hosted service. Shared links should be treated as accessible to anyone who receives the link unless the product explicitly tells you otherwise.
+          </p>
+          <p>Do not put passwords, API keys, secrets, confidential data, or regulated information in content you plan to share publicly.</p>
+
+          <h2>4. Optional Code Assist and your provider key</h2>
+          <p>
+            Code Assist is bring-your-own-key and is not required to run code. When you choose Ask, Review, or Complete, bIDE sends the prompt, relevant code context, selected model, and the API credential you supplied through the configured relay to the model provider so the provider can answer that request.
           </p>
           <ul>
-            <li>AI feature usage (number of uses, feature types)</li>
-            <li>Code execution statistics (language, lines executed)</li>
-            <li>Session duration and activity patterns</li>
-            <li>Browser type and device information</li>
+            <li>The current bIDE interface stores the Code Assist key in browser session storage so it can be reused during that browser session.</li>
+            <li>You can use the “Forget key” control to remove the key from the current bIDE session.</li>
+            <li>The current relay is designed not to intentionally persist the API key or prompt/code as application records and does not include application logging of that request context.</li>
+            <li>The model provider receives the request under the provider account associated with your key and handles it under that provider’s own terms and privacy practices.</li>
           </ul>
-          
-          <h3>1.3 Code and Content</h3>
           <p>
-            We store:
+            Do not send secrets or sensitive code to Code Assist unless you are authorized to send that information to the selected model provider.
           </p>
+
+          <h2>5. Usage and analytics</h2>
+          <p>
+            bIDE may collect limited product and technical information needed to operate or improve the service, such as authentication events, feature operation metadata, error information, or basic device/browser information produced by the services we use.
+          </p>
+          <p>
+            The public website also uses Plausible Analytics for aggregate website analytics. bIDE does not use third-party advertising pixels in the current public site configuration.
+          </p>
+
+          <h2>6. Third-party services</h2>
+          <p>Depending on the feature you choose, data may be processed by service providers that support bIDE, including:</p>
           <ul>
-            <li>Code you write in the IDE (stored locally in your browser by default)</li>
-            <li>Code you explicitly share using our sharing feature</li>
-            <li>Lab progress and completion status</li>
+            <li><strong>Supabase or connected PocketBI services:</strong> authentication and optional hosted product features.</li>
+            <li><strong>Google Gemini:</strong> only when you choose Code Assist and provide a compatible API key.</li>
+            <li><strong>Plausible:</strong> aggregate website analytics.</li>
+            <li><strong>Hosting/CDN/runtime providers:</strong> delivery of the web application and browser runtime dependencies.</li>
           </ul>
-          
-          <h3>1.4 Payment Information</h3>
-          <p>
-            Payment processing is handled by Stripe. We do not store your credit card information. We only store:
-          </p>
+          <p>bIDE does not currently operate a separate Stripe checkout or AI-token billing flow.</p>
+
+          <h2>7. Data retention</h2>
+          <p>Retention depends on the feature and where the data lives:</p>
           <ul>
-            <li>Stripe customer ID</li>
-            <li>Subscription status and billing dates</li>
-            <li>Transaction history</li>
+            <li><strong>Local workspace data:</strong> remains in your browser until it is deleted, overwritten, or browser/site storage is cleared.</li>
+            <li><strong>Shared or cloud content:</strong> remains according to the behavior of that feature until deleted, expired where applicable, or removed through account/support processes.</li>
+            <li><strong>Account data:</strong> is retained as needed to provide and secure the connected account and to meet applicable legal requirements.</li>
+            <li><strong>Code Assist session key:</strong> is stored in browser session storage and is removable with the in-product Forget key action.</li>
           </ul>
-          
-          <h2>2. How We Use Your Information</h2>
+
+          <h2>8. Security</h2>
           <p>
-            We use your information to:
+            We use reasonable technical controls appropriate to the service, including HTTPS for network traffic and authentication controls for connected account features. No online service or local browser storage mechanism can guarantee absolute security.
           </p>
+
+          <h2>9. Your choices</h2>
+          <p>You can:</p>
           <ul>
-            <li>Provide and maintain the bIDE service</li>
-            <li>Process subscriptions and payments</li>
-            <li>Track AI usage limits per tier</li>
-            <li>Improve our AI features and user experience</li>
-            <li>Send service-related communications</li>
-            <li>Prevent fraud and abuse</li>
-            <li>Comply with legal obligations</li>
+            <li>use the core workspace without enabling Code Assist;</li>
+            <li>remove your Code Assist key with Forget key;</li>
+            <li>delete local files or clear bIDE browser storage;</li>
+            <li>avoid or remove optional shared/cloud content where the feature provides that control; and</li>
+            <li>contact support for account-access, deletion, or privacy requests.</li>
           </ul>
-          
-          <h2>3. Guest Users</h2>
+
+          <h2>10. Children</h2>
+          <p>bIDE is not directed to children under 13, and we do not knowingly seek personal information from children under 13.</p>
+
+          <h2>11. Changes to this policy</h2>
           <p>
-            For guest users (no account), we generate a browser fingerprint to track AI usage limits. This fingerprint is:
+            This policy may be updated as bIDE’s features and service providers change. The date at the top identifies the current version.
           </p>
-          <ul>
-            <li>Stored locally in your browser</li>
-            <li>Used only for guest session identification (guests have no AI access)</li>
-            <li>Not tied to your personal identity</li>
-            <li>Reset if you clear your browser data</li>
-          </ul>
-          
-          <h2>4. Data Storage</h2>
-          
-          <h3>4.1 Local Storage</h3>
-          <p>
-            By default, your code is stored locally in your browser using IndexedDB. This means:
-          </p>
-          <ul>
-            <li>Your code never leaves your device unless you explicitly share it</li>
-            <li>We cannot access your local code</li>
-            <li>Clearing browser data will delete your local code</li>
-          </ul>
-          
-          <h3>4.2 Cloud Storage</h3>
-          <p>
-            For authenticated users, we store:
-          </p>
-          <ul>
-            <li>Shared code snippets (until expiration or deletion)</li>
-            <li>Lab progress and history</li>
-            <li>AI usage records</li>
-            <li>Account and profile information</li>
-          </ul>
-          
-          <h2>5. Data Sharing</h2>
-          <p>
-            We do not sell your personal data. We share data only with:
-          </p>
-          <ul>
-            <li><strong>Stripe:</strong> For payment processing</li>
-            <li><strong>OpenAI/Gemini:</strong> For AI features (code only, no personal data)</li>
-            <li><strong>Law Enforcement:</strong> When required by law</li>
-          </ul>
-          
-          <h2>6. Code Sharing Privacy</h2>
-          <p>
-            When you share code:
-          </p>
-          <ul>
-            <li>Anyone with the link can view the shared code</li>
-            <li>Shared code is public unless you use Pro features (future: password protection)</li>
-            <li>You control the expiration date</li>
-            <li>You can delete shared code anytime</li>
-          </ul>
-          
-          <h2>7. Data Security</h2>
-          <p>
-            We implement security measures including:
-          </p>
-          <ul>
-            <li>Encrypted passwords</li>
-            <li>HTTPS encryption for all data transmission</li>
-            <li>Regular security audits</li>
-            <li>Access controls and authentication</li>
-          </ul>
-          
-          <h2>8. Your Rights</h2>
-          <p>
-            You have the right to:
-          </p>
-          <ul>
-            <li>Access your personal data</li>
-            <li>Correct inaccurate data</li>
-            <li>Delete your account and data</li>
-            <li>Export your data</li>
-            <li>Opt out of marketing communications</li>
-          </ul>
-          
-          <h2>9. Children's Privacy</h2>
-          <p>
-            bIDE is not intended for users under 13 years old. We do not knowingly collect information from children under 13.
-          </p>
-          
-          <h2>10. Cookies and Tracking</h2>
-          <p>
-            We use:
-          </p>
-          <ul>
-            <li>Essential cookies for authentication and session management</li>
-            <li>LocalStorage for guest fingerprinting and code storage</li>
-            <li>No third-party advertising or tracking cookies</li>
-          </ul>
-          
-          <h2>11. Data Retention</h2>
-          <p>
-            We retain your data:
-          </p>
-          <ul>
-            <li>Account data: Until you delete your account</li>
-            <li>Shared code: Until expiration date or deletion</li>
-            <li>AI usage records: 90 days for usage enforcement</li>
-            <li>Payment records: As required by law (typically 7 years)</li>
-          </ul>
-          
-          <h2>12. International Users</h2>
-          <p>
-            bIDE is operated in the United States. By using our service, you consent to the transfer and processing of your data 
-            in the United States.
-          </p>
-          
-          <h2>13. Changes to This Policy</h2>
-          <p>
-            We may update this Privacy Policy from time to time. We will notify you of significant changes by email or through the service.
-          </p>
-          
-          <h2>14. Contact Us</h2>
-          <p>
-            If you have questions about this Privacy Policy or want to exercise your rights, please contact us through the feedback form 
-            on our website.
-          </p>
+
+          <h2>12. Contact</h2>
+          <p>Privacy or account questions can be sent to <a href="mailto:support@bideide.com">support@bideide.com</a>.</p>
         </div>
       </div>
     </div>
