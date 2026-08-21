@@ -2,66 +2,74 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
-
 @layer base {
   :root {
-    /* Synthwave Purple Theme */
-    --background: 270 50% 8%;
-    --foreground: 280 80% 95%;
+    /* Quiet technical dark theme: editor-first, low visual noise. */
+    --background: 222 32% 7%;
+    --foreground: 216 24% 94%;
 
-    --card: 270 40% 12%;
-    --card-foreground: 280 80% 95%;
+    --card: 222 27% 10%;
+    --card-foreground: 216 24% 94%;
 
-    --popover: 270 40% 12%;
-    --popover-foreground: 280 80% 95%;
+    --popover: 222 27% 10%;
+    --popover-foreground: 216 24% 94%;
 
-    --primary: 280 90% 65%;
-    --primary-foreground: 280 20% 10%;
+    --primary: 238 78% 68%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 300 70% 55%;
-    --secondary-foreground: 280 80% 95%;
+    --secondary: 220 20% 16%;
+    --secondary-foreground: 216 24% 94%;
 
-    --muted: 270 30% 20%;
-    --muted-foreground: 280 20% 60%;
+    --muted: 220 18% 15%;
+    --muted-foreground: 216 12% 62%;
 
-    --accent: 320 85% 60%;
-    --accent-foreground: 280 20% 10%;
+    --accent: 199 72% 55%;
+    --accent-foreground: 222 32% 7%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 95%;
+    --destructive: 0 68% 55%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 280 50% 25%;
-    --input: 280 40% 18%;
-    --ring: 280 90% 65%;
+    --border: 220 17% 19%;
+    --input: 220 20% 13%;
+    --ring: 238 78% 68%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
-    --editor-bg: 270 40% 12%;
-    --console-bg: 270 50% 8%;
-    --sidebar-bg: 270 50% 8%;
-    --toolbar-bg: 270 50% 8%;
+    --editor-bg: 222 30% 8%;
+    --console-bg: 222 34% 6%;
+    --sidebar-bg: 222 29% 8%;
+    --toolbar-bg: 222 29% 8%;
 
-    /* Synthwave Gradients */
-    --gradient-synthwave: linear-gradient(135deg, hsl(280 90% 65%) 0%, hsl(320 85% 60%) 50%, hsl(340 80% 55%) 100%);
-    --gradient-neon: linear-gradient(90deg, hsl(280 90% 65%) 0%, hsl(300 85% 60%) 100%);
-    --glow-purple: 0 0 20px hsl(280 90% 65% / 0.5), 0 0 40px hsl(280 90% 65% / 0.3);
-    --glow-pink: 0 0 20px hsl(320 85% 60% / 0.5), 0 0 40px hsl(320 85% 60% / 0.3);
+    --surface-raised: 222 24% 11%;
+    --surface-hover: 220 20% 15%;
+    --line-subtle: 220 16% 17%;
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
+  html,
+  body,
+  #root {
+    min-height: 100%;
   }
 
-  /* Mobile safe-area support for notch/home indicator */
+  body {
+    @apply bg-background text-foreground;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background-image:
+      radial-gradient(circle at 50% -18%, hsl(var(--primary) / 0.08), transparent 35%),
+      linear-gradient(hsl(var(--background)), hsl(var(--background)));
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
   .mobile-editor-shell {
     padding-bottom: max(80px, env(safe-area-inset-bottom));
   }
@@ -75,7 +83,6 @@ All colors MUST be HSL.
     z-index: 1000;
   }
 
-  /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -85,33 +92,28 @@ All colors MUST be HSL.
     display: none;
   }
 
-  /* Custom scrollbar for Tools panel - subtle and themed */
   .tools-scrollbar::-webkit-scrollbar {
-    width: 8px;
+    width: 7px;
   }
 
   .tools-scrollbar::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-    border-radius: 4px;
+    background: transparent;
   }
 
   .tools-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--primary) / 0.4);
-    border-radius: 4px;
-    transition: background 0.2s;
+    background: hsl(var(--muted-foreground) / 0.22);
+    border-radius: 999px;
   }
 
   .tools-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--primary) / 0.6);
+    background: hsl(var(--muted-foreground) / 0.34);
   }
 
-  /* Firefox scrollbar */
   .tools-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--primary) / 0.4) hsl(var(--muted) / 0.3);
+    scrollbar-color: hsl(var(--muted-foreground) / 0.22) transparent;
   }
 
-  /* Touch-friendly mobile interactions */
   .touch-manipulation {
     touch-action: manipulation;
   }

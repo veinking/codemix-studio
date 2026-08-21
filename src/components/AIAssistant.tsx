@@ -1,14 +1,12 @@
-import React, { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Check, Copy, KeyRound, Loader2, ShieldCheck, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Wand2, CheckCircle, Lightbulb, X, Zap, BookOpen } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { isSupabaseConfigured, supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useAIFunction } from "@/hooks/useAIFunction";
-import { UpgradeDialog } from "@/components/UpgradeDialog";
-import { useAuth } from "@/contexts/AuthContext";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Link } from "react-router-dom";
 
 interface AIAssistantProps {
   code: string;
@@ -18,241 +16,192 @@ interface AIAssistantProps {
   isMobile?: boolean;
 }
 
-export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode, isMobile = false }: AIAssistantProps) => {
+type AssistAction = "ask" | "review" | "complete";
+type AssistModel = "gemini-2.5-flash-lite" | "gemini-2.5-flash";
+
+const SESSION_KEY = "bide.code-assist.gemini-key.v1";
+
+function stripCodeFence(value: string) {
+  const trimmed = value.trim();
+  const match = trimmed.match(/^```(?:[a-zA-Z0-9_+-]+)?\s*([\s\S]*?)\s*```$/);
+  return match ? match[1].trim() : trimmed;
+}
+
+export const AIAssistant = ({ code, language, onCodeUpdate, selectedCode }: AIAssistantProps) => {
+  const [apiKey, setApiKey] = useState("");
   const [prompt, setPrompt] = useState("");
-  const [suggestion, setSuggestion] = useState<string | null>(null);
-  const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
-  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
-  const { isGuest } = useAuth();
-  
-  const { invokeAI, isLoading } = useAIFunction({
-    onUpgradeRequired: () => setShowUpgradeDialog(true)
-  });
+  const [action, setAction] = useState<AssistAction>("ask");
+  const [model, setModel] = useState<AssistModel>("gemini-2.5-flash-lite");
+  const [result, setResult] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  // Auto-scan every 5 minutes
   useEffect(() => {
-    if (!code || code.trim().length === 0) return;
+    setApiKey(sessionStorage.getItem(SESSION_KEY) || "");
+  }, []);
 
-    const scanInterval = setInterval(() => {
-      handleAutoScan();
-    }, 5 * 60 * 1000); // 5 minutes
+  function rememberKey(value: string) {
+    setApiKey(value);
+    if (value.trim()) sessionStorage.setItem(SESSION_KEY, value.trim());
+    else sessionStorage.removeItem(SESSION_KEY);
+  }
 
-    return () => clearInterval(scanInterval);
-  }, [code, language]);
+  function forgetKey() {
+    setApiKey("");
+    sessionStorage.removeItem(SESSION_KEY);
+    toast.success("Code Assist key cleared from this browser session.");
+  }
 
-  const handleAutoScan = async () => {
-    if (code.trim().length === 0) return;
-    
+  async function runAssist(nextAction: AssistAction = action) {
+    if (!apiKey.trim()) {
+      toast.error("Add your Gemini API key first.");
+      return;
+    }
+    if (nextAction === "ask" && !prompt.trim()) {
+      toast.error("Ask a question first.");
+      return;
+    }
+    if ((nextAction === "review" || nextAction === "complete") && !String(selectedCode || code).trim()) {
+      toast.error("There is no code to send.");
+      return;
+    }
+    if (!isSupabaseConfigured) {
+      toast.error("Code Assist relay is not configured on this deployment.");
+      return;
+    }
+
+    setLoading(true);
+    setResult("");
     try {
-      const { data, error, upgradeRequired } = await invokeAI("ai-code-assistant", {
-        action: "scan",
-        code,
-        language,
-        isMobile
+      const { data, error } = await supabase.functions.invoke("ai-code-assistant", {
+        body: {
+          action: nextAction,
+          code,
+          prompt: prompt.trim() || undefined,
+          selectedCode: selectedCode || undefined,
+          language,
+          model,
+          apiKey: apiKey.trim(),
+        },
       });
 
-      if (upgradeRequired) return;
       if (error) throw error;
-
-      if (data?.result) {
-        setSuggestion(data.result);
-        setLastScanTime(new Date());
-        toast.info("AI has analyzed your code", {
-          description: "Check the suggestions below",
-        });
-      }
+      if (data?.error) throw new Error(data.error);
+      if (!data?.result) throw new Error("Code Assist returned an empty response.");
+      setAction(nextAction);
+      setResult(String(data.result));
     } catch (error) {
-      console.error("Auto-scan error:", error);
+      const message = error instanceof Error ? error.message : "Code Assist request failed.";
+      toast.error(message);
+    } finally {
+      setLoading(false);
     }
-  };
+  }
 
-  const handleAIAction = async (action: "autofill" | "autocomplete" | "check" | "optimize" | "explain") => {
-    if (action === "autofill" && !prompt.trim()) {
-      toast.error("Please enter a goal or description");
-      return;
-    }
-
-    if (action === "check" && !selectedCode && !code) {
-      toast.error("No code to check");
-      return;
-    }
-
-    setSuggestion(null);
-
-    try {
-      const { data, error, upgradeRequired } = await invokeAI("ai-code-assistant", {
-        action,
-        code,
-        prompt: prompt.trim(),
-        language,
-        selectedCode,
-        isMobile,
-      });
-
-      if (upgradeRequired) return;
-      if (error) throw error;
-
-      if (data?.error) {
-        toast.error(data.error);
-        return;
-      }
-
-      const result = data?.result;
-
-      if (action === "autofill" || action === "autocomplete" || action === "optimize") {
-        // Update the editor with the generated/completed/optimized code
-        onCodeUpdate(result);
-        toast.success(
-          action === "autofill" ? "Code generated!" : 
-          action === "autocomplete" ? "Code completed!" : 
-          "Code optimized with best practices!"
-        );
-        setPrompt("");
-      } else {
-        // Show suggestions for check/explain actions
-        setSuggestion(result);
-        toast.success(action === "explain" ? "Code explained!" : "Code analysis complete");
-      }
-    } catch (error: any) {
-      console.error("AI error:", error);
-      toast.error(error.message || "AI request failed");
-    }
-  };
+  const completion = action === "complete" ? stripCodeFence(result) : result;
 
   return (
-    <div className="flex flex-col gap-3 p-4 bg-background/95 backdrop-blur border-t">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4">
+      <div>
         <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold">AI Code Assistant</span>
+          <KeyRound className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold">Code Assist · BYOK</h3>
         </div>
-        {lastScanTime && (
-          <span className="text-xs text-muted-foreground">
-            Last scan: {lastScanTime.toLocaleTimeString()}
-          </span>
-        )}
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          Optional help using your Gemini key. bIDE does not include automatic scans or a bundled AI allowance.
+        </p>
       </div>
 
-      {isGuest && (
-        <Alert>
-          <Sparkles className="h-4 w-4" />
-          <AlertDescription>
-            AI features require a free account.{" "}
-            <Link to="/auth" className="font-semibold underline">
-              Sign up
-            </Link>{" "}
-            to get 3 free AI requests every 5 days!
-          </AlertDescription>
-        </Alert>
+      <Card className="space-y-3 border-border bg-card/60 p-3 shadow-none">
+        <label className="block text-xs font-medium text-muted-foreground">Gemini API key</label>
+        <Input
+          type="password"
+          autoComplete="off"
+          value={apiKey}
+          onChange={(event) => rememberKey(event.target.value)}
+          placeholder="AIza…"
+          className="h-9 font-mono text-xs"
+        />
+        <div className="flex items-start gap-2 text-[11px] leading-4 text-muted-foreground">
+          <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+          <span>The key is kept in sessionStorage and sent only to the constrained bIDE relay for the request. Close the browser session or use Forget key to clear it.</span>
+        </div>
+        {apiKey && (
+          <Button variant="ghost" size="sm" onClick={forgetKey} className="h-7 px-2 text-xs text-muted-foreground">
+            <Trash2 className="mr-1.5 h-3.5 w-3.5" /> Forget key
+          </Button>
+        )}
+      </Card>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Task</label>
+          <Select value={action} onValueChange={(value) => setAction(value as AssistAction)}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ask">Ask about code</SelectItem>
+              <SelectItem value="review">Review code</SelectItem>
+              <SelectItem value="complete">Complete code</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Model</label>
+          <Select value={model} onValueChange={(value) => setModel(value as AssistModel)}>
+            <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="gemini-2.5-flash-lite">Flash Lite · cheapest</SelectItem>
+              <SelectItem value="gemini-2.5-flash">Flash · stronger</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {action === "ask" && (
+        <Textarea
+          value={prompt}
+          onChange={(event) => setPrompt(event.target.value)}
+          placeholder="What is wrong with this function? How can I parse this CSV?"
+          className="min-h-[92px] resize-y text-sm"
+        />
       )}
 
-      <Textarea
-        placeholder="Describe what you want to build or what the code should do..."
-        value={prompt}
-        onChange={(e) => setPrompt(e.target.value)}
-        className="min-h-[80px] resize-none"
-        disabled={isLoading || isGuest}
-      />
+      <Button onClick={() => runAssist()} disabled={loading} className="w-full shadow-none">
+        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+        {loading ? "Working…" : action === "ask" ? "Ask" : action === "review" ? "Review code" : "Complete code"}
+      </Button>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          onClick={() => handleAIAction("autofill")}
-          disabled={isLoading || !prompt.trim() || isGuest}
-          className="flex items-center gap-2"
-        >
-          <Wand2 className="h-4 w-4" />
-          Auto Fill
-        </Button>
-
-        <Button
-          size="sm"
-          variant="secondary"
-          onClick={() => handleAIAction("autocomplete")}
-          disabled={isLoading || !code || isGuest}
-          className="flex items-center gap-2"
-        >
-          <Sparkles className="h-4 w-4" />
-          Auto Complete
-        </Button>
-
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleAIAction("explain")}
-          disabled={isLoading || !selectedCode || isGuest}
-          className="flex items-center gap-2"
-        >
-          <BookOpen className="h-4 w-4" />
-          Explain
-        </Button>
-
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => handleAIAction("check")}
-          disabled={isLoading || (!code && !selectedCode) || isGuest}
-          className="flex items-center gap-2"
-        >
-          <CheckCircle className="h-4 w-4" />
-          Check Code
-        </Button>
-
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleAutoScan}
-          disabled={isLoading || !code || isGuest}
-          className="flex items-center gap-2"
-        >
-          <Lightbulb className="h-4 w-4" />
-          Scan Now
-        </Button>
-
-        <Button
-          size="sm"
-          variant="default"
-          onClick={() => handleAIAction("optimize")}
-          disabled={isLoading || !code || isGuest}
-          className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary/80"
-        >
-          <Zap className="h-4 w-4" />
-          Optimize
-        </Button>
-      </div>
-
-      {suggestion && (
-        <Card className="p-3 relative">
-          <Button
-            size="icon"
-            variant="ghost"
-            className="absolute top-2 right-2 h-6 w-6"
-            onClick={() => setSuggestion(null)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-          <div className="pr-8">
-            <div className="flex items-center gap-2 mb-2">
-              <Lightbulb className="h-4 w-4 text-primary" />
-              <span className="text-sm font-semibold">AI Suggestions</span>
-            </div>
-            <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-              {suggestion}
-            </div>
+      {result && (
+        <Card className="space-y-3 border-border bg-card/60 p-3 shadow-none">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold">Result</p>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => navigator.clipboard.writeText(completion).then(() => toast.success("Copied."))}
+              title="Copy result"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </Button>
           </div>
+          <pre className="max-h-[320px] overflow-auto whitespace-pre-wrap rounded-md bg-background/70 p-3 font-mono text-xs leading-5 text-foreground">
+            {completion}
+          </pre>
+          {action === "complete" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={() => {
+                onCodeUpdate(completion);
+                toast.success("Completion applied to the editor.");
+              }}
+            >
+              <Check className="mr-2 h-4 w-4" /> Apply to editor
+            </Button>
+          )}
         </Card>
       )}
-
-      {isLoading && (
-        <div className="flex items-center justify-center py-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Sparkles className="h-4 w-4 animate-pulse" />
-            <span>AI is thinking...</span>
-          </div>
-        </div>
-      )}
-      
-      <UpgradeDialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog} />
     </div>
   );
 };
