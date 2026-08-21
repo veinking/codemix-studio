@@ -1,7 +1,6 @@
 import {
   Book,
   Cloud,
-  Languages,
   Library,
   LogOut,
   MoreHorizontal,
@@ -61,7 +60,6 @@ export const Toolbar = ({
   onRun,
   onSaveScratchAsFile,
   onShare,
-  onOpenTranslate,
   onOpenPlotBuilder,
   onToggleNotebook,
   onOpenTemplates,
@@ -98,21 +96,15 @@ export const Toolbar = ({
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : "h-8 px-2"}>
           <Avatar className="h-6 w-6">
-            <AvatarFallback className="bg-primary/15 text-primary text-xs">
-              {user?.email?.charAt(0).toUpperCase() || "U"}
-            </AvatarFallback>
+            <AvatarFallback className="bg-primary/15 text-primary text-xs">{user?.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
           </Avatar>
           {!isMobile && <span className="ml-2 max-w-[90px] truncate text-xs">{user?.email?.split("@")[0]}</span>}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => navigate("/account")}>
-          <User className="mr-2 h-4 w-4" /> Account
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/account")}><User className="mr-2 h-4 w-4" /> Account</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut}>
-          <LogOut className="mr-2 h-4 w-4" /> Sign out
-        </DropdownMenuItem>
+        <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> Sign out</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -132,19 +124,11 @@ export const Toolbar = ({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")}
-            className="h-9 w-9"
-            title="Language reference"
-          >
+          <Button variant="ghost" size="icon" onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")} className="h-9 w-9" title="Language reference">
             <Book className="h-4 w-4" />
           </Button>
           {onOpenFeatures && (
-            <Button variant="ghost" size="icon" onClick={onOpenFeatures} className="h-9 w-9" title="Workspace tools">
-              <Settings2 className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="icon" onClick={onOpenFeatures} className="h-9 w-9" title="Workspace tools"><Settings2 className="h-4 w-4" /></Button>
           )}
           {accountControl}
         </div>
@@ -168,75 +152,42 @@ export const Toolbar = ({
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
-        <Button
-          variant="default"
-          size="sm"
-          onClick={onRun}
-          disabled={isRunning}
-          className="h-8 px-3 text-xs shadow-none"
-        >
-          <Play className="mr-1.5 h-3.5 w-3.5" />
-          {isRunning ? "Running…" : "Run"}
+        <Button variant="default" size="sm" onClick={onRun} disabled={isRunning} className="h-8 px-3 text-xs shadow-none">
+          <Play className="mr-1.5 h-3.5 w-3.5" />{isRunning ? "Running…" : "Run"}
         </Button>
 
         {!currentFile && (
-          <Button variant="ghost" size="sm" onClick={onSaveScratchAsFile} className="h-8 px-2.5 text-xs">
-            <Save className="mr-1.5 h-3.5 w-3.5" /> Save
-          </Button>
+          <Button variant="ghost" size="sm" onClick={onSaveScratchAsFile} className="h-8 px-2.5 text-xs"><Save className="mr-1.5 h-3.5 w-3.5" /> Save</Button>
         )}
 
         {onShare && (
-          <Button variant="ghost" size="sm" onClick={onShare} className="h-8 px-2.5 text-xs">
-            <Share2 className="mr-1.5 h-3.5 w-3.5" /> Share
-          </Button>
+          <Button variant="ghost" size="sm" onClick={onShare} className="h-8 px-2.5 text-xs"><Share2 className="mr-1.5 h-3.5 w-3.5" /> Share</Button>
         )}
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")}
-          className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"
-        >
+        <Button variant="ghost" size="sm" onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")} className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
           <Book className="mr-1.5 h-3.5 w-3.5" /> Docs
         </Button>
 
         {onOpenTools && (
-          <Button variant="ghost" size="sm" onClick={onOpenTools} className="h-8 px-2.5 text-xs">
-            <Settings2 className="mr-1.5 h-3.5 w-3.5" /> Tools
-          </Button>
+          <Button variant="ghost" size="sm" onClick={onOpenTools} className="h-8 px-2.5 text-xs"><Settings2 className="mr-1.5 h-3.5 w-3.5" /> Tools</Button>
         )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title="More editor actions">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title="More editor actions"><MoreHorizontal className="h-4 w-4" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
             {onToggleNotebook && !currentFile && (
-              <DropdownMenuItem onClick={onToggleNotebook}>
-                <BookOpen className="mr-2 h-4 w-4" /> {isNotebookMode ? "Exit notebook" : "Notebook mode"}
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onToggleNotebook}><BookOpen className="mr-2 h-4 w-4" /> {isNotebookMode ? "Exit notebook" : "Notebook mode"}</DropdownMenuItem>
             )}
             {onOpenPlotBuilder && (
-              <DropdownMenuItem onClick={onOpenPlotBuilder}>
-                <BarChart3 className="mr-2 h-4 w-4" /> Plot builder
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenPlotBuilder}><BarChart3 className="mr-2 h-4 w-4" /> Plot builder</DropdownMenuItem>
             )}
             {onOpenTemplates && (
-              <DropdownMenuItem onClick={onOpenTemplates}>
-                <Library className="mr-2 h-4 w-4" /> Templates
-              </DropdownMenuItem>
-            )}
-            {onOpenTranslate && (
-              <DropdownMenuItem onClick={onOpenTranslate}>
-                <Languages className="mr-2 h-4 w-4" /> Translate code
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenTemplates}><Library className="mr-2 h-4 w-4" /> Templates</DropdownMenuItem>
             )}
             {onOpenWorkspaceManager && (
-              <DropdownMenuItem onClick={onOpenWorkspaceManager}>
-                <Cloud className="mr-2 h-4 w-4" /> Cloud workspace
-              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenWorkspaceManager}><Cloud className="mr-2 h-4 w-4" /> Cloud workspace</DropdownMenuItem>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
