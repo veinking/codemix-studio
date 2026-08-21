@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import DatasetCompletionBootstrap from "./components/DatasetCompletionBootstrap";
@@ -17,7 +17,6 @@ import Features from "./pages/Features";
 import Tutorials from "./pages/Tutorials";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
-import Upgrade from "./pages/Upgrade";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Support from "./pages/Support";
@@ -58,47 +57,47 @@ const App = () => {
             <BrowserRouter>
               <DatasetCompletionBootstrap />
               <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/ide" element={<IDE />} />
-              <Route path="/pocketbi-handoff" element={<PocketBIHandoff />} />
-              <Route path="/runtime-lab" element={<RuntimeLab />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/tutorials" element={<Tutorials />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/account" element={<Account />} />
-              <Route path="/upgrade" element={<Upgrade />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/testimonials" element={<Testimonials />} />
-              <Route path="/share/:shortId" element={<SharedCode />} />
-              <Route path="/use-cases/data-science-students" element={<DataScienceStudents />} />
-              <Route path="/use-cases/statistics-r-programming" element={<StatisticsR />} />
-              <Route path="/use-cases/mobile-coding" element={<MobileCoding />} />
-              <Route path="/comparisons/bide-vs-google-colab" element={<VsGoogleColab />} />
-              <Route path="/comparisons/openide-vs-google-colab" element={<VsGoogleColab />} />
-              <Route path="/blog" element={<BlogIndex />} />
-              <Route path="/docs" element={<DocsIndex />} />
-              <Route path="/docs/python" element={<PythonDocs />} />
-              <Route path="/docs/r" element={<RDocs />} />
-              <Route path="/docs/javascript" element={<JavaScriptDocs />} />
-              <Route path="/docs/sql" element={<SQLDocs />} />
-              <Route path="/docs/php" element={<PHPDocs />} />
-              <Route path="/docs/ruby" element={<RubyDocs />} />
-              <Route path="/docs/lua" element={<LuaDocs />} />
-              <Route path="/docs/java" element={<JavaDocs />} />
-              <Route path="/docs/typescript" element={<TypeScriptDocs />} />
-              <Route path="/docs/cpp" element={<CppDocs />} />
-              <Route path="/docs/c" element={<CDocs />} />
-              <Route path="/docs/rust" element={<RustDocs />} />
-              <Route path="/docs/go" element={<GoDocs />} />
-              <Route path="/docs/swift" element={<SwiftDocs />} />
-              <Route path="/docs/kotlin" element={<KotlinDocs />} />
-              <Route path="/docs/csharp" element={<CSharpDocs />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+                <Route path="/" element={<Landing />} />
+                <Route path="/ide" element={<IDE />} />
+                <Route path="/pocketbi-handoff" element={<PocketBIHandoff />} />
+                <Route path="/runtime-lab" element={<RuntimeLab />} />
+                <Route path="/features" element={<Features />} />
+                <Route path="/tutorials" element={<Tutorials />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/account" element={<Account />} />
+                <Route path="/upgrade" element={<Navigate to="/account" replace />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/testimonials" element={<Testimonials />} />
+                <Route path="/share/:shortId" element={<SharedCode />} />
+                <Route path="/use-cases/data-science-students" element={<DataScienceStudents />} />
+                <Route path="/use-cases/statistics-r-programming" element={<StatisticsR />} />
+                <Route path="/use-cases/mobile-coding" element={<MobileCoding />} />
+                <Route path="/comparisons/bide-vs-google-colab" element={<VsGoogleColab />} />
+                <Route path="/comparisons/openide-vs-google-colab" element={<VsGoogleColab />} />
+                <Route path="/blog" element={<BlogIndex />} />
+                <Route path="/docs" element={<DocsIndex />} />
+                <Route path="/docs/python" element={<PythonDocs />} />
+                <Route path="/docs/r" element={<RDocs />} />
+                <Route path="/docs/javascript" element={<JavaScriptDocs />} />
+                <Route path="/docs/sql" element={<SQLDocs />} />
+                <Route path="/docs/php" element={<PHPDocs />} />
+                <Route path="/docs/ruby" element={<RubyDocs />} />
+                <Route path="/docs/lua" element={<LuaDocs />} />
+                <Route path="/docs/java" element={<JavaDocs />} />
+                <Route path="/docs/typescript" element={<TypeScriptDocs />} />
+                <Route path="/docs/cpp" element={<CppDocs />} />
+                <Route path="/docs/c" element={<CDocs />} />
+                <Route path="/docs/rust" element={<RustDocs />} />
+                <Route path="/docs/go" element={<GoDocs />} />
+                <Route path="/docs/swift" element={<SwiftDocs />} />
+                <Route path="/docs/kotlin" element={<KotlinDocs />} />
+                <Route path="/docs/csharp" element={<CSharpDocs />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
         </ErrorBoundary>
       </AuthProvider>
     </QueryClientProvider>
