@@ -12,6 +12,9 @@ packages:
   TreeSitterLanguages:
     url: https://github.com/simonbs/TreeSitterLanguages.git
     revision: 15cf3a9ec3ab95e0d058b7df9f35619123c9e02d
+  CoreXLSX:
+    url: https://github.com/CoreOffice/CoreXLSX.git
+    from: 0.14.2
 
 targets:
   bIDE:
@@ -28,6 +31,9 @@ targets:
         product: TreeSitterSQLRunestone
       - package: TreeSitterLanguages
         product: TreeSitterRRunestone
+      - package: CoreXLSX
+        product: CoreXLSX
+      - sdk: libsqlite3.tbd
     info:
       path: BideApp/Info.plist
       properties:
@@ -47,6 +53,15 @@ targets:
               - public.python-script
               - com.bideide.sql-source
               - com.bideide.r-source
+          - CFBundleTypeName: bIDE Dataset
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.comma-separated-values-text
+              - public.tab-separated-values-text
+              - public.json
+              - public.plain-text
+              - org.openxmlformats.spreadsheetml.sheet
         UTImportedTypeDeclarations:
           - UTTypeIdentifier: com.bideide.sql-source
             UTTypeDescription: SQL Source Code
@@ -68,8 +83,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios
         PRODUCT_NAME: bIDE
-        MARKETING_VERSION: 0.1.0
-        CURRENT_PROJECT_VERSION: 1
+        MARKETING_VERSION: 0.2.0
+        CURRENT_PROJECT_VERSION: 2
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         TARGETED_DEVICE_FAMILY: "1,2"
