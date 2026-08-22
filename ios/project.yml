@@ -28,6 +28,42 @@ targets:
         product: TreeSitterSQLRunestone
       - package: TreeSitterLanguages
         product: TreeSitterRRunestone
+    info:
+      path: BideApp/Info.plist
+      properties:
+        CFBundleDisplayName: bIDE
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        LSApplicationCategoryType: public.app-category.developer-tools
+        UIApplicationSupportsIndirectInputEvents: true
+        UILaunchScreen: {}
+        LSSupportsOpeningDocumentsInPlace: false
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: bIDE Source Code
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.python-script
+              - com.bideide.sql-source
+              - com.bideide.r-source
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.bideide.sql-source
+            UTTypeDescription: SQL Source Code
+            UTTypeConformsTo:
+              - public.source-code
+              - public.text
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - sql
+          - UTTypeIdentifier: com.bideide.r-source
+            UTTypeDescription: R Source Code
+            UTTypeConformsTo:
+              - public.source-code
+              - public.text
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - r
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios
@@ -38,12 +74,6 @@ targets:
         SWIFT_STRICT_CONCURRENCY: complete
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: bIDE
-        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
-        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
-        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
 
 schemes:
   bIDE:
