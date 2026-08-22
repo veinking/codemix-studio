@@ -60,13 +60,14 @@ enum CompletionProvider {
         case .sql:
             return datasets.flatMap { asset in
                 asset.tables.flatMap { table -> [CompletionSuggestion] in
+                    let quotedTable = quoteIdentifier(table.sqliteName)
                     var suggestions = [
-                        CompletionSuggestion(label: table.sqliteName, insertText: table.sqliteName)
+                        CompletionSuggestion(label: table.sqliteName, insertText: quotedTable)
                     ]
                     suggestions += table.columns.map { column in
                         CompletionSuggestion(
                             label: "\(table.sqliteName).\(column.name)",
-                            insertText: "\(table.sqliteName).\(column.name)"
+                            insertText: "\(quotedTable).\(quoteIdentifier(column.name))"
                         )
                     }
                     return suggestions
@@ -78,6 +79,10 @@ enum CompletionProvider {
                 return CompletionSuggestion(label: path, insertText: path)
             }
         }
+    }
+
+    private static func quoteIdentifier(_ identifier: String) -> String {
+        "\"\(identifier.replacingOccurrences(of: "\"", with: "\"\""))\""
     }
 
     private static let languageSuggestions: [CodeLanguage: [CompletionSuggestion]] = [
