@@ -17,12 +17,14 @@ final class WorkspaceStore: ObservableObject {
     @Published private(set) var documentLanguage: CodeLanguage = .python
     @Published private(set) var saveState: SaveState = .saved
 
-    private let fileManager = FileManager.default
+    private let fileManager: FileManager
     private let rootDirectory: URL
     private var autosaveTask: Task<Void, Never>?
 
     init() {
-        let documents = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let manager = FileManager.default
+        let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        fileManager = manager
         rootDirectory = documents.appendingPathComponent("bIDE Projects", isDirectory: true)
         bootstrap()
     }
