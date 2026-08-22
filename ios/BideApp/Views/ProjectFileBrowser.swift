@@ -6,6 +6,8 @@ struct ProjectFileBrowser: View {
 
     @State private var renameTarget: BideProjectFile?
     @State private var renameValue = ""
+    @State private var shareURLs: [URL] = []
+    @State private var sharePresented = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -19,6 +21,14 @@ struct ProjectFileBrowser: View {
                         .lineLimit(1)
                 }
                 Spacer()
+                Button {
+                    shareProjectFiles()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .accessibilityLabel("Export project files")
+                .disabled(workspace.files.isEmpty)
+
                 Button(action: onCreateFile) {
                     Image(systemName: "plus")
                 }
@@ -71,6 +81,9 @@ struct ProjectFileBrowser: View {
                             : Color.clear
                     )
                     .contextMenu {
+                        Button("Share File", systemImage: "square.and.arrow.up") {
+                            shareFile(file)
+                        }
                         Button("Rename", systemImage: "pencil") {
                             renameValue = file.name
                             renameTarget = file
@@ -82,6 +95,9 @@ struct ProjectFileBrowser: View {
                 }
                 .listStyle(.sidebar)
             }
+        }
+        .sheet(isPresented: $sharePresented) {
+            ActivityShareSheet(urls: shareURLs)
         }
         .alert("Rename File", isPresented: Binding(
             get: { renameTarget != nil },
@@ -100,5 +116,20 @@ struct ProjectFileBrowser: View {
         } message: {
             Text("The file keeps its current Python, SQL, or R extension.")
         }
+    }
+
+    private func shareFile(_ file: BideProjectFile) {
+        if file.id == workspace.activeFileID {
+            workspace.saveActiveDocumentNow()
+        }
+        shareURLs = [file.url]
+        sharePresented = true
+    }
+
+    private func shareProjectFiles() {
+        workspace.saveActiveDocumentNow()
+        shareURLs = workspace.files.map(\.url)
+        guard !shareURLs.isEmpty else { return }
+        sharePresented = true
     }
 }
