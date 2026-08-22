@@ -6,6 +6,7 @@ on:
     paths:
       - "ios/**"
       - "scripts/validate-bide-ios-phase1.mjs"
+      - "scripts/release/build_bide_sideloadly_ipa.sh"
       - ".github/workflows/bide-ios-quality.yml"
   push:
     branches:
@@ -13,6 +14,7 @@ on:
     paths:
       - "ios/**"
       - "scripts/validate-bide-ios-phase1.mjs"
+      - "scripts/release/build_bide_sideloadly_ipa.sh"
       - ".github/workflows/bide-ios-quality.yml"
   workflow_dispatch:
 
@@ -26,7 +28,7 @@ concurrency:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 20
+    timeout-minutes: 30
 
     steps:
       - name: Check out source
@@ -70,11 +72,27 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build | tee /tmp/bide-ios-build.log
 
-      - name: Upload build diagnostics
+      - name: Build unsigned physical-device IPA
+        shell: bash
+        run: bash scripts/release/build_bide_sideloadly_ipa.sh
+
+      - name: Upload bIDE physical-device package
+        uses: actions/upload-artifact@v4
+        with:
+          name: bIDE-Phase1-Sideloadly-${{ github.run_attempt }}
+          path: |
+            build/bIDE-Sideloadly.ipa
+            build/BideSideloadlyLogs/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload simulator build diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: bide-ios-build-diagnostics
-          path: /tmp/bide-ios-build.log
+          path: |
+            /tmp/bide-ios-build.log
+            build/BideSideloadlyLogs/
           retention-days: 7
           if-no-files-found: warn
