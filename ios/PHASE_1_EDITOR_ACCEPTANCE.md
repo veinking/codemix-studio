@@ -1,60 +1,72 @@
-# bIDE iOS Phase 1 Editor Acceptance
+# bIDE Phase 1 — Native Editor + Local Project Acceptance
 
-Phase 1 is the native editor + local project core only. Runtime execution, PocketBI ID, StoreKit, cloud sync, and ecosystem handoffs are out of scope until this gate passes.
+## Automated build gate
 
-## Build gate
+- XcodeGen resolves Runestone and the pinned TreeSitterLanguages revision.
+- Swift 6 strict-concurrency simulator build passes.
+- Unsigned physical-device build targets arm64 iPhoneOS.
+- Target supports iPhone + iPad.
+- Phase 1 scope validator passes and blocks runtime/auth/billing scope leaks.
 
-- XcodeGen resolves Runestone 0.5.2 and the Python/SQL/R Tree-sitter products.
-- Swift 6 strict-concurrency simulator build succeeds for the `bIDE` scheme.
-- The target remains iPhone + iPad (`TARGETED_DEVICE_FAMILY = 1,2`).
+## Physical iPhone editor gate
 
-## iPhone editing gate
-
-Test on a physical iPhone:
-
-- Tap into the beginning, middle, and end of an existing line; insertion occurs exactly at the caret.
-- Type continuously for at least 30 seconds with no cursor jumps or dropped text.
-- Long-press selection handles can select partial text, whole lines, and multiple lines.
-- Copy, cut, paste, undo, and redo work with native editing behavior.
-- Multi-line paste preserves content and indentation.
-- Tab and outdent work with both an insertion point and a multi-line selection.
-- Coding toolbar inserts parentheses, brackets, braces, quotes, colon, underscore, and hash without dismissing the workflow.
-- Left/right caret controls move predictably through text.
-- Completion chips replace the current token without corrupting surrounding text.
-- Find Next, Replace Next, and Replace All work from the bIDE find/replace sheet.
-- Command-R on a hardware keyboard reaches the Run Selection/File boundary without executing a runtime during Phase 1.
-- Opening and closing the software keyboard repeatedly does not lose the active file or selection.
-- Portrait/landscape rotation preserves the active project, file contents, and usable editor state.
+- tap-to-place caret works at beginning/middle/end of lines
+- continuous typing for 30 seconds has no jumps/dropped input
+- native long-press selection handles behave correctly
+- copy/cut/paste/undo/redo behave correctly
+- multiline paste keeps usable indentation
+- Tab/outdent preserve insertion point and multiline selection
+- quick coding toolbar pairs/symbols behave correctly
+- caret arrows move predictably
+- completion chips replace the intended token
+- Find Next / Replace Next / Replace All behave correctly
+- Command-R / Run reaches the editor execution boundary without running a runtime
+- repeated keyboard open/close preserves file and selection state
+- portrait/landscape preserves project/file/editor state
 
 ## Local project gate
 
-- First launch creates one local project with `analysis.py`, `query.sql`, and `model.R`.
-- Create, rename, open, and delete projects.
-- Create, rename, open, and delete Python/SQL/R files.
-- Switching files saves the previous file first.
-- Autosave persists edits after the debounce interval.
-- Backgrounding the app forces the active document to disk.
-- Relaunch restores the most recently active project and file.
-- A failed save surfaces an error state instead of silently claiming success.
+- first launch creates a starter project with `analysis.py`, `query.sql`, `model.R`
+- project create/open/rename/delete works
+- visible project actions make Rename/Delete discoverable
+- file create/open/rename/delete works
+- switching files saves the previous file
+- autosave persists edits
+- backgrounding saves active work
+- relaunch restores the last project/file
+- save failure surfaces an error state
+- workspace title clearly identifies project while editor header identifies active file
+
+## File ingress gate
+
+- Import Project Folder accepts a Files folder and copies supported project contents locally
+- standalone `.py`, `.sql`, and `.R` files are visible through Import Code Files
+- one or multiple code files can create a new local project
+- original external files are not edited in place
+- Files → Open/Share in bIDE is registered for Python/SQL/R source types
+- incoming supported source creates a local project copy and opens Workspace
 
 ## iPad gate
 
-- Regular-width iPad shows a persistent file rail beside the editor.
-- File selection in the rail updates the editor without losing previous edits.
-- Landscape provides materially more editor space rather than scaling the iPhone layout.
-- Hardware keyboard editing, native selection, Command-R, and system copy/paste remain functional.
+- persistent file rail appears at regular width
+- switching through the rail preserves edits
+- landscape provides materially more editor space
+- hardware keyboard selection, Command-R and copy/paste work
 
-## Scope gate
+## Phase 1 scope gate
 
-The Phase 1 native source must not add:
+Do not include:
 
-- Python/Pyodide execution
+- Python execution
 - SQL execution
-- webR execution
+- R execution
+- WKWebView/Pyodide/webR
 - StoreKit
-- Supabase/PocketBI authentication
+- Supabase authentication
 - cloud workspace sync
-- PocketBI handoff implementation
-- additional programming languages
+- PocketBI handoff
+- arbitrary language expansion
 
-After this checklist passes, the next implementation phase is SQL execution + structured results.
+## Exit
+
+When the editor/project/file-ingress gates pass on device, Phase 1 is accepted. Phase 2 begins with one shared local Dataset/Asset registry plus native SQLite execution and structured results. Dataset imports will then extend the same iOS Files/Open-in-bIDE ingress model to CSV, TSV, JSON, Excel, text, and later Parquet as practical.
