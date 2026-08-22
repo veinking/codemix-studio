@@ -242,15 +242,25 @@ enum DatasetParser {
         }
         guard !values.isEmpty else { return .text }
         if values.allSatisfy(isStrictInteger) { return .integer }
-        if values.allSatisfy({ Double($0) != nil }) { return .real }
+        if values.allSatisfy(isStrictReal) { return .real }
         return .text
     }
 
     private static func isStrictInteger(_ value: String) -> Bool {
         guard Int64(value) != nil else { return false }
+        return !hasSignificantLeadingZero(value)
+    }
+
+    private static func isStrictReal(_ value: String) -> Bool {
+        guard Double(value) != nil else { return false }
+        return !hasSignificantLeadingZero(value)
+    }
+
+    private static func hasSignificantLeadingZero(_ value: String) -> Bool {
         let unsigned = value.hasPrefix("-") || value.hasPrefix("+") ? String(value.dropFirst()) : value
-        if unsigned.count > 1, unsigned.first == "0" { return false }
-        return true
+        guard unsigned.count > 1, unsigned.first == "0" else { return false }
+        let second = unsigned[unsigned.index(after: unsigned.startIndex)]
+        return second != "."
     }
 
     private static func uniqueHeaders(_ headers: [String]) -> [String] {
