@@ -7,10 +7,7 @@ extension WorkspaceStore {
     @discardableResult
     func importCodeFilesAsProject(_ sourceURLs: [URL]) -> UUID? {
         let supported = sourceURLs.filter { CodeLanguage.infer(from: $0.lastPathComponent) != nil }
-        guard !supported.isEmpty else {
-            saveState = .failed("No supported Python, SQL, or R files were selected.")
-            return nil
-        }
+        guard !supported.isEmpty else { return nil }
 
         let projectName: String
         if supported.count == 1 {
@@ -26,7 +23,8 @@ extension WorkspaceStore {
 
         // Remove the default starter files so an imported project contains the files the user chose,
         // rather than a second set of unrelated analysis.py/query.sql/model.R placeholders.
-        for file in files {
+        let starterFiles = files
+        for file in starterFiles {
             deleteFile(file)
         }
 
@@ -40,18 +38,14 @@ extension WorkspaceStore {
                 }
             }
 
-            do {
-                let sourceText = try String(contentsOf: sourceURL, encoding: .utf8)
-                createFile(
-                    named: sourceURL.deletingPathExtension().lastPathComponent,
-                    language: language
-                )
-                updateDocumentText(sourceText)
-                saveActiveDocumentNow()
-                importedCount += 1
-            } catch {
-                saveState = .failed("Could not import \(sourceURL.lastPathComponent): \(error.localizedDescription)")
-            }
+            guard let sourceText = try? String(contentsOf: sourceURL, encoding: .utf8) else { continue }
+            createFile(
+                named: sourceURL.deletingPathExtension().lastPathComponent,
+                language: language
+            )
+            updateDocumentText(sourceText)
+            saveActiveDocumentNow()
+            importedCount += 1
         }
 
         if importedCount == 0 {
