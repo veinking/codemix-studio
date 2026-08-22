@@ -79,7 +79,8 @@ struct BideCodeEditor: UIViewRepresentable {
         }
     }
 
-    final class Coordinator: NSObject, TextViewDelegate {
+    @MainActor
+    final class Coordinator: NSObject, @preconcurrency TextViewDelegate {
         var parent: BideCodeEditor
         var loadedDocumentID: String?
         var loadedLanguage: CodeLanguage?
