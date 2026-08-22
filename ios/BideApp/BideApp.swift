@@ -24,7 +24,6 @@ struct BideApp: App {
 
                     if CodeLanguage.infer(from: url.lastPathComponent) != nil {
                         if workspace.importCodeFilesAsProject([url]) != nil {
-                            synchronizeDataProject(workspace.activeProjectID)
                             session.selectedSection = .workspace
                         }
                         return
