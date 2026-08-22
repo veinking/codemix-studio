@@ -21,6 +21,12 @@ final class WorkspaceStore: ObservableObject {
     private let rootDirectory: URL
     private var autosaveTask: Task<Void, Never>?
 
+    private let importableProjectExtensions: Set<String> = [
+        "py", "sql", "r",
+        "csv", "tsv", "json", "xlsx", "xls", "parquet",
+        "txt", "md"
+    ]
+
     init() {
         let manager = FileManager.default
         let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -78,6 +84,81 @@ final class WorkspaceStore: ObservableObject {
             openProject(manifest.id)
         } catch {
             saveState = .failed("Could not create project: \(error.localizedDescription)")
+        }
+    }
+
+    @discardableResult
+    func importProject(from sourceURL: URL) -> UUID? {
+        let grantedAccess = sourceURL.startAccessingSecurityScopedResource()
+        defer {
+            if grantedAccess {
+                sourceURL.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        let sourceName = sourceURL.lastPathComponent.trimmingCharacters(in: .whitespacesAndNewlines)
+        let manifest = BideProjectManifest(name: sourceName.isEmpty ? "Imported Project" : sourceName)
+        let destinationRoot = projectDirectory(for: manifest.id)
+
+        do {
+            try fileManager.createDirectory(at: destinationRoot, withIntermediateDirectories: true)
+            try fileManager.createDirectory(
+                at: destinationRoot.appendingPathComponent("data", isDirectory: true),
+                withIntermediateDirectories: true
+            )
+            try fileManager.createDirectory(
+                at: destinationRoot.appendingPathComponent("exports", isDirectory: true),
+                withIntermediateDirectories: true
+            )
+            try writeManifest(manifest, to: destinationRoot)
+
+            guard let enumerator = fileManager.enumerator(
+                at: sourceURL,
+                includingPropertiesForKeys: [.isRegularFileKey, .isDirectoryKey],
+                options: [.skipsHiddenFiles, .skipsPackageDescendants]
+            ) else {
+                throw CocoaError(.fileReadUnknown)
+            }
+
+            let sourcePrefix = sourceURL.path.hasSuffix("/") ? sourceURL.path : sourceURL.path + "/"
+            for case let itemURL as URL in enumerator {
+                let relativePath = itemURL.path.replacingOccurrences(of: sourcePrefix, with: "")
+                guard !relativePath.isEmpty else { continue }
+
+                let components = relativePath.split(separator: "/").map(String.init)
+                if components.contains(where: { ["node_modules", ".git", ".venv", "venv", "__pycache__"].contains($0) }) {
+                    if (try? itemURL.resourceValues(forKeys: [.isDirectoryKey]).isDirectory) == true {
+                        enumerator.skipDescendants()
+                    }
+                    continue
+                }
+
+                let values = try itemURL.resourceValues(forKeys: [.isRegularFileKey, .isDirectoryKey])
+                let destination = destinationRoot.appendingPathComponent(relativePath)
+
+                if values.isDirectory == true {
+                    try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
+                    continue
+                }
+
+                guard values.isRegularFile == true else { continue }
+                guard itemURL.lastPathComponent != "project.bide.json" else { continue }
+                guard importableProjectExtensions.contains(itemURL.pathExtension.lowercased()) else { continue }
+
+                try fileManager.createDirectory(
+                    at: destination.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try fileManager.copyItem(at: itemURL, to: destination)
+            }
+
+            refreshProjects()
+            openProject(manifest.id)
+            return manifest.id
+        } catch {
+            try? fileManager.removeItem(at: destinationRoot)
+            saveState = .failed("Could not import project: \(error.localizedDescription)")
+            return nil
         }
     }
 
