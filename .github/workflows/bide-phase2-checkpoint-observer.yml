@@ -8,59 +8,39 @@ on:
       - ".github/workflows/bide-phase2-checkpoint-observer.yml"
 
 permissions:
-  actions: read
   contents: write
 
 jobs:
-  observe:
+  diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 5
     env:
-      GH_TOKEN: ${{ github.token }}
-      TARGET_SHA: fdfa8f119729a264645a23bfbd21b62848176ddf
-      STATUS_FILE: .github/bide-phase2-checkpoint-status.json
+      STATUS_FILE: .github/bide-phase2-scope-scan.txt
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/bide-ios-phase2-data-sql
 
-      - name: Wait for native checkpoint
+      - name: Scan native Swift scope literals
         shell: bash
         run: |
           set -euo pipefail
-          run_json=""
-          for _ in $(seq 1 90); do
-            runs="$(gh api "/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${TARGET_SHA}&event=push&per_page=20")"
-            run_json="$(printf '%s' "${runs}" | jq -c '[.workflow_runs[] | select(.name == "bIDE iOS Quality")][0] // empty')"
-            if [[ -n "${run_json}" ]]; then
-              status="$(printf '%s' "${run_json}" | jq -r '.status')"
-              if [[ "${status}" == "completed" ]]; then
-                break
-              fi
-            fi
-            sleep 10
-          done
-
-          if [[ -z "${run_json}" ]]; then
-            echo "Native checkpoint run was not found." >&2
-            exit 1
-          fi
-
-          status="$(printf '%s' "${run_json}" | jq -r '.status')"
-          if [[ "${status}" != "completed" ]]; then
-            echo "Native checkpoint did not complete before observer timeout." >&2
-            exit 1
-          fi
-
           mkdir -p .github
-          printf '%s' "${run_json}" | jq '{run_id: .id, run_number: .run_number, status: .status, conclusion: .conclusion, html_url: .html_url, head_sha: .head_sha, event: .event, created_at: .created_at, updated_at: .updated_at}' > "${STATUS_FILE}"
+          {
+            echo "WKWebView matches:"
+            grep -RIn --include='*.swift' 'WKWebView' ios/BideApp || true
+            echo
+            echo "Other deferred-runtime matches:"
+            grep -RIn --include='*.swift' -E 'Pyodide|webR|import StoreKit|import Supabase' ios/BideApp || true
+          } > "${STATUS_FILE}"
+          cat "${STATUS_FILE}"
 
-      - name: Publish checkpoint status
+      - name: Publish diagnostic
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${STATUS_FILE}"
-          git commit -m "Record Phase 2 checkpoint status"
+          git commit -m "Record Phase 2 scope scan"
           git push origin HEAD:agent/bide-ios-phase2-data-sql
