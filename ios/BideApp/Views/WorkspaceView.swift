@@ -8,6 +8,9 @@ struct WorkspaceView: View {
     @State private var editorCommand: EditorCommand?
     @State private var filesPresented = false
     @State private var newFilePresented = false
+    @State private var findReplacePresented = false
+    @State private var findText = ""
+    @State private var replaceText = ""
     @State private var runPreview = ""
     @State private var runPreviewPresented = false
 
@@ -70,19 +73,25 @@ struct WorkspaceView: View {
                 } label: {
                     Image(systemName: "play.fill")
                 }
+                .keyboardShortcut("r", modifiers: .command)
                 .accessibilityLabel("Run selection or file")
                 .disabled(workspace.activeFile == nil)
             }
         }
         .sheet(isPresented: $filesPresented) {
             NavigationStack {
-                ProjectFileBrowser(onCreateFile: { newFilePresented = true })
-                    .navigationTitle("Files")
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { filesPresented = false }
-                        }
+                ProjectFileBrowser(onCreateFile: {
+                    filesPresented = false
+                    DispatchQueue.main.async {
+                        newFilePresented = true
                     }
+                })
+                .navigationTitle("Files")
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { filesPresented = false }
+                    }
+                }
             }
             .presentationDetents([.medium, .large])
         }
@@ -90,8 +99,22 @@ struct WorkspaceView: View {
             NewFileSheet { name, language in
                 workspace.createFile(named: name, language: language)
                 selection = NSRange(location: 0, length: 0)
-                filesPresented = false
             }
+        }
+        .sheet(isPresented: $findReplacePresented) {
+            FindReplaceSheet(
+                findText: $findText,
+                replaceText: $replaceText,
+                onFindNext: {
+                    editorCommand = EditorCommand(action: .findNext(findText))
+                },
+                onReplaceNext: {
+                    editorCommand = EditorCommand(action: .replaceNext(findText, replaceText))
+                },
+                onReplaceAll: {
+                    editorCommand = EditorCommand(action: .replaceAll(findText, replaceText))
+                }
+            )
         }
         .alert("Runtime comes next", isPresented: $runPreviewPresented) {
             Button("OK", role: .cancel) {}
@@ -132,9 +155,7 @@ struct WorkspaceView: View {
                 Divider()
                 CodingToolbar(
                     suggestions: suggestions,
-                    onCommand: { action in
-                        editorCommand = EditorCommand(action: action)
-                    }
+                    onCommand: handleEditorAction
                 )
             } else {
                 ContentUnavailableView(
@@ -220,6 +241,14 @@ struct WorkspaceView: View {
                 .foregroundStyle(.orange)
         }
     }
+
+    private func handleEditorAction(_ action: EditorAction) {
+        if action == .findReplace {
+            findReplacePresented = true
+        } else {
+            editorCommand = EditorCommand(action: action)
+        }
+    }
 }
 
 private struct NewFileSheet: View {
@@ -263,6 +292,53 @@ private struct NewFileSheet: View {
                         dismiss()
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
+private struct FindReplaceSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var findText: String
+    @Binding var replaceText: String
+
+    let onFindNext: () -> Void
+    let onReplaceNext: () -> Void
+    let onReplaceAll: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Find") {
+                    TextField("Text to find", text: $findText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.search)
+                        .onSubmit(onFindNext)
+                }
+
+                Section("Replace") {
+                    TextField("Replacement", text: $replaceText)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                }
+
+                Section {
+                    Button("Find Next", action: onFindNext)
+                        .disabled(findText.isEmpty)
+                    Button("Replace Next", action: onReplaceNext)
+                        .disabled(findText.isEmpty)
+                    Button("Replace All", action: onReplaceAll)
+                        .disabled(findText.isEmpty)
+                }
+            }
+            .navigationTitle("Find & Replace")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
                 }
             }
         }
