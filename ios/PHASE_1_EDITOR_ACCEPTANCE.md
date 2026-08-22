@@ -46,6 +46,14 @@
 - Files → Open/Share in bIDE is registered for Python/SQL/R source types
 - incoming supported source creates a local project copy and opens Workspace
 
+## File egress gate
+
+- the project file browser exposes a visible Export control
+- Share File sends one `.py`, `.sql`, or `.R` file through the native iOS share sheet
+- Export Project Files sends all current project source files through the native iOS share sheet
+- pending edits are saved before the active file or project is shared
+- Save to Files / AirDrop / other compatible iOS destinations receive normal source files rather than a proprietary format
+
 ## iPad gate
 
 - persistent file rail appears at regular width
@@ -69,4 +77,4 @@ Do not include:
 
 ## Exit
 
-When the editor/project/file-ingress gates pass on device, Phase 1 is accepted. Phase 2 begins with one shared local Dataset/Asset registry plus native SQLite execution and structured results. Dataset imports will then extend the same iOS Files/Open-in-bIDE ingress model to CSV, TSV, JSON, Excel, text, and later Parquet as practical.
+When the editor/project/file-ingress/file-egress gates pass on device, Phase 1 is accepted. Phase 2 begins with one shared local Dataset/Asset registry plus native SQLite execution and structured results. Dataset imports and exports will extend the same iOS Files/Open-in-bIDE/share model to CSV, TSV, JSON, Excel, text, and later Parquet as practical.
