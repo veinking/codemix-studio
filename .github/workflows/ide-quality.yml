@@ -9,6 +9,7 @@ on:
       - "scripts/release/build_bide_sideloadly_ipa.sh"
       - ".github/workflows/bide-ios-quality.yml"
       - ".github/workflows/bide-phase2-checkpoint-observer.yml"
+      - ".github/bide-phase2-checkpoint-status.json"
       - ".github/workflows/ide-quality.yml"
   push:
     branches: [main]
