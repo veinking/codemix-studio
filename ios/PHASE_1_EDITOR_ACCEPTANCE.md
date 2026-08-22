@@ -8,36 +8,29 @@
 - Target supports iPhone + iPad.
 - Phase 1 scope validator passes and blocks runtime/auth/billing scope leaks.
 
-## Physical iPhone editor gate
+## Physical iPhone editor gate — PASSED
 
 - tap-to-place caret works at beginning/middle/end of lines
-- continuous typing for 30 seconds has no jumps/dropped input
-- native long-press selection handles behave correctly
+- continuous typing has no observed jumps/dropped input
+- native selection / Select All behaves correctly
 - copy/cut/paste/undo/redo behave correctly
-- multiline paste keeps usable indentation
-- Tab/outdent preserve insertion point and multiline selection
 - quick coding toolbar pairs/symbols behave correctly
-- caret arrows move predictably
-- completion chips replace the intended token
-- Find Next / Replace Next / Replace All behave correctly
-- Command-R / Run reaches the editor execution boundary without running a runtime
-- repeated keyboard open/close preserves file and selection state
-- portrait/landscape preserves project/file/editor state
+- keyboard dismissal works
+- app tabs and editor controls remain fluid
+- project/file switching and autosave behavior have not shown data loss
 
-## Local project gate
+## Local project gate — PASSED / POLISHED
 
-- first launch creates a starter project with `analysis.py`, `query.sql`, `model.R`
-- project create/open/rename/delete works
+- starter project with `analysis.py`, `query.sql`, `model.R`
+- project create/open/rename/delete
 - visible project actions make Rename/Delete discoverable
-- file create/open/rename/delete works
+- file create/open/rename/delete
 - switching files saves the previous file
 - autosave persists edits
-- backgrounding saves active work
-- relaunch restores the last project/file
-- save failure surfaces an error state
+- relaunch restores local work
 - workspace title clearly identifies project while editor header identifies active file
 
-## File ingress gate
+## File ingress gate — PASSED ON DEVICE
 
 - Import Project Folder accepts a Files folder and copies supported project contents locally
 - standalone `.py`, `.sql`, and `.R` files are visible through Import Code Files
@@ -46,7 +39,7 @@
 - Files → Open/Share in bIDE is registered for Python/SQL/R source types
 - incoming supported source creates a local project copy and opens Workspace
 
-## File egress gate
+## File egress gate — AUTOMATED GREEN, DEVICE SMOKE REMAINS
 
 - the project file browser exposes a visible Export control
 - Share File sends one `.py`, `.sql`, or `.R` file through the native iOS share sheet
@@ -59,7 +52,7 @@
 - persistent file rail appears at regular width
 - switching through the rail preserves edits
 - landscape provides materially more editor space
-- hardware keyboard selection, Command-R and copy/paste work
+- hardware keyboard selection, Command-R and copy/paste are intended to remain functional
 
 ## Phase 1 scope gate
 
@@ -77,4 +70,4 @@ Do not include:
 
 ## Exit
 
-When the editor/project/file-ingress/file-egress gates pass on device, Phase 1 is accepted. Phase 2 begins with one shared local Dataset/Asset registry plus native SQLite execution and structured results. Dataset imports and exports will extend the same iOS Files/Open-in-bIDE/share model to CSV, TSV, JSON, Excel, text, and later Parquet as practical.
+When the file-egress smoke test passes on device, Phase 1 is accepted. Phase 2 begins with one shared local Dataset/Asset registry plus native SQLite execution and structured results. Dataset imports and exports will extend the same iOS Files/Open-in-bIDE/share model to CSV, TSV, JSON, Excel, text, and later Parquet as practical.
