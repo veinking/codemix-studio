@@ -54,7 +54,9 @@ struct SQLResultsView: View {
                     Button("Done") { dismiss() }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    if report.primaryResult?.columns.isEmpty == false {
+                    if let primary = report.primaryResult,
+                       !primary.columns.isEmpty,
+                       primary.isReadOnly {
                         Menu {
                             Button("Share Result as CSV", systemImage: "square.and.arrow.up") {
                                 exportForSharing()
@@ -82,6 +84,14 @@ struct SQLResultsView: View {
             Button("OK", role: .cancel) { savedDatasetMessage = nil }
         } message: {
             Text(savedDatasetMessage ?? "The SQL result is now a project dataset.")
+        }
+        .alert("Export Error", isPresented: Binding(
+            get: { dataWorkspace.dataError != nil },
+            set: { if !$0 { dataWorkspace.dataError = nil } }
+        )) {
+            Button("OK", role: .cancel) { dataWorkspace.dataError = nil }
+        } message: {
+            Text(dataWorkspace.dataError ?? "Could not export the SQL result.")
         }
     }
 
