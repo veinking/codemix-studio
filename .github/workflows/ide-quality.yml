@@ -5,6 +5,7 @@ on:
     paths-ignore:
       - "ios/**"
       - "scripts/validate-bide-ios-phase1.mjs"
+      - "scripts/validate-bide-ios-phase2.mjs"
       - "scripts/release/build_bide_sideloadly_ipa.sh"
       - ".github/workflows/bide-ios-quality.yml"
       - ".github/workflows/ide-quality.yml"
