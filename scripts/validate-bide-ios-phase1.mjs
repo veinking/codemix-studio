@@ -35,6 +35,10 @@ const project = read("ios/project.yml");
 assert.match(project, /TARGETED_DEVICE_FAMILY:\s*"1,2"/);
 assert.ok(project.includes("Runestone"), "Native editor dependency must stay wired.");
 assert.ok(project.includes("from: 0.5.2"), "Runestone must stay pinned to the reviewed 0.5.2 release line.");
+assert.ok(
+  project.includes("revision: 15cf3a9ec3ab95e0d058b7df9f35619123c9e02d"),
+  "TreeSitterLanguages must stay pinned to the reviewed revision."
+);
 for (const product of ["TreeSitterPythonRunestone", "TreeSitterSQLRunestone", "TreeSitterRRunestone"]) {
   assert.ok(project.includes(product), `Missing syntax product: ${product}`);
 }
