@@ -264,14 +264,14 @@ struct BideCodeEditor: UIViewRepresentable {
 
         private func replaceAllMatches(_ query: String, replacement: String, in textView: TextView) {
             guard !query.isEmpty else { return }
-            let updated = textView.text.replacingOccurrences(of: query, with: replacement)
-            guard updated != textView.text else { return }
-            isApplyingExternalText = true
-            textView.text = updated
-            parent.text = updated
+            let original = textView.text
+            let updated = original.replacingOccurrences(of: query, with: replacement)
+            guard updated != original else { return }
+            let fullRange = NSRange(location: 0, length: (original as NSString).length)
+            textView.replace(fullRange, withText: updated)
             textView.selectedRange = NSRange(location: 0, length: 0)
+            parent.text = textView.text
             parent.selection = textView.selectedRange
-            isApplyingExternalText = false
         }
 
         private func replaceCurrentToken(with replacement: String, in textView: TextView) {
