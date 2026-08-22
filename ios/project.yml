@@ -5,12 +5,29 @@ options:
   deploymentTarget:
     iOS: "17.0"
 
+packages:
+  Runestone:
+    url: https://github.com/simonbs/Runestone.git
+    from: 0.5.2
+  TreeSitterLanguages:
+    url: https://github.com/simonbs/TreeSitterLanguages.git
+    branch: main
+
 targets:
   bIDE:
     type: application
     platform: iOS
     sources:
       - path: BideApp
+    dependencies:
+      - package: Runestone
+        product: Runestone
+      - package: TreeSitterLanguages
+        product: TreeSitterPythonRunestone
+      - package: TreeSitterLanguages
+        product: TreeSitterSQLRunestone
+      - package: TreeSitterLanguages
+        product: TreeSitterRRunestone
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios
