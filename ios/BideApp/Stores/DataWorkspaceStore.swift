@@ -39,19 +39,19 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func reconcileProjectFiles(projectID: UUID) async {
-        if activeProjectID != projectID {
-            openProject(projectID)
-        }
+        guard activeProjectID == projectID else { return }
 
         let projectURL = projectDirectory(projectID)
+        let registered = loadRegistry(projectID: projectID)
+        let knownPaths = Set(registered.map(\.relativePath))
         guard let enumerator = fileManager.enumerator(
             at: projectURL,
             includingPropertiesForKeys: [.isRegularFileKey],
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else { return }
 
-        let knownPaths = Set(datasets.map(\.relativePath))
         let prefix = projectURL.path.hasSuffix("/") ? projectURL.path : projectURL.path + "/"
+        let bideMetadataNames: Set<String> = ["project.bide.json", "datasets.bide.json"]
         var unregistered: [(URL, DatasetFormat)] = []
 
         for case let url as URL in enumerator {
@@ -59,8 +59,18 @@ final class DataWorkspaceStore: ObservableObject {
             let relativePath = url.path.replacingOccurrences(of: prefix, with: "")
             guard !relativePath.isEmpty,
                   !knownPaths.contains(relativePath),
-                  !relativePath.hasPrefix("exports/") else { continue }
+                  !relativePath.hasPrefix("exports/"),
+                  !bideMetadataNames.contains(url.lastPathComponent) else { continue }
             guard let format = DatasetFormat.infer(from: url) else { continue }
+
+            // JSON and plain text are ambiguous in arbitrary project folders (package.json,
+            // config files, README.txt, etc.). Treat them as datasets automatically only
+            // when the project explicitly keeps them under data/. CSV/TSV/XLSX are
+            // sufficiently data-specific to discover anywhere in an imported project.
+            let isInsideDataFolder = relativePath.hasPrefix("data/")
+            if !isInsideDataFolder, format == .json || format == .text {
+                continue
+            }
             unregistered.append((url, format))
         }
 
@@ -68,16 +78,21 @@ final class DataWorkspaceStore: ObservableObject {
         isImporting = true
         dataError = nil
         defer {
-            isImporting = false
-            importStatus = nil
+            if activeProjectID == projectID {
+                isImporting = false
+                importStatus = nil
+            }
         }
 
         for (url, format) in unregistered {
+            guard activeProjectID == projectID else { return }
             importStatus = "Registering \(url.lastPathComponent)…"
             do {
                 try await registerDataset(at: url, format: format, projectID: projectID)
             } catch {
-                dataError = "Could not register \(url.lastPathComponent): \(error.localizedDescription)"
+                if activeProjectID == projectID {
+                    dataError = "Could not register \(url.lastPathComponent): \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -92,11 +107,14 @@ final class DataWorkspaceStore: ObservableObject {
         importStatus = "Preparing import…"
         dataError = nil
         defer {
-            isImporting = false
-            importStatus = nil
+            if activeProjectID == projectID {
+                isImporting = false
+                importStatus = nil
+            }
         }
 
         for sourceURL in sourceURLs {
+            guard activeProjectID == projectID else { return }
             guard let format = DatasetFormat.infer(from: sourceURL) else {
                 dataError = "\(sourceURL.lastPathComponent) is not a supported dataset format."
                 continue
@@ -122,13 +140,15 @@ final class DataWorkspaceStore: ObservableObject {
                 try await registerDataset(at: destinationURL, format: format, projectID: projectID)
             } catch {
                 try? fileManager.removeItem(at: destinationURL)
-                dataError = "Could not import \(sourceURL.lastPathComponent): \(error.localizedDescription)"
+                if activeProjectID == projectID {
+                    dataError = "Could not import \(sourceURL.lastPathComponent): \(error.localizedDescription)"
+                }
             }
         }
     }
 
     func deleteDataset(_ asset: DatasetAsset, projectID: UUID) async {
-        dataError = nil
+        if activeProjectID == projectID { dataError = nil }
         let dbURL = databaseURL(projectID: projectID)
         do {
             let names = asset.tables.map(\.sqliteName)
@@ -139,28 +159,40 @@ final class DataWorkspaceStore: ObservableObject {
             if fileManager.fileExists(atPath: url.path) {
                 try fileManager.removeItem(at: url)
             }
-            datasets.removeAll { $0.id == asset.id }
-            try saveRegistry(projectID: projectID)
+
+            var updated = loadRegistry(projectID: projectID)
+            updated.removeAll { $0.id == asset.id }
+            try saveRegistry(updated, projectID: projectID)
+            if activeProjectID == projectID {
+                datasets = updated
+            }
         } catch {
-            dataError = "Could not delete \(asset.fileName): \(error.localizedDescription)"
+            if activeProjectID == projectID {
+                dataError = "Could not delete \(asset.fileName): \(error.localizedDescription)"
+            }
         }
     }
 
     func rebuildDatabase(projectID: UUID) async {
-        guard !datasets.isEmpty else { return }
-        isImporting = true
-        importStatus = "Rebuilding project SQL database…"
-        dataError = nil
+        let assets = loadRegistry(projectID: projectID)
+        guard !assets.isEmpty else { return }
+        if activeProjectID == projectID {
+            isImporting = true
+            importStatus = "Rebuilding project SQL database…"
+            dataError = nil
+        }
         defer {
-            isImporting = false
-            importStatus = nil
+            if activeProjectID == projectID {
+                isImporting = false
+                importStatus = nil
+            }
         }
 
         let dbURL = databaseURL(projectID: projectID)
         try? fileManager.removeItem(at: dbURL)
 
         do {
-            for asset in datasets {
+            for asset in assets {
                 let sourceURL = projectDirectory(projectID).appendingPathComponent(asset.relativePath)
                 let parsedTables = try await Task.detached(priority: .userInitiated) {
                     try DatasetParser.parse(url: sourceURL, format: asset.format)
@@ -170,7 +202,9 @@ final class DataWorkspaceStore: ObservableObject {
                 }
 
                 for (parsed, descriptor) in zip(parsedTables, asset.tables) {
-                    importStatus = "Reloading \(descriptor.displayName)…"
+                    if activeProjectID == projectID {
+                        importStatus = "Reloading \(descriptor.displayName)…"
+                    }
                     try await Task.detached(priority: .userInitiated) {
                         try SQLiteProjectEngine.importTable(
                             databaseURL: dbURL,
@@ -181,24 +215,33 @@ final class DataWorkspaceStore: ObservableObject {
                 }
             }
         } catch {
-            dataError = "Could not rebuild the SQL database: \(error.localizedDescription)"
+            if activeProjectID == projectID {
+                dataError = "Could not rebuild the SQL database: \(error.localizedDescription)"
+            }
         }
     }
 
     func executeSQL(_ sql: String, projectID: UUID) async {
+        guard activeProjectID == projectID else { return }
         isRunningSQL = true
         sqlError = nil
         lastSQLRun = nil
-        defer { isRunningSQL = false }
+        defer {
+            if activeProjectID == projectID { isRunningSQL = false }
+        }
 
         let dbURL = databaseURL(projectID: projectID)
         do {
             let report = try await Task.detached(priority: .userInitiated) {
                 try SQLiteProjectEngine.execute(databaseURL: dbURL, sql: sql, rowLimit: 500)
             }.value
-            lastSQLRun = report
+            if activeProjectID == projectID {
+                lastSQLRun = report
+            }
         } catch {
-            sqlError = error.localizedDescription
+            if activeProjectID == projectID {
+                sqlError = error.localizedDescription
+            }
         }
     }
 
@@ -210,7 +253,9 @@ final class DataWorkspaceStore: ObservableObject {
                 try SQLiteProjectEngine.execute(databaseURL: dbURL, sql: sql, rowLimit: 50)
             }.value
         } catch {
-            dataError = "Could not preview \(table.displayName): \(error.localizedDescription)"
+            if activeProjectID == projectID {
+                dataError = "Could not preview \(table.displayName): \(error.localizedDescription)"
+            }
             return nil
         }
     }
@@ -229,7 +274,8 @@ final class DataWorkspaceStore: ObservableObject {
             try DatasetParser.parse(url: sourceURL, format: format)
         }.value
 
-        var usedNames = Set(tables.map { $0.sqliteName.lowercased() })
+        let existingAssets = loadRegistry(projectID: projectID)
+        var usedNames = Set(existingAssets.flatMap(\.tables).map { $0.sqliteName.lowercased() })
         var descriptors: [DatasetTableDescriptor] = []
         var importedTableNames: [String] = []
         let fileBase = sourceURL.deletingPathExtension().lastPathComponent
@@ -243,7 +289,9 @@ final class DataWorkspaceStore: ObservableObject {
                     requestedBase = "\(fileBase)_\(parsedTable.sourceSheetName ?? "sheet_\(index + 1)")"
                 }
                 let sqliteName = uniqueSQLiteName(base: requestedBase, usedNames: &usedNames)
-                importStatus = "Loading \(parsedTable.displayName) into SQL…"
+                if activeProjectID == projectID {
+                    importStatus = "Loading \(parsedTable.displayName) into SQL…"
+                }
 
                 try await Task.detached(priority: .userInitiated) {
                     try SQLiteProjectEngine.importTable(
@@ -268,17 +316,22 @@ final class DataWorkspaceStore: ObservableObject {
             let prefix = projectURL.path.hasSuffix("/") ? projectURL.path : projectURL.path + "/"
             let relativePath = sourceURL.path.replacingOccurrences(of: prefix, with: "")
             let fileSize = (try? sourceURL.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0
-            datasets.append(
-                DatasetAsset(
-                    fileName: sourceURL.lastPathComponent,
-                    relativePath: relativePath,
-                    format: format,
-                    sizeBytes: fileSize,
-                    tables: descriptors
-                )
+            let asset = DatasetAsset(
+                fileName: sourceURL.lastPathComponent,
+                relativePath: relativePath,
+                format: format,
+                sizeBytes: fileSize,
+                tables: descriptors
             )
-            datasets.sort { $0.importedAt > $1.importedAt }
-            try saveRegistry(projectID: projectID)
+
+            var updated = existingAssets
+            updated.removeAll { $0.relativePath == relativePath }
+            updated.append(asset)
+            updated.sort { $0.importedAt > $1.importedAt }
+            try saveRegistry(updated, projectID: projectID)
+            if activeProjectID == projectID {
+                datasets = updated
+            }
         } catch {
             if !importedTableNames.isEmpty {
                 let names = importedTableNames
@@ -320,11 +373,11 @@ final class DataWorkspaceStore: ObservableObject {
         return (try? decoder.decode([DatasetAsset].self, from: data)) ?? []
     }
 
-    private func saveRegistry(projectID: UUID) throws {
+    private func saveRegistry(_ assets: [DatasetAsset], projectID: UUID) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-        let data = try encoder.encode(datasets)
+        let data = try encoder.encode(assets)
         try data.write(to: registryURL(projectID: projectID), options: .atomic)
     }
 
