@@ -148,8 +148,17 @@ struct BideCodeEditor: UIViewRepresentable {
             case .findReplace:
                 if #available(iOS 16.0, *) {
                     textView.isFindInteractionEnabled = true
-                    textView.findInteraction?.presentFindNavigator(showingReplace: true)
+                    textView.findInteraction?.presentFindNavigator(showingReplace: false)
                 }
+
+            case .findNext(let query):
+                selectNextMatch(query, in: textView)
+
+            case .replaceNext(let query, let replacement):
+                replaceNextMatch(query, replacement: replacement, in: textView)
+
+            case .replaceAll(let query, let replacement):
+                replaceAllMatches(query, replacement: replacement, in: textView)
 
             case .replaceCurrentToken(let replacement):
                 replaceCurrentToken(with: replacement, in: textView)
@@ -211,6 +220,58 @@ struct BideCodeEditor: UIViewRepresentable {
             let next = min(max(0, startingLocation + amount), maxLocation)
             textView.selectedRange = NSRange(location: next, length: 0)
             textView.scrollRangeToVisible(textView.selectedRange)
+        }
+
+        private func selectNextMatch(_ query: String, in textView: TextView) {
+            guard !query.isEmpty else { return }
+            let nsText = textView.text as NSString
+            guard nsText.length > 0 else { return }
+            let start = min(NSMaxRange(textView.selectedRange), nsText.length)
+            var range = nsText.range(
+                of: query,
+                options: [],
+                range: NSRange(location: start, length: nsText.length - start)
+            )
+            if range.location == NSNotFound, start > 0 {
+                range = nsText.range(of: query, options: [], range: NSRange(location: 0, length: start))
+            }
+            guard range.location != NSNotFound else { return }
+            textView.selectedRange = range
+            textView.scrollRangeToVisible(range)
+        }
+
+        private func replaceNextMatch(_ query: String, replacement: String, in textView: TextView) {
+            guard !query.isEmpty else { return }
+            let selected = textView.text(in: textView.selectedRange) ?? ""
+            if selected == query {
+                let range = textView.selectedRange
+                textView.replace(range, withText: replacement)
+                textView.selectedRange = NSRange(
+                    location: range.location + (replacement as NSString).length,
+                    length: 0
+                )
+            } else {
+                selectNextMatch(query, in: textView)
+                guard (textView.text(in: textView.selectedRange) ?? "") == query else { return }
+                let range = textView.selectedRange
+                textView.replace(range, withText: replacement)
+                textView.selectedRange = NSRange(
+                    location: range.location + (replacement as NSString).length,
+                    length: 0
+                )
+            }
+        }
+
+        private func replaceAllMatches(_ query: String, replacement: String, in textView: TextView) {
+            guard !query.isEmpty else { return }
+            let updated = textView.text.replacingOccurrences(of: query, with: replacement)
+            guard updated != textView.text else { return }
+            isApplyingExternalText = true
+            textView.text = updated
+            parent.text = updated
+            textView.selectedRange = NSRange(location: 0, length: 0)
+            parent.selection = textView.selectedRange
+            isApplyingExternalText = false
         }
 
         private func replaceCurrentToken(with replacement: String, in textView: TextView) {
