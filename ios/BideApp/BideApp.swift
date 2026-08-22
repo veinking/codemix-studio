@@ -11,6 +11,12 @@ struct BideApp: App {
             RootView()
                 .environmentObject(session)
                 .environmentObject(workspace)
+                .onOpenURL { url in
+                    guard url.isFileURL else { return }
+                    if workspace.importCodeFilesAsProject([url]) != nil {
+                        session.selectedSection = .workspace
+                    }
+                }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
                     workspace.saveActiveDocumentNow()
                 }
