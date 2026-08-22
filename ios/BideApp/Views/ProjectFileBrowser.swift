@@ -36,12 +36,7 @@ struct ProjectFileBrowser: View {
                 )
                 .frame(maxHeight: .infinity)
             } else {
-                List(workspace.files, selection: Binding(
-                    get: { workspace.activeFileID },
-                    set: { value in
-                        if let value { workspace.openFile(value) }
-                    }
-                )) { file in
+                List(workspace.files) { file in
                     Button {
                         workspace.openFile(file.id)
                     } label: {
@@ -61,11 +56,20 @@ struct ProjectFileBrowser: View {
                                 }
                             }
                             Spacer(minLength: 4)
+                            if file.id == workspace.activeFileID {
+                                Image(systemName: "circle.fill")
+                                    .font(.system(size: 6))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .tag(file.id)
+                    .listRowBackground(
+                        file.id == workspace.activeFileID
+                            ? Color.accentColor.opacity(0.12)
+                            : Color.clear
+                    )
                     .contextMenu {
                         Button("Rename", systemImage: "pencil") {
                             renameValue = file.name
