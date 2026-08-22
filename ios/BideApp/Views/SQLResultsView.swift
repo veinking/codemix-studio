@@ -76,9 +76,10 @@ struct SQLResultTableView: View {
                             let value = columnIndex < row.count ? row[columnIndex] : nil
                             Text(value ?? "NULL")
                                 .font(.caption.monospaced())
-                                .foregroundStyle(value == nil ? .secondary : .primary)
+                                .foregroundStyle(value == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
                                 .lineLimit(2)
-                                .frame(width: 150, minHeight: 32, alignment: .leading)
+                                .frame(width: 150, alignment: .leading)
+                                .frame(minHeight: 32, alignment: .leading)
                                 .padding(.horizontal, 8)
                                 .background(rowIndex.isMultiple(of: 2) ? Color.clear : Color.secondary.opacity(0.05))
                         }
