@@ -28,6 +28,9 @@ final class DataWorkspaceStore: ObservableObject {
 
     func openProject(_ projectID: UUID?) {
         activeProjectID = projectID
+        isImporting = false
+        importStatus = nil
+        isRunningSQL = false
         lastSQLRun = nil
         sqlError = nil
         dataError = nil
@@ -39,7 +42,7 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func reconcileProjectFiles(projectID: UUID) async {
-        guard activeProjectID == projectID else { return }
+        guard activeProjectID == projectID, !isImporting else { return }
 
         let projectURL = projectDirectory(projectID)
         let registered = loadRegistry(projectID: projectID)
@@ -101,6 +104,10 @@ final class DataWorkspaceStore: ObservableObject {
         guard !sourceURLs.isEmpty else { return }
         if activeProjectID != projectID {
             openProject(projectID)
+        }
+        guard !isImporting else {
+            dataError = "Another dataset import is already in progress."
+            return
         }
 
         isImporting = true
@@ -174,6 +181,10 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func rebuildDatabase(projectID: UUID) async {
+        guard !isImporting || activeProjectID != projectID else {
+            dataError = "Finish the current dataset import before rebuilding SQL."
+            return
+        }
         let assets = loadRegistry(projectID: projectID)
         guard !assets.isEmpty else { return }
         if activeProjectID == projectID {
