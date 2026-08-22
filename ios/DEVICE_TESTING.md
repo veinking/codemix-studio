@@ -1,78 +1,104 @@
-# bIDE Native Device Testing
+# bIDE iOS Physical Device Test Flow
 
-## Installable checkpoint
+This guide is for the Phase 1 native editor + local project core. It does **not** require App Store signing, PocketBI authentication, StoreKit, or runtime execution.
 
-1. Use the latest successful `bIDE iOS Quality` artifact for the exact head being tested.
-2. The artifact contains `bIDE-Sideloadly.ipa` plus packaging logs.
-3. CI verifies iPhoneOS, arm64, iPhone + iPad device family support, unsigned packaging, and IPA integrity.
-4. Use the same local Sideloadly flow used for internal builds. Sideloadly performs the temporary local signing step.
-5. Do not add App Store provisioning, StoreKit, Supabase production credentials, or runtime credentials for this Phase 1 test.
+## 1. Get the current device package
 
-## Core smoke test
+Use the latest successful `bIDE iOS Quality` run for `agent/bide-ios-foundation`.
 
-On a physical iPhone:
+Artifact name:
 
-- launch bIDE with no sign-in
-- confirm Workspace opens to the latest local project/file
-- confirm the software keyboard can be dismissed with the toolbar button and by dragging down
-- confirm cursor placement, selection, copy/paste, quick coding keys, find/replace, and autosave remain usable
-- confirm project/file edits survive backgrounding and relaunch
+`bIDE-Phase1-Sideloadly-<run number>`
 
-## Project management smoke test
+Inside the artifact ZIP, use:
 
-- create and rename a disposable project
-- use the visible project actions menu to delete it
-- confirm swipe Rename/Delete actions are discoverable
-- confirm the workspace navigation title shows the project name while the editor header identifies the active file
+`bIDE-Sideloadly.ipa`
 
-## File ingress smoke test
+The workflow verifies before upload that the package is:
 
-### Import Project Folder
+- `iPhoneOS`
+- `arm64`
+- targeted to iPhone + iPad
+- packaged with code signing disabled for local sideload testing
+- structurally valid via `unzip -t`
 
-From Projects → Import → **Import Project Folder**:
+## 2. Install for local testing
 
-- choose a small Files folder containing `.py`, `.sql`, and/or `.R` source
-- confirm the folder becomes a local bIDE project
-- confirm supported source files appear in the project file browser
-- confirm the original Files folder remains untouched
+Install `bIDE-Sideloadly.ipa` with the same local sideload workflow used for the other internal app builds.
 
-### Import Code Files
+This package is intentionally unsigned by CI. The local sideload tool performs the temporary signing needed for installation with the tester's Apple ID/device.
 
-From Projects → Import → **Import Code Files**:
+Do not add permanent distribution certificates, App Store provisioning, StoreKit products, or production credentials merely to perform this Phase 1 editor test.
 
-- confirm `.py`, `.sql`, and `.R` files are visible/selectable in the Files picker
-- import one standalone file and confirm a new local project opens with that file
-- import multiple supported code files and confirm all selected files appear in the created project
-- confirm the original source files remain untouched
+## 3. Smoke test before detailed acceptance
 
-### Open / Share in bIDE
+On first launch, confirm all of the following before doing the full editor checklist:
 
-From the iOS Files app:
+1. bIDE launches without immediately requesting sign-in.
+2. Workspace is the default working surface.
+3. A local starter project exists.
+4. The starter project exposes `analysis.py`, `query.sql`, and `model.R`.
+5. Opening each file changes the syntax language correctly.
+6. Run controls do not attempt real execution yet.
+7. Closing and reopening the app preserves local work.
 
-- choose a `.py`, `.sql`, or `.R` source file
-- use Open/Share and choose bIDE when offered by iOS
-- confirm bIDE launches, creates a local project copy, opens Workspace, and shows the imported source
-- confirm edits in bIDE do not mutate the original external file
+## 4. File ingress smoke test
 
-If iOS does not offer bIDE for a supported source extension, record the extension, Files provider/location, iOS version, and whether the same file is visible through bIDE's own Import Code Files picker.
+- Projects → Import Project Folder can import a small local folder.
+- Projects → Import Code Files shows standalone `.py`, `.sql`, and `.R` files.
+- importing one standalone source file creates and opens a local bIDE project copy.
+- from iOS Files, Open/Share in bIDE is available for supported source files.
+- the original external file remains unchanged after editing the bIDE copy.
 
-## Full Phase 1 acceptance
+## 5. File export smoke test
 
-Use `ios/PHASE_1_EDITOR_ACCEPTANCE.md` for the complete editor/project acceptance matrix.
+- open the Files/project browser inside bIDE and tap the visible share icon.
+- Export Project Files opens the native iOS share sheet with all current source files.
+- long-press a source file and choose Share File; only that source file is shared.
+- Save to Files or another compatible destination receives normal `.py`, `.sql`, or `.R` files.
+- edit the active file immediately before sharing and confirm the exported copy contains the latest saved text.
 
-When reporting a device issue, include:
+## 6. Full Phase 1 acceptance
 
-- device + iOS version
-- portrait/landscape
-- language/file type
-- hardware keyboard attached or not
-- exact reproduction steps
+Run every item in:
+
+`ios/PHASE_1_EDITOR_ACCEPTANCE.md`
+
+Prioritize the physical interactions that simulator CI cannot prove:
+
+- precise tap-to-place cursor behavior
+- long-press selection handles
+- copy/cut/paste
+- continuous typing stability
+- coding toolbar insertion
+- completion replacement around the caret
+- software keyboard show/hide
+- portrait/landscape rotation
+- project/file switching while unsaved edits exist
+- background + relaunch persistence
+- import/open-in-bIDE/export/share behavior
+- iPad persistent rail and hardware keyboard behavior
+
+## 7. Reporting a failure
+
+For each failure record:
+
+- device model
+- iOS/iPadOS version
+- orientation
+- active language/file
+- whether a hardware keyboard was attached
+- exact steps to reproduce
 - expected behavior
 - actual behavior
-- whether relaunch changes the behavior
+- whether relaunch reproduces it
 
-A short screen recording is ideal for interaction bugs.
+A short screen recording is ideal for cursor, selection, keyboard, rotation, layout, or share-sheet failures.
 
-## Phase boundary
+## 8. Phase boundary
 
-Phase 1 remains local and standalone. Do not add Python/R runtimes, SQL execution, authentication, billing, cloud workspace sync, or PocketBI handoff until the native editor/project/file-ingress gate is accepted. Phase 2 begins with a shared local Dataset/Asset model plus native SQLite execution so CSV/Excel/data imports can serve SQL first and Python later without duplicate import systems.
+Passing CI is the automated build gate. Passing the physical checklist is the editor + local file workflow gate.
+
+Do not begin Python/SQL/R runtime, authentication, billing, cloud sync, or PocketBI handoff implementation inside the Phase 1 PR until that gate is accepted.
+
+Once accepted, begin the next implementation phase with one shared local Dataset/Asset registry plus **native SQLite execution + structured result inspection** while preserving this editor/project/import/export foundation.
