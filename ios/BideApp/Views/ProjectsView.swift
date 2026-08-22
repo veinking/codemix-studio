@@ -1,10 +1,12 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ProjectsView: View {
     @EnvironmentObject private var workspace: WorkspaceStore
     @EnvironmentObject private var session: AppSession
 
     @State private var createPresented = false
+    @State private var importPresented = false
     @State private var newProjectName = "New Project"
     @State private var renameTarget: BideProjectManifest?
     @State private var renameValue = ""
@@ -14,58 +16,89 @@ struct ProjectsView: View {
         List {
             Section {
                 ForEach(workspace.projects) { project in
-                    Button {
-                        workspace.openProject(project.id)
-                        session.selectedSection = .workspace
-                    } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: project.id == workspace.activeProjectID ? "folder.fill" : "folder")
-                                .font(.title3)
-                                .foregroundStyle(project.id == workspace.activeProjectID ? .primary : .secondary)
+                    HStack(spacing: 10) {
+                        Button {
+                            workspace.openProject(project.id)
+                            session.selectedSection = .workspace
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: project.id == workspace.activeProjectID ? "folder.fill" : "folder")
+                                    .font(.title3)
+                                    .foregroundStyle(project.id == workspace.activeProjectID ? .primary : .secondary)
 
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(project.name)
-                                    .font(.body.weight(.semibold))
-                                    .foregroundStyle(.primary)
-                                Text("Updated \(project.updatedAt.formatted(date: .abbreviated, time: .shortened))")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(project.name)
+                                        .font(.body.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                    Text("Updated \(project.updatedAt.formatted(date: .abbreviated, time: .shortened))")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                if project.id == workspace.activeProjectID {
+                                    Text("OPEN")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
-
-                            Spacer()
-
-                            if project.id == workspace.activeProjectID {
-                                Text("OPEN")
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundStyle(.secondary)
-                            }
-
-                            Image(systemName: "chevron.right")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.tertiary)
+                            .contentShape(Rectangle())
                         }
-                        .contentShape(Rectangle())
+                        .buttonStyle(.plain)
+
+                        Menu {
+                            Button("Open", systemImage: "folder") {
+                                workspace.openProject(project.id)
+                                session.selectedSection = .workspace
+                            }
+                            Button("Rename", systemImage: "pencil") {
+                                renameValue = project.name
+                                renameTarget = project
+                            }
+                            Divider()
+                            Button("Delete Project", systemImage: "trash", role: .destructive) {
+                                deleteTarget = project
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.title3)
+                                .foregroundStyle(.secondary)
+                        }
+                        .accessibilityLabel("Project actions for \(project.name)")
                     }
-                    .buttonStyle(.plain)
-                    .contextMenu {
-                        Button("Rename", systemImage: "pencil") {
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            deleteTarget = project
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+
+                        Button {
                             renameValue = project.name
                             renameTarget = project
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
                         }
-                        Button("Delete", systemImage: "trash", role: .destructive) {
-                            deleteTarget = project
-                        }
+                        .tint(.secondary)
                     }
                 }
             } header: {
                 Text("Local Projects")
             } footer: {
-                Text("Projects are stored locally on this device during Phase 1. Cloud sync and PocketBI ID are intentionally not connected yet.")
+                Text("Projects are stored locally on this device. Use + to create one or the import button to bring in a project folder from Files.")
             }
         }
         .navigationTitle("Projects")
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button {
+                    importPresented = true
+                } label: {
+                    Image(systemName: "folder.badge.plus")
+                }
+                .accessibilityLabel("Import project folder")
+
                 Button {
                     newProjectName = "New Project"
                     createPresented = true
@@ -73,6 +106,17 @@ struct ProjectsView: View {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("New project")
+            }
+        }
+        .fileImporter(
+            isPresented: $importPresented,
+            allowedContentTypes: [.folder],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case .success(let urls) = result, let sourceURL = urls.first else { return }
+            if let importedID = workspace.importProject(from: sourceURL) {
+                workspace.openProject(importedID)
+                session.selectedSection = .workspace
             }
         }
         .sheet(isPresented: $createPresented) {
