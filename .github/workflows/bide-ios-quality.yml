@@ -6,11 +6,6 @@ name: bIDE iOS Quality
 # automatic checkpoint only when it is explicitly marked ready for review.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - agent/bide-ios-phase2-data-sql
-    paths:
-      - ".github/workflows/bide-ios-quality.yml"
   pull_request:
     types: [ready_for_review]
     branches:
