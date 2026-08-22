@@ -5,6 +5,14 @@ on:
     branches: [main]
     paths:
       - "ios/**"
+      - "scripts/validate-bide-ios-phase1.mjs"
+      - ".github/workflows/bide-ios-quality.yml"
+  push:
+    branches:
+      - agent/bide-ios-foundation
+    paths:
+      - "ios/**"
+      - "scripts/validate-bide-ios-phase1.mjs"
       - ".github/workflows/bide-ios-quality.yml"
   workflow_dispatch:
 
@@ -23,6 +31,9 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v4
+
+      - name: Validate Phase 1 scope
+        run: node scripts/validate-bide-ios-phase1.mjs
 
       - name: Select Xcode 16.4
         shell: bash
