@@ -12,7 +12,8 @@ enum CompletionProvider {
         text: String,
         selection: NSRange,
         language: CodeLanguage,
-        projectFiles: [BideProjectFile]
+        projectFiles: [BideProjectFile],
+        datasets: [DatasetAsset] = []
     ) -> [CompletionSuggestion] {
         guard selection.length == 0 else { return [] }
         let prefix = currentToken(in: text, caret: selection.location).lowercased()
@@ -22,6 +23,7 @@ enum CompletionProvider {
         candidates += projectFiles.map { file in
             CompletionSuggestion(label: file.name, insertText: file.name)
         }
+        candidates += datasetSuggestions(language: language, datasets: datasets)
 
         var seen = Set<String>()
         return candidates
@@ -30,7 +32,7 @@ enum CompletionProvider {
                 return searchable.hasPrefix(prefix) || searchable.contains(prefix)
             }
             .filter { seen.insert($0.id).inserted }
-            .prefix(6)
+            .prefix(8)
             .map { $0 }
     }
 
@@ -48,6 +50,34 @@ enum CompletionProvider {
             start -= 1
         }
         return nsText.substring(with: NSRange(location: start, length: safeCaret - start))
+    }
+
+    private static func datasetSuggestions(
+        language: CodeLanguage,
+        datasets: [DatasetAsset]
+    ) -> [CompletionSuggestion] {
+        switch language {
+        case .sql:
+            return datasets.flatMap { asset in
+                asset.tables.flatMap { table -> [CompletionSuggestion] in
+                    var suggestions = [
+                        CompletionSuggestion(label: table.sqliteName, insertText: table.sqliteName)
+                    ]
+                    suggestions += table.columns.map { column in
+                        CompletionSuggestion(
+                            label: "\(table.sqliteName).\(column.name)",
+                            insertText: "\(table.sqliteName).\(column.name)"
+                        )
+                    }
+                    return suggestions
+                }
+            }
+        case .python, .r:
+            return datasets.map { asset in
+                let path = "data/\(asset.fileName)"
+                return CompletionSuggestion(label: path, insertText: path)
+            }
+        }
     }
 
     private static let languageSuggestions: [CodeLanguage: [CompletionSuggestion]] = [
