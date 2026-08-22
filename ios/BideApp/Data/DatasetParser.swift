@@ -136,7 +136,12 @@ enum DatasetParser {
                     for cell in row.cells {
                         let index = excelColumnIndex(cell.reference.column.value)
                         maxColumnIndex = max(maxColumnIndex, index)
-                        let value = cell.stringValue(sharedStrings) ?? cell.value
+                        let value: String?
+                        if let sharedStrings {
+                            value = cell.stringValue(sharedStrings) ?? cell.value
+                        } else {
+                            value = cell.value
+                        }
                         valuesByIndex[index] = normalizedCell(value)
                     }
                     sparseRows.append(valuesByIndex)
