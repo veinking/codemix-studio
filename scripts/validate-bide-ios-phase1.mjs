@@ -15,6 +15,7 @@ function walk(directory) {
 const required = [
   "ios/project.yml",
   "ios/PHASE_1_EDITOR_ACCEPTANCE.md",
+  "ios/BideApp/BideApp.swift",
   "ios/BideApp/Editor/BideCodeEditor.swift",
   "ios/BideApp/Editor/EditorCommand.swift",
   "ios/BideApp/Editor/CompletionProvider.swift",
@@ -23,6 +24,7 @@ const required = [
   "ios/BideApp/Views/ProjectFileBrowser.swift",
   "ios/BideApp/Views/ProjectsView.swift",
   "ios/BideApp/Stores/WorkspaceStore.swift",
+  "ios/BideApp/Stores/WorkspaceStore+CodeImport.swift",
   "ios/BideApp/Models/CodeLanguage.swift",
   "ios/BideApp/Models/ProjectModels.swift",
 ];
@@ -41,6 +43,14 @@ assert.ok(
 );
 for (const product of ["TreeSitterPythonRunestone", "TreeSitterSQLRunestone", "TreeSitterRRunestone"]) {
   assert.ok(project.includes(product), `Missing syntax product: ${product}`);
+}
+for (const capability of [
+  "CFBundleDocumentTypes",
+  "public.python-script",
+  "com.bideide.sql-source",
+  "com.bideide.r-source",
+]) {
+  assert.ok(project.includes(capability), `Native document-open registration missing: ${capability}`);
 }
 
 const language = read("ios/BideApp/Models/CodeLanguage.swift");
@@ -75,6 +85,20 @@ for (const capability of [
   assert.ok(workspaceView.includes(capability), `Workspace UI capability missing: ${capability}`);
 }
 
+const projectsView = read("ios/BideApp/Views/ProjectsView.swift");
+for (const capability of [
+  "Import Project Folder",
+  "Import Code Files",
+  "allowedContentTypes: importableCodeTypes",
+  "importCodeFilesAsProject",
+]) {
+  assert.ok(projectsView.includes(capability), `Project import capability missing: ${capability}`);
+}
+
+const app = read("ios/BideApp/BideApp.swift");
+assert.ok(app.includes(".onOpenURL"), "bIDE must handle source files opened from Files/share surfaces.");
+assert.ok(app.includes("importCodeFilesAsProject"), "Incoming source files must enter the local project model.");
+
 const store = read("ios/BideApp/Stores/WorkspaceStore.swift");
 for (const capability of [
   "bIDE Projects",
@@ -87,6 +111,15 @@ for (const capability of [
   "dateDecodingStrategy = .iso8601",
 ]) {
   assert.ok(store.includes(capability), `Project core capability missing: ${capability}`);
+}
+
+const codeImport = read("ios/BideApp/Stores/WorkspaceStore+CodeImport.swift");
+for (const capability of [
+  "importCodeFilesAsProject",
+  "startAccessingSecurityScopedResource",
+  "String(contentsOf: sourceURL",
+]) {
+  assert.ok(codeImport.includes(capability), `Standalone source import capability missing: ${capability}`);
 }
 
 const nativeFiles = walk("ios/BideApp")
