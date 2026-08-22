@@ -44,7 +44,7 @@ struct WorkspaceView: View {
                 }
             }
         }
-        .navigationTitle(workspace.activeFile?.name ?? "Workspace")
+        .navigationTitle(workspace.activeProjectName)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -185,13 +185,12 @@ struct WorkspaceView: View {
                     Text(file.name)
                         .font(.subheadline.monospaced().weight(.semibold))
                         .lineLimit(1)
-                    Text(workspace.activeProjectName)
+                    Text("Active file")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
                 }
             } else {
-                Text(workspace.activeProjectName)
+                Text("No open file")
                     .font(.subheadline.weight(.semibold))
             }
 
