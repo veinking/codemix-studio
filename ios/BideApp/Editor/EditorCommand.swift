@@ -18,5 +18,6 @@ enum EditorAction: Equatable {
     case replaceNext(String, String)
     case replaceAll(String, String)
     case replaceCurrentToken(String)
+    case dismissKeyboard
     case runSelection
 }
