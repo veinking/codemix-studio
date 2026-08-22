@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WorkspaceView: View {
     @EnvironmentObject private var workspace: WorkspaceStore
+    @EnvironmentObject private var dataWorkspace: DataWorkspaceStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var selection = NSRange(location: 0, length: 0)
@@ -23,7 +24,8 @@ struct WorkspaceView: View {
             text: workspace.documentText,
             selection: selection,
             language: workspace.documentLanguage,
-            projectFiles: workspace.files
+            projectFiles: workspace.files,
+            datasets: dataWorkspace.datasets
         )
     }
 
@@ -71,11 +73,16 @@ struct WorkspaceView: View {
                 Button {
                     editorCommand = EditorCommand(action: .runSelection)
                 } label: {
-                    Image(systemName: "play.fill")
+                    if workspace.documentLanguage == .sql && dataWorkspace.isRunningSQL {
+                        ProgressView()
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "play.fill")
+                    }
                 }
                 .keyboardShortcut("r", modifiers: .command)
                 .accessibilityLabel("Run selection or file")
-                .disabled(workspace.activeFile == nil)
+                .disabled(workspace.activeFile == nil || dataWorkspace.isRunningSQL)
             }
         }
         .sheet(isPresented: $filesPresented) {
@@ -116,12 +123,24 @@ struct WorkspaceView: View {
                 }
             )
         }
+        .sheet(item: $dataWorkspace.lastSQLRun) { report in
+            SQLResultsView(report: report)
+                .presentationDetents([.medium, .large])
+        }
         .alert("Runtime comes next", isPresented: $runPreviewPresented) {
             Button("OK", role: .cancel) {}
         } message: {
             Text(runPreview.isEmpty
-                 ? "The native editor is ready for runtime wiring in the next phase."
-                 : "Run selection/file is wired at the editor boundary. Execution is intentionally disabled during Phase 1.\n\n\(runPreview.prefix(220))")
+                 ? "Python and R execution are wired in later phases. SQL is now native and executable in Phase 2."
+                 : "Run selection/file is wired at the editor boundary. Python/R execution is intentionally deferred.\n\n\(runPreview.prefix(220))")
+        }
+        .alert("SQL Error", isPresented: Binding(
+            get: { dataWorkspace.sqlError != nil },
+            set: { if !$0 { dataWorkspace.sqlError = nil } }
+        )) {
+            Button("OK", role: .cancel) { dataWorkspace.sqlError = nil }
+        } message: {
+            Text(dataWorkspace.sqlError ?? "Unknown SQL error.")
         }
         .onChange(of: workspace.activeFileID) { _, _ in
             selection = NSRange(location: 0, length: 0)
@@ -146,8 +165,15 @@ struct WorkspaceView: View {
                     command: $editorCommand,
                     wrapLines: isCompact,
                     onRunRequested: { code in
-                        runPreview = code
-                        runPreviewPresented = true
+                        if workspace.documentLanguage == .sql,
+                           let projectID = workspace.activeProjectID {
+                            Task {
+                                await dataWorkspace.executeSQL(code, projectID: projectID)
+                            }
+                        } else {
+                            runPreview = code
+                            runPreviewPresented = true
+                        }
                     }
                 )
                 .id(documentID)
@@ -195,6 +221,15 @@ struct WorkspaceView: View {
             }
 
             Spacer()
+
+            if workspace.documentLanguage == .sql, !dataWorkspace.tables.isEmpty {
+                Text("\(dataWorkspace.tables.count) tables")
+                    .font(.caption2.monospaced().weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 4)
+                    .background(.thinMaterial, in: Capsule())
+            }
 
             Text(workspace.documentLanguage.displayName)
                 .font(.caption.monospaced().weight(.semibold))
