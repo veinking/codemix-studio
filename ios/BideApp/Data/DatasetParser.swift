@@ -56,7 +56,7 @@ enum DatasetParser {
             source.removeFirst()
         }
 
-        let sample = source.split(whereSeparator: \ .isNewline).first.map(String.init) ?? ""
+        let sample = source.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
         let candidates: [Character] = ["\t", ",", "|", ";"]
         let best = candidates
             .map { delimiter in (delimiter, sample.filter { $0 == delimiter }.count) }
@@ -70,7 +70,7 @@ enum DatasetParser {
         }
 
         let rows = source
-            .split(whereSeparator: \ .isNewline)
+            .split(whereSeparator: \.isNewline)
             .map { [String($0)] }
         guard !rows.isEmpty else {
             throw DatasetParserError.emptyDataset(url.lastPathComponent)
@@ -128,7 +128,7 @@ enum DatasetParser {
                 let worksheetRows = worksheet.data?.rows ?? []
                 guard !worksheetRows.isEmpty else { continue }
 
-                var denseRows: [[String?]] = []
+                var sparseRows: [[Int: String?]] = []
                 var maxColumnIndex = 0
 
                 for row in worksheetRows {
@@ -139,8 +139,11 @@ enum DatasetParser {
                         let value = cell.stringValue(sharedStrings) ?? cell.value
                         valuesByIndex[index] = normalizedCell(value)
                     }
-                    let rowValues = (0...maxColumnIndex).map { valuesByIndex[$0] ?? nil }
-                    denseRows.append(rowValues)
+                    sparseRows.append(valuesByIndex)
+                }
+
+                let denseRows = sparseRows.map { valuesByIndex in
+                    (0...maxColumnIndex).map { valuesByIndex[$0] ?? nil }
                 }
 
                 guard let headerIndex = denseRows.firstIndex(where: { row in
@@ -176,7 +179,7 @@ enum DatasetParser {
         }
         guard let first = nonEmpty.first else { throw DatasetParserError.emptyDataset(displayName) }
 
-        let width = max(first.count, nonEmpty.dropFirst().map(\ .count).max() ?? 0)
+        let width = max(first.count, nonEmpty.dropFirst().map(\.count).max() ?? 0)
         var headers = (0..<width).map { index -> String in
             guard index < first.count else { return "Column \(index + 1)" }
             let candidate = first[index].trimmingCharacters(in: .whitespacesAndNewlines)
@@ -199,7 +202,7 @@ enum DatasetParser {
         headers rawHeaders: [String],
         rows rawRows: [[String?]]
     ) -> ParsedDatasetTable {
-        let width = max(rawHeaders.count, rawRows.map(\ .count).max() ?? 0)
+        let width = max(rawHeaders.count, rawRows.map(\.count).max() ?? 0)
         let paddedHeaders = (0..<width).map { index -> String in
             if index < rawHeaders.count {
                 let trimmed = rawHeaders[index].trimmingCharacters(in: .whitespacesAndNewlines)
