@@ -14,17 +14,17 @@ struct BideApp: App {
                 .environmentObject(workspace)
                 .environmentObject(dataWorkspace)
                 .onAppear {
-                    dataWorkspace.openProject(workspace.activeProjectID)
+                    synchronizeDataProject(workspace.activeProjectID)
                 }
                 .onChange(of: workspace.activeProjectID) { _, projectID in
-                    dataWorkspace.openProject(projectID)
+                    synchronizeDataProject(projectID)
                 }
                 .onOpenURL { url in
                     guard url.isFileURL else { return }
 
                     if CodeLanguage.infer(from: url.lastPathComponent) != nil {
                         if workspace.importCodeFilesAsProject([url]) != nil {
-                            dataWorkspace.openProject(workspace.activeProjectID)
+                            synchronizeDataProject(workspace.activeProjectID)
                             session.selectedSection = .workspace
                         }
                         return
@@ -41,6 +41,15 @@ struct BideApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
                     workspace.saveActiveDocumentNow()
                 }
+        }
+    }
+
+    @MainActor
+    private func synchronizeDataProject(_ projectID: UUID?) {
+        dataWorkspace.openProject(projectID)
+        guard let projectID else { return }
+        Task {
+            await dataWorkspace.reconcileProjectFiles(projectID: projectID)
         }
     }
 }
