@@ -39,10 +39,7 @@ enum DatasetFormat: String, Codable, CaseIterable, Sendable {
     }
 
     static var importableTypes: [UTType] {
-        var types: [UTType] = [.commaSeparatedText, .json, .plainText]
-        if let tsv = UTType(filenameExtension: "tsv") { types.append(tsv) }
-        if let xlsx = UTType(filenameExtension: "xlsx") { types.append(xlsx) }
-        return types
+        ["csv", "tsv", "json", "txt", "xlsx"].compactMap { UTType(filenameExtension: $0) }
     }
 }
 
