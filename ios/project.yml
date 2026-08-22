@@ -1,0 +1,39 @@
+name: bIDE
+options:
+  bundleIdPrefix: com.bideide
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "17.0"
+
+targets:
+  bIDE:
+    type: application
+    platform: iOS
+    sources:
+      - path: BideApp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios
+        PRODUCT_NAME: bIDE
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: bIDE
+        INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.developer-tools
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+
+schemes:
+  bIDE:
+    build:
+      targets:
+        bIDE: all
+    run:
+      config: Debug
+    archive:
+      config: Release
