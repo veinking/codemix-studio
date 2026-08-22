@@ -4,11 +4,15 @@ import SQLite3
 enum SQLiteProjectEngineError: LocalizedError, Sendable {
     case sqlite(String)
     case emptySQL
+    case exportRequiresReadOnlyQuery
+    case exportRequiresResultColumns
 
     var errorDescription: String? {
         switch self {
         case .sqlite(let message): return message
         case .emptySQL: return "There is no SQL to run."
+        case .exportRequiresReadOnlyQuery: return "Only read-only SQL results can be exported or saved as datasets."
+        case .exportRequiresResultColumns: return "This SQL statement does not return a table result."
         }
     }
 }
@@ -34,11 +38,7 @@ enum SQLiteProjectEngine {
             if !table.rows.isEmpty {
                 let placeholders = Array(repeating: "?", count: table.columns.count).joined(separator: ", ")
                 let insertSQL = "INSERT INTO \(quoteIdentifier(sqliteName)) VALUES (\(placeholders));"
-                var statement: OpaquePointer?
-                guard sqlite3_prepare_v2(db, insertSQL, -1, &statement, nil) == SQLITE_OK,
-                      let statement else {
-                    throw SQLiteProjectEngineError.sqlite(lastError(db))
-                }
+                let statement = try prepare(db, insertSQL)
                 defer { sqlite3_finalize(statement) }
 
                 for row in table.rows {
@@ -109,9 +109,10 @@ enum SQLiteProjectEngine {
                     current = tail
                     continue
                 }
-                defer { sqlite3_finalize(statement) }
 
                 statementCount += 1
+                let statementSQL = sqlite3_sql(statement).map(String.init(cString:)) ?? ""
+                let isReadOnly = sqlite3_stmt_readonly(statement) != 0
                 let columnCount = Int(sqlite3_column_count(statement))
                 let columns = (0..<columnCount).map { index -> String in
                     guard let pointer = sqlite3_column_name(statement, Int32(index)) else {
@@ -135,7 +136,9 @@ enum SQLiteProjectEngine {
                 }
 
                 if !truncated, stepResult != SQLITE_DONE {
-                    throw SQLiteProjectEngineError.sqlite(lastError(db))
+                    let message = lastError(db)
+                    sqlite3_finalize(statement)
+                    throw SQLiteProjectEngineError.sqlite(message)
                 }
 
                 resultSets.append(
@@ -145,10 +148,13 @@ enum SQLiteProjectEngine {
                         rowCount: rows.count,
                         affectedRows: columnCount == 0 ? Int(sqlite3_changes(db)) : 0,
                         isTruncated: truncated,
-                        statementIndex: statementCount
+                        statementIndex: statementCount,
+                        statementSQL: statementSQL,
+                        isReadOnly: isReadOnly
                     )
                 )
 
+                sqlite3_finalize(statement)
                 if tail == cursor { break }
                 current = tail
             }
@@ -160,6 +166,63 @@ enum SQLiteProjectEngine {
             statementCount: statementCount,
             elapsedMilliseconds: elapsed
         )
+    }
+
+    @discardableResult
+    static func exportReadOnlyQueryToCSV(
+        databaseURL: URL,
+        sql: String,
+        outputURL: URL
+    ) throws -> Int {
+        let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw SQLiteProjectEngineError.emptySQL }
+
+        let db = try openDatabase(at: databaseURL)
+        defer { sqlite3_close(db) }
+        let statement = try prepare(db, trimmed)
+        defer { sqlite3_finalize(statement) }
+
+        guard sqlite3_stmt_readonly(statement) != 0 else {
+            throw SQLiteProjectEngineError.exportRequiresReadOnlyQuery
+        }
+
+        let columnCount = Int(sqlite3_column_count(statement))
+        guard columnCount > 0 else {
+            throw SQLiteProjectEngineError.exportRequiresResultColumns
+        }
+
+        try FileManager.default.createDirectory(
+            at: outputURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        if FileManager.default.fileExists(atPath: outputURL.path) {
+            try FileManager.default.removeItem(at: outputURL)
+        }
+        FileManager.default.createFile(atPath: outputURL.path, contents: nil)
+        let handle = try FileHandle(forWritingTo: outputURL)
+        defer { try? handle.close() }
+
+        let columns = (0..<columnCount).map { index -> String in
+            guard let pointer = sqlite3_column_name(statement, Int32(index)) else {
+                return "Column \(index + 1)"
+            }
+            return String(cString: pointer)
+        }
+        try writeCSVLine(columns.map(Optional.some), to: handle)
+
+        var rowCount = 0
+        var stepResult = sqlite3_step(statement)
+        while stepResult == SQLITE_ROW {
+            let row = (0..<columnCount).map { columnValue(statement, index: Int32($0)) }
+            try writeCSVLine(row, to: handle)
+            rowCount += 1
+            stepResult = sqlite3_step(statement)
+        }
+
+        guard stepResult == SQLITE_DONE else {
+            throw SQLiteProjectEngineError.sqlite(lastError(db))
+        }
+        return rowCount
     }
 
     static func quoteIdentifier(_ identifier: String) -> String {
@@ -174,7 +237,10 @@ enum SQLiteProjectEngine {
 
         var db: OpaquePointer?
         let flags = SQLITE_OPEN_CREATE | SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX
-        guard sqlite3_open_v2(url.path, &db, flags, nil) == SQLITE_OK, let db else {
+        let result = url.path.withCString { pointer in
+            sqlite3_open_v2(pointer, &db, flags, nil)
+        }
+        guard result == SQLITE_OK, let db else {
             let message = db.map(lastError) ?? "Could not open the project SQLite database."
             if let db { sqlite3_close(db) }
             throw SQLiteProjectEngineError.sqlite(message)
@@ -183,12 +249,25 @@ enum SQLiteProjectEngine {
         return db
     }
 
+    private static func prepare(_ db: OpaquePointer, _ sql: String) throws -> OpaquePointer {
+        var statement: OpaquePointer?
+        let result = sql.withCString { pointer in
+            sqlite3_prepare_v2(db, pointer, -1, &statement, nil)
+        }
+        guard result == SQLITE_OK, let statement else {
+            throw SQLiteProjectEngineError.sqlite(lastError(db))
+        }
+        return statement
+    }
+
     private static func executeRaw(_ db: OpaquePointer, _ sql: String) throws {
         var errorPointer: UnsafeMutablePointer<CChar>?
-        let result = sqlite3_exec(db, sql, nil, nil, &errorPointer)
+        let result = sql.withCString { pointer in
+            sqlite3_exec(db, pointer, nil, nil, &errorPointer)
+        }
         guard result == SQLITE_OK else {
             let message = errorPointer.map { String(cString: $0) } ?? lastError(db)
-            sqlite3_free(errorPointer)
+            if let errorPointer { sqlite3_free(errorPointer) }
             throw SQLiteProjectEngineError.sqlite(message)
         }
     }
@@ -258,6 +337,22 @@ enum SQLiteProjectEngine {
         default:
             return nil
         }
+    }
+
+    private static func writeCSVLine(_ values: [String?], to handle: FileHandle) throws {
+        let line = values.map(csvEscaped).joined(separator: ",") + "\n"
+        if let data = line.data(using: .utf8) {
+            try handle.write(contentsOf: data)
+        }
+    }
+
+    private static func csvEscaped(_ value: String?) -> String {
+        guard let value else { return "" }
+        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
+        if escaped.contains(",") || escaped.contains("\"") || escaped.contains("\n") || escaped.contains("\r") {
+            return "\"\(escaped)\""
+        }
+        return escaped
     }
 
     private static func lastError(_ db: OpaquePointer) -> String {
