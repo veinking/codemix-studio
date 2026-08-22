@@ -7,7 +7,7 @@ final class AppSession: ObservableObject {
     @Published var isSignedIn = false
 }
 
-enum AppSection: String, CaseIterable, Identifiable {
+enum AppSection: String, CaseIterable, Identifiable, Hashable {
     case workspace = "Workspace"
     case projects = "Projects"
     case datasets = "Datasets"
