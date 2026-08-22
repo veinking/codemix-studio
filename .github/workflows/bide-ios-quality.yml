@@ -2,8 +2,8 @@ name: bIDE iOS Quality
 
 # The macOS/Xcode lane is intentionally checkpoint-only because GitHub-hosted
 # macOS minutes are expensive. During active device QA we batch fixes, then run
-# this workflow manually when we need a new installable IPA. The PR receives one
-# automatic final gate when it is explicitly marked ready for review.
+# this workflow manually when we need a new installable IPA. A PR receives one
+# automatic final gate only when it is explicitly marked ready for review against main.
 on:
   workflow_dispatch:
   pull_request:
@@ -12,6 +12,7 @@ on:
     paths:
       - "ios/**"
       - "scripts/validate-bide-ios-phase1.mjs"
+      - "scripts/validate-bide-ios-phase2.mjs"
       - "scripts/release/build_bide_sideloadly_ipa.sh"
       - ".github/workflows/bide-ios-quality.yml"
 
@@ -31,8 +32,11 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Validate Phase 1 scope
+      - name: Validate Phase 1 baseline
         run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Validate Phase 2 data + SQL
+        run: node scripts/validate-bide-ios-phase2.mjs
 
       - name: Select Xcode 16.4
         shell: bash
@@ -76,7 +80,7 @@ jobs:
       - name: Upload bIDE physical-device package
         uses: actions/upload-artifact@v4
         with:
-          name: bIDE-Phase1-Sideloadly-${{ github.run_attempt }}
+          name: bIDE-Phase2-Sideloadly-${{ github.run_attempt }}
           path: |
             build/bIDE-Sideloadly.ipa
             build/BideSideloadlyLogs/
@@ -87,7 +91,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bide-ios-build-diagnostics
+          name: bide-ios-phase2-build-diagnostics
           path: |
             /tmp/bide-ios-build.log
             build/BideSideloadlyLogs/
