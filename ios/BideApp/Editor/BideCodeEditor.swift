@@ -71,6 +71,7 @@ struct BideCodeEditor: UIViewRepresentable {
         textView.smartDashesType = .no
         textView.smartInsertDeleteType = .no
         textView.keyboardType = .asciiCapable
+        textView.keyboardDismissMode = .interactive
         textView.verticalOverscrollFactor = 0.35
         textView.showsVerticalScrollIndicator = true
         textView.showsHorizontalScrollIndicator = !wrapLines
@@ -163,6 +164,9 @@ struct BideCodeEditor: UIViewRepresentable {
 
             case .replaceCurrentToken(let replacement):
                 replaceCurrentToken(with: replacement, in: textView)
+
+            case .dismissKeyboard:
+                textView.resignFirstResponder()
 
             case .runSelection:
                 let selected = textView.text(in: textView.selectedRange) ?? ""
