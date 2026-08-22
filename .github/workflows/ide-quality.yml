@@ -7,6 +7,7 @@ on:
       - "scripts/validate-bide-ios-phase1.mjs"
       - "scripts/release/build_bide_sideloadly_ipa.sh"
       - ".github/workflows/bide-ios-quality.yml"
+      - ".github/workflows/ide-quality.yml"
   push:
     branches: [main]
 
