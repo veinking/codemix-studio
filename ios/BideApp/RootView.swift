@@ -17,13 +17,27 @@ struct RootView: View {
 
     private var tabletLayout: some View {
         NavigationSplitView {
-            List(AppSection.allCases, selection: $session.selectedSection) { section in
-                Label(section.rawValue, systemImage: section.systemImage)
-                    .tag(section)
+            List(AppSection.allCases) { section in
+                Button {
+                    session.selectedSection = section
+                } label: {
+                    HStack {
+                        Label(section.rawValue, systemImage: section.systemImage)
+                        Spacer()
+                        if session.selectedSection == section {
+                            Image(systemName: "checkmark")
+                                .font(.caption.weight(.semibold))
+                        }
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
             .navigationTitle("bIDE")
         } detail: {
-            destination(for: session.selectedSection)
+            NavigationStack {
+                destination(for: session.selectedSection)
+            }
         }
     }
 
