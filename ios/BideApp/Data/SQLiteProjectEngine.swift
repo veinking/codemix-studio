@@ -101,6 +101,7 @@ enum SQLiteProjectEngine {
                 var tail: UnsafePointer<CChar>?
                 let prepareResult = sqlite3_prepare_v2(db, cursor, -1, &statement, &tail)
                 guard prepareResult == SQLITE_OK else {
+                    if let statement { sqlite3_finalize(statement) }
                     throw SQLiteProjectEngineError.sqlite(lastError(db))
                 }
 
@@ -111,7 +112,7 @@ enum SQLiteProjectEngine {
                 }
 
                 statementCount += 1
-                let statementSQL = sqlite3_sql(statement).map(String.init(cString:)) ?? ""
+                let statementSQL = sqlite3_sql(statement).map { String(cString: $0) } ?? ""
                 let isReadOnly = sqlite3_stmt_readonly(statement) != 0
                 let columnCount = Int(sqlite3_column_count(statement))
                 let columns = (0..<columnCount).map { index -> String in
@@ -198,7 +199,7 @@ enum SQLiteProjectEngine {
         if FileManager.default.fileExists(atPath: outputURL.path) {
             try FileManager.default.removeItem(at: outputURL)
         }
-        FileManager.default.createFile(atPath: outputURL.path, contents: nil)
+        _ = FileManager.default.createFile(atPath: outputURL.path, contents: nil)
         let handle = try FileHandle(forWritingTo: outputURL)
         defer { try? handle.close() }
 
@@ -208,19 +209,27 @@ enum SQLiteProjectEngine {
             }
             return String(cString: pointer)
         }
-        try writeCSVLine(columns.map(Optional.some), to: handle)
 
+        var outputBuffer = csvLine(columns.map(Optional.some))
         var rowCount = 0
         var stepResult = sqlite3_step(statement)
         while stepResult == SQLITE_ROW {
             let row = (0..<columnCount).map { columnValue(statement, index: Int32($0)) }
-            try writeCSVLine(row, to: handle)
+            outputBuffer.append(csvLine(row))
             rowCount += 1
+
+            if outputBuffer.utf8.count >= 64 * 1_024 {
+                try write(outputBuffer, to: handle)
+                outputBuffer.removeAll(keepingCapacity: true)
+            }
             stepResult = sqlite3_step(statement)
         }
 
         guard stepResult == SQLITE_DONE else {
             throw SQLiteProjectEngineError.sqlite(lastError(db))
+        }
+        if !outputBuffer.isEmpty {
+            try write(outputBuffer, to: handle)
         }
         return rowCount
     }
@@ -255,6 +264,7 @@ enum SQLiteProjectEngine {
             sqlite3_prepare_v2(db, pointer, -1, &statement, nil)
         }
         guard result == SQLITE_OK, let statement else {
+            if let statement { sqlite3_finalize(statement) }
             throw SQLiteProjectEngineError.sqlite(lastError(db))
         }
         return statement
@@ -267,7 +277,9 @@ enum SQLiteProjectEngine {
         }
         guard result == SQLITE_OK else {
             let message = errorPointer.map { String(cString: $0) } ?? lastError(db)
-            if let errorPointer { sqlite3_free(errorPointer) }
+            if let errorPointer {
+                sqlite3_free(UnsafeMutableRawPointer(errorPointer))
+            }
             throw SQLiteProjectEngineError.sqlite(message)
         }
     }
@@ -339,11 +351,8 @@ enum SQLiteProjectEngine {
         }
     }
 
-    private static func writeCSVLine(_ values: [String?], to handle: FileHandle) throws {
-        let line = values.map(csvEscaped).joined(separator: ",") + "\n"
-        if let data = line.data(using: .utf8) {
-            try handle.write(contentsOf: data)
-        }
+    private static func csvLine(_ values: [String?]) -> String {
+        values.map(csvEscaped).joined(separator: ",") + "\n"
     }
 
     private static func csvEscaped(_ value: String?) -> String {
@@ -353,6 +362,12 @@ enum SQLiteProjectEngine {
             return "\"\(escaped)\""
         }
         return escaped
+    }
+
+    private static func write(_ string: String, to handle: FileHandle) throws {
+        if let data = string.data(using: .utf8) {
+            try handle.write(contentsOf: data)
+        }
     }
 
     private static func lastError(_ db: OpaquePointer) -> String {
