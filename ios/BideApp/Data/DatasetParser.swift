@@ -91,6 +91,7 @@ enum DatasetParser {
         if let dictionaries = object as? [[String: Any]] {
             guard !dictionaries.isEmpty else { throw DatasetParserError.emptyDataset(url.lastPathComponent) }
             let headers = Array(Set(dictionaries.flatMap { $0.keys })).sorted()
+            guard !headers.isEmpty else { throw DatasetParserError.emptyDataset(url.lastPathComponent) }
             let rows = dictionaries.map { dictionary in
                 headers.map { stringifyJSONValue(dictionary[$0]) }
             }
@@ -99,6 +100,7 @@ enum DatasetParser {
 
         if let dictionary = object as? [String: Any] {
             let headers = dictionary.keys.sorted()
+            guard !headers.isEmpty else { throw DatasetParserError.emptyDataset(url.lastPathComponent) }
             let row = headers.map { stringifyJSONValue(dictionary[$0]) }
             return makeTable(displayName: name, sourceSheetName: nil, headers: headers, rows: [row])
         }
@@ -136,12 +138,14 @@ enum DatasetParser {
                     for cell in row.cells {
                         let index = excelColumnIndex(cell.reference.column.value)
                         maxColumnIndex = max(maxColumnIndex, index)
-                        let value: String?
+
+                        let sharedValue: String?
                         if let sharedStrings {
-                            value = cell.stringValue(sharedStrings) ?? cell.value
+                            sharedValue = cell.stringValue(sharedStrings)
                         } else {
-                            value = cell.value
+                            sharedValue = nil
                         }
+                        let value = cell.inlineString?.text ?? sharedValue ?? cell.value
                         valuesByIndex[index] = normalizedCell(value)
                     }
                     sparseRows.append(valuesByIndex)
