@@ -6,11 +6,19 @@ struct ProjectsView: View {
     @EnvironmentObject private var session: AppSession
 
     @State private var createPresented = false
-    @State private var importPresented = false
+    @State private var importFolderPresented = false
+    @State private var importFilesPresented = false
     @State private var newProjectName = "New Project"
     @State private var renameTarget: BideProjectManifest?
     @State private var renameValue = ""
     @State private var deleteTarget: BideProjectManifest?
+
+    private var importableCodeTypes: [UTType] {
+        var types: [UTType] = [.pythonScript]
+        if let sql = UTType(filenameExtension: "sql") { types.append(sql) }
+        if let r = UTType(filenameExtension: "r") { types.append(r) }
+        return types
+    }
 
     var body: some View {
         List {
@@ -86,18 +94,23 @@ struct ProjectsView: View {
             } header: {
                 Text("Local Projects")
             } footer: {
-                Text("Projects are stored locally on this device. Use + to create one or the import button to bring in a project folder from Files.")
+                Text("Projects are stored locally on this device. Import a project folder or one or more Python, SQL, or R files directly from Files.")
             }
         }
         .navigationTitle("Projects")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    importPresented = true
+                Menu {
+                    Button("Import Project Folder", systemImage: "folder.badge.plus") {
+                        importFolderPresented = true
+                    }
+                    Button("Import Code Files", systemImage: "doc.badge.plus") {
+                        importFilesPresented = true
+                    }
                 } label: {
-                    Image(systemName: "folder.badge.plus")
+                    Image(systemName: "square.and.arrow.down")
                 }
-                .accessibilityLabel("Import project folder")
+                .accessibilityLabel("Import project or code files")
 
                 Button {
                     newProjectName = "New Project"
@@ -109,12 +122,23 @@ struct ProjectsView: View {
             }
         }
         .fileImporter(
-            isPresented: $importPresented,
+            isPresented: $importFolderPresented,
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
             guard case .success(let urls) = result, let sourceURL = urls.first else { return }
             if let importedID = workspace.importProject(from: sourceURL) {
+                workspace.openProject(importedID)
+                session.selectedSection = .workspace
+            }
+        }
+        .fileImporter(
+            isPresented: $importFilesPresented,
+            allowedContentTypes: importableCodeTypes,
+            allowsMultipleSelection: true
+        ) { result in
+            guard case .success(let urls) = result else { return }
+            if let importedID = workspace.importCodeFilesAsProject(urls) {
                 workspace.openProject(importedID)
                 session.selectedSection = .workspace
             }
