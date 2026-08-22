@@ -27,10 +27,6 @@ final class WorkspaceStore: ObservableObject {
         bootstrap()
     }
 
-    deinit {
-        autosaveTask?.cancel()
-    }
-
     var activeProject: BideProjectManifest? {
         projects.first(where: { $0.id == activeProjectID })
     }
@@ -188,8 +184,13 @@ final class WorkspaceStore: ObservableObject {
             touchActiveProject()
             refreshFiles()
             if wasActive {
-                let oldParent = URL(fileURLWithPath: file.relativePath).deletingLastPathComponent().path
-                let newRelative = oldParent == "." || oldParent.isEmpty ? newName : "\(oldParent)/\(newName)"
+                let components = file.relativePath.split(separator: "/")
+                let newRelative: String
+                if components.count <= 1 {
+                    newRelative = newName
+                } else {
+                    newRelative = components.dropLast().map(String.init).joined(separator: "/") + "/" + newName
+                }
                 openFile(newRelative)
             }
         } catch {
@@ -262,6 +263,7 @@ final class WorkspaceStore: ObservableObject {
 
     private func refreshProjects() {
         let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
         guard let directories = try? fileManager.contentsOfDirectory(
             at: rootDirectory,
             includingPropertiesForKeys: [.isDirectoryKey],
