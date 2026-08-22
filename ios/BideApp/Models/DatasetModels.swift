@@ -131,6 +131,8 @@ struct SQLResultSet: Identifiable, Hashable, Sendable {
     let affectedRows: Int
     let isTruncated: Bool
     let statementIndex: Int
+    let statementSQL: String
+    let isReadOnly: Bool
 }
 
 struct SQLRunReport: Identifiable, Hashable, Sendable {
