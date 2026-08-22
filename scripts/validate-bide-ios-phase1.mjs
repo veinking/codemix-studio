@@ -44,13 +44,14 @@ assert.ok(
 for (const product of ["TreeSitterPythonRunestone", "TreeSitterSQLRunestone", "TreeSitterRRunestone"]) {
   assert.ok(project.includes(product), `Missing syntax product: ${product}`);
 }
-for (const capability of [
+for (const documentCapability of [
   "CFBundleDocumentTypes",
   "public.python-script",
   "com.bideide.sql-source",
   "com.bideide.r-source",
+  "LSSupportsOpeningDocumentsInPlace: false",
 ]) {
-  assert.ok(project.includes(capability), `Native document-open registration missing: ${capability}`);
+  assert.ok(project.includes(documentCapability), `External document ingress is missing: ${documentCapability}`);
 }
 
 const language = read("ios/BideApp/Models/CodeLanguage.swift");
@@ -89,15 +90,25 @@ const projectsView = read("ios/BideApp/Views/ProjectsView.swift");
 for (const capability of [
   "Import Project Folder",
   "Import Code Files",
-  "allowedContentTypes: importableCodeTypes",
+  "allowedContentTypes: [.folder]",
+  "allowsMultipleSelection: true",
   "importCodeFilesAsProject",
 ]) {
-  assert.ok(projectsView.includes(capability), `Project import capability missing: ${capability}`);
+  assert.ok(projectsView.includes(capability), `Project ingress capability missing: ${capability}`);
 }
 
 const app = read("ios/BideApp/BideApp.swift");
-assert.ok(app.includes(".onOpenURL"), "bIDE must handle source files opened from Files/share surfaces.");
-assert.ok(app.includes("importCodeFilesAsProject"), "Incoming source files must enter the local project model.");
+assert.ok(app.includes(".onOpenURL"), "Open/Share in bIDE URL handling must stay wired.");
+assert.ok(app.includes("importCodeFilesAsProject"), "External source files must route through local project import.");
+
+const codeImport = read("ios/BideApp/Stores/WorkspaceStore+CodeImport.swift");
+for (const capability of [
+  "importCodeFilesAsProject",
+  "startAccessingSecurityScopedResource",
+  "String(contentsOf: sourceURL, encoding: .utf8)",
+]) {
+  assert.ok(codeImport.includes(capability), `Standalone code import capability missing: ${capability}`);
+}
 
 const store = read("ios/BideApp/Stores/WorkspaceStore.swift");
 for (const capability of [
@@ -105,21 +116,13 @@ for (const capability of [
   "project.bide.json",
   "scheduleAutosave",
   "createProject",
+  "importProject",
   "createFile",
   "renameFile",
   "deleteFile",
   "dateDecodingStrategy = .iso8601",
 ]) {
   assert.ok(store.includes(capability), `Project core capability missing: ${capability}`);
-}
-
-const codeImport = read("ios/BideApp/Stores/WorkspaceStore+CodeImport.swift");
-for (const capability of [
-  "importCodeFilesAsProject",
-  "startAccessingSecurityScopedResource",
-  "String(contentsOf: sourceURL",
-]) {
-  assert.ok(codeImport.includes(capability), `Standalone source import capability missing: ${capability}`);
 }
 
 const nativeFiles = walk("ios/BideApp")
