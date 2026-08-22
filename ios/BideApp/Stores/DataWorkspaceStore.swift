@@ -52,6 +52,8 @@ final class DataWorkspaceStore: ObservableObject {
             importStatus = nil
         }
 
+        let dbURL = databaseURL(projectID: projectID)
+
         for sourceURL in sourceURLs {
             guard let format = DatasetFormat.infer(from: sourceURL) else {
                 dataError = "\(sourceURL.lastPathComponent) is not a supported dataset format."
@@ -96,7 +98,7 @@ final class DataWorkspaceStore: ObservableObject {
 
                     try await Task.detached(priority: .userInitiated) {
                         try SQLiteProjectEngine.importTable(
-                            databaseURL: self.databaseURL(projectID: projectID),
+                            databaseURL: dbURL,
                             sqliteName: sqliteName,
                             table: parsedTable
                         )
@@ -129,11 +131,9 @@ final class DataWorkspaceStore: ObservableObject {
             } catch {
                 try? fileManager.removeItem(at: destinationURL)
                 if !importedTableNames.isEmpty {
+                    let names = importedTableNames
                     try? await Task.detached(priority: .utility) {
-                        try SQLiteProjectEngine.dropTables(
-                            databaseURL: self.databaseURL(projectID: projectID),
-                            names: importedTableNames
-                        )
+                        try SQLiteProjectEngine.dropTables(databaseURL: dbURL, names: names)
                     }.value
                 }
                 dataError = "Could not import \(sourceURL.lastPathComponent): \(error.localizedDescription)"
@@ -143,13 +143,11 @@ final class DataWorkspaceStore: ObservableObject {
 
     func deleteDataset(_ asset: DatasetAsset, projectID: UUID) async {
         dataError = nil
+        let dbURL = databaseURL(projectID: projectID)
         do {
             let names = asset.tables.map(\.sqliteName)
             try await Task.detached(priority: .utility) {
-                try SQLiteProjectEngine.dropTables(
-                    databaseURL: self.databaseURL(projectID: projectID),
-                    names: names
-                )
+                try SQLiteProjectEngine.dropTables(databaseURL: dbURL, names: names)
             }.value
             let url = projectDirectory(projectID).appendingPathComponent(asset.relativePath)
             if fileManager.fileExists(atPath: url.path) {
@@ -207,13 +205,10 @@ final class DataWorkspaceStore: ObservableObject {
         lastSQLRun = nil
         defer { isRunningSQL = false }
 
+        let dbURL = databaseURL(projectID: projectID)
         do {
             let report = try await Task.detached(priority: .userInitiated) {
-                try SQLiteProjectEngine.execute(
-                    databaseURL: self.databaseURL(projectID: projectID),
-                    sql: sql,
-                    rowLimit: 500
-                )
+                try SQLiteProjectEngine.execute(databaseURL: dbURL, sql: sql, rowLimit: 500)
             }.value
             lastSQLRun = report
         } catch {
@@ -222,14 +217,11 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func preview(_ table: DatasetTableDescriptor, projectID: UUID) async -> SQLRunReport? {
+        let dbURL = databaseURL(projectID: projectID)
         do {
             let sql = "SELECT * FROM \(SQLiteProjectEngine.quoteIdentifier(table.sqliteName)) LIMIT 50;"
             return try await Task.detached(priority: .userInitiated) {
-                try SQLiteProjectEngine.execute(
-                    databaseURL: self.databaseURL(projectID: projectID),
-                    sql: sql,
-                    rowLimit: 50
-                )
+                try SQLiteProjectEngine.execute(databaseURL: dbURL, sql: sql, rowLimit: 50)
             }.value
         } catch {
             dataError = "Could not preview \(table.displayName): \(error.localizedDescription)"
