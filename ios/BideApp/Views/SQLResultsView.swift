@@ -2,8 +2,14 @@ import SwiftUI
 
 struct SQLResultsView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var workspace: WorkspaceStore
+    @EnvironmentObject private var dataWorkspace: DataWorkspaceStore
+
     let report: SQLRunReport
     var title: String = "SQL Results"
+
+    @State private var shareURLs: [URL] = []
+    @State private var savedDatasetMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -44,9 +50,63 @@ struct SQLResultsView: View {
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
+                ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    if report.primaryResult?.columns.isEmpty == false {
+                        Menu {
+                            Button("Share Result as CSV", systemImage: "square.and.arrow.up") {
+                                exportForSharing()
+                            }
+                            Button("Save Result as Dataset", systemImage: "tablecells.badge.ellipsis") {
+                                saveAsDataset()
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                        }
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { !shareURLs.isEmpty },
+            set: { if !$0 { shareURLs = [] } }
+        )) {
+            ActivityShareSheet(urls: shareURLs)
+        }
+        .alert("Saved to Datasets", isPresented: Binding(
+            get: { savedDatasetMessage != nil },
+            set: { if !$0 { savedDatasetMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { savedDatasetMessage = nil }
+        } message: {
+            Text(savedDatasetMessage ?? "The SQL result is now a project dataset.")
+        }
+    }
+
+    private func exportForSharing() {
+        guard let projectID = workspace.activeProjectID else { return }
+        Task {
+            if let url = await dataWorkspace.exportSQLResult(
+                report,
+                projectID: projectID,
+                registerAsDataset: false
+            ) {
+                shareURLs = [url]
+            }
+        }
+    }
+
+    private func saveAsDataset() {
+        guard let projectID = workspace.activeProjectID else { return }
+        Task {
+            if let url = await dataWorkspace.exportSQLResult(
+                report,
+                projectID: projectID,
+                registerAsDataset: true
+            ) {
+                savedDatasetMessage = "\(url.lastPathComponent) is ready in this project's Datasets tab."
             }
         }
     }
@@ -76,7 +136,7 @@ struct SQLResultTableView: View {
                             let value = columnIndex < row.count ? row[columnIndex] : nil
                             Text(value ?? "NULL")
                                 .font(.caption.monospaced())
-                                .foregroundStyle(value == nil ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                                .foregroundStyle(value == nil ? Color.secondary : Color.primary)
                                 .lineLimit(2)
                                 .frame(width: 150, alignment: .leading)
                                 .frame(minHeight: 32, alignment: .leading)
