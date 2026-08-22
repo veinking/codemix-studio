@@ -26,6 +26,16 @@ struct CodingToolbar: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
+                    Button {
+                        onCommand(.dismissKeyboard)
+                    } label: {
+                        Image(systemName: "keyboard.chevron.compact.down")
+                            .frame(minWidth: 30)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.small)
+                    .accessibilityLabel("Hide keyboard")
+
                     control("⇤", accessibility: "Outdent") { .outdent }
                     control("Tab", accessibility: "Indent") { .indent }
                     control("←", accessibility: "Move cursor left") { .moveCaret(-1) }
