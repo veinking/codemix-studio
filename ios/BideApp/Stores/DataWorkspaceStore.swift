@@ -38,6 +38,50 @@ final class DataWorkspaceStore: ObservableObject {
         datasets = loadRegistry(projectID: projectID)
     }
 
+    func reconcileProjectFiles(projectID: UUID) async {
+        if activeProjectID != projectID {
+            openProject(projectID)
+        }
+
+        let projectURL = projectDirectory(projectID)
+        guard let enumerator = fileManager.enumerator(
+            at: projectURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else { return }
+
+        let knownPaths = Set(datasets.map(\.relativePath))
+        let prefix = projectURL.path.hasSuffix("/") ? projectURL.path : projectURL.path + "/"
+        var unregistered: [(URL, DatasetFormat)] = []
+
+        for case let url as URL in enumerator {
+            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else { continue }
+            let relativePath = url.path.replacingOccurrences(of: prefix, with: "")
+            guard !relativePath.isEmpty,
+                  !knownPaths.contains(relativePath),
+                  !relativePath.hasPrefix("exports/") else { continue }
+            guard let format = DatasetFormat.infer(from: url) else { continue }
+            unregistered.append((url, format))
+        }
+
+        guard !unregistered.isEmpty else { return }
+        isImporting = true
+        dataError = nil
+        defer {
+            isImporting = false
+            importStatus = nil
+        }
+
+        for (url, format) in unregistered {
+            importStatus = "Registering \(url.lastPathComponent)…"
+            do {
+                try await registerDataset(at: url, format: format, projectID: projectID)
+            } catch {
+                dataError = "Could not register \(url.lastPathComponent): \(error.localizedDescription)"
+            }
+        }
+    }
+
     func importDatasets(_ sourceURLs: [URL], projectID: UUID) async {
         guard !sourceURLs.isEmpty else { return }
         if activeProjectID != projectID {
@@ -51,8 +95,6 @@ final class DataWorkspaceStore: ObservableObject {
             isImporting = false
             importStatus = nil
         }
-
-        let dbURL = databaseURL(projectID: projectID)
 
         for sourceURL in sourceURLs {
             guard let format = DatasetFormat.infer(from: sourceURL) else {
@@ -76,66 +118,10 @@ final class DataWorkspaceStore: ObservableObject {
 
             if grantedAccess { sourceURL.stopAccessingSecurityScopedResource() }
 
-            var importedTableNames: [String] = []
             do {
-                let parsedTables = try await Task.detached(priority: .userInitiated) {
-                    try DatasetParser.parse(url: destinationURL, format: format)
-                }.value
-
-                var usedNames = Set(tables.map { $0.sqliteName.lowercased() })
-                var descriptors: [DatasetTableDescriptor] = []
-                let fileBase = destinationURL.deletingPathExtension().lastPathComponent
-
-                for (index, parsedTable) in parsedTables.enumerated() {
-                    let requestedBase: String
-                    if parsedTables.count == 1 {
-                        requestedBase = fileBase
-                    } else {
-                        requestedBase = "\(fileBase)_\(parsedTable.sourceSheetName ?? "sheet_\(index + 1)")"
-                    }
-                    let sqliteName = uniqueSQLiteName(base: requestedBase, usedNames: &usedNames)
-                    importStatus = "Loading \(parsedTable.displayName) into SQL…"
-
-                    try await Task.detached(priority: .userInitiated) {
-                        try SQLiteProjectEngine.importTable(
-                            databaseURL: dbURL,
-                            sqliteName: sqliteName,
-                            table: parsedTable
-                        )
-                    }.value
-                    importedTableNames.append(sqliteName)
-                    descriptors.append(
-                        DatasetTableDescriptor(
-                            displayName: parsedTable.displayName,
-                            sqliteName: sqliteName,
-                            sourceSheetName: parsedTable.sourceSheetName,
-                            rowCount: parsedTable.rows.count,
-                            columns: parsedTable.columns
-                        )
-                    )
-                }
-
-                let fileSize = (try? destinationURL.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0
-                let relativePath = "data/\(destinationURL.lastPathComponent)"
-                datasets.append(
-                    DatasetAsset(
-                        fileName: destinationURL.lastPathComponent,
-                        relativePath: relativePath,
-                        format: format,
-                        sizeBytes: fileSize,
-                        tables: descriptors
-                    )
-                )
-                datasets.sort { $0.importedAt > $1.importedAt }
-                try saveRegistry(projectID: projectID)
+                try await registerDataset(at: destinationURL, format: format, projectID: projectID)
             } catch {
                 try? fileManager.removeItem(at: destinationURL)
-                if !importedTableNames.isEmpty {
-                    let names = importedTableNames
-                    try? await Task.detached(priority: .utility) {
-                        try SQLiteProjectEngine.dropTables(databaseURL: dbURL, names: names)
-                    }.value
-                }
                 dataError = "Could not import \(sourceURL.lastPathComponent): \(error.localizedDescription)"
             }
         }
@@ -231,6 +217,77 @@ final class DataWorkspaceStore: ObservableObject {
 
     func fileURL(for asset: DatasetAsset, projectID: UUID) -> URL {
         projectDirectory(projectID).appendingPathComponent(asset.relativePath)
+    }
+
+    private func registerDataset(
+        at sourceURL: URL,
+        format: DatasetFormat,
+        projectID: UUID
+    ) async throws {
+        let dbURL = databaseURL(projectID: projectID)
+        let parsedTables = try await Task.detached(priority: .userInitiated) {
+            try DatasetParser.parse(url: sourceURL, format: format)
+        }.value
+
+        var usedNames = Set(tables.map { $0.sqliteName.lowercased() })
+        var descriptors: [DatasetTableDescriptor] = []
+        var importedTableNames: [String] = []
+        let fileBase = sourceURL.deletingPathExtension().lastPathComponent
+
+        do {
+            for (index, parsedTable) in parsedTables.enumerated() {
+                let requestedBase: String
+                if parsedTables.count == 1 {
+                    requestedBase = fileBase
+                } else {
+                    requestedBase = "\(fileBase)_\(parsedTable.sourceSheetName ?? "sheet_\(index + 1)")"
+                }
+                let sqliteName = uniqueSQLiteName(base: requestedBase, usedNames: &usedNames)
+                importStatus = "Loading \(parsedTable.displayName) into SQL…"
+
+                try await Task.detached(priority: .userInitiated) {
+                    try SQLiteProjectEngine.importTable(
+                        databaseURL: dbURL,
+                        sqliteName: sqliteName,
+                        table: parsedTable
+                    )
+                }.value
+                importedTableNames.append(sqliteName)
+                descriptors.append(
+                    DatasetTableDescriptor(
+                        displayName: parsedTable.displayName,
+                        sqliteName: sqliteName,
+                        sourceSheetName: parsedTable.sourceSheetName,
+                        rowCount: parsedTable.rows.count,
+                        columns: parsedTable.columns
+                    )
+                )
+            }
+
+            let projectURL = projectDirectory(projectID)
+            let prefix = projectURL.path.hasSuffix("/") ? projectURL.path : projectURL.path + "/"
+            let relativePath = sourceURL.path.replacingOccurrences(of: prefix, with: "")
+            let fileSize = (try? sourceURL.resourceValues(forKeys: [.fileSizeKey]).fileSize).map(Int64.init) ?? 0
+            datasets.append(
+                DatasetAsset(
+                    fileName: sourceURL.lastPathComponent,
+                    relativePath: relativePath,
+                    format: format,
+                    sizeBytes: fileSize,
+                    tables: descriptors
+                )
+            )
+            datasets.sort { $0.importedAt > $1.importedAt }
+            try saveRegistry(projectID: projectID)
+        } catch {
+            if !importedTableNames.isEmpty {
+                let names = importedTableNames
+                try? await Task.detached(priority: .utility) {
+                    try SQLiteProjectEngine.dropTables(databaseURL: dbURL, names: names)
+                }.value
+            }
+            throw error
+        }
     }
 
     private func projectDirectory(_ projectID: UUID) -> URL {
