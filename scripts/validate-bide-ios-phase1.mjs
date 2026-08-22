@@ -19,6 +19,7 @@ const required = [
   "ios/BideApp/Editor/BideCodeEditor.swift",
   "ios/BideApp/Editor/EditorCommand.swift",
   "ios/BideApp/Editor/CompletionProvider.swift",
+  "ios/BideApp/Views/ActivityShareSheet.swift",
   "ios/BideApp/Views/CodingToolbar.swift",
   "ios/BideApp/Views/WorkspaceView.swift",
   "ios/BideApp/Views/ProjectFileBrowser.swift",
@@ -109,6 +110,19 @@ for (const capability of [
 ]) {
   assert.ok(codeImport.includes(capability), `Standalone code import capability missing: ${capability}`);
 }
+
+const fileBrowser = read("ios/BideApp/Views/ProjectFileBrowser.swift");
+for (const capability of [
+  "Export project files",
+  "Share File",
+  "shareProjectFiles",
+  "ActivityShareSheet",
+]) {
+  assert.ok(fileBrowser.includes(capability), `Source export capability missing: ${capability}`);
+}
+
+const shareSheet = read("ios/BideApp/Views/ActivityShareSheet.swift");
+assert.ok(shareSheet.includes("UIActivityViewController"), "Native iOS share sheet must back source export.");
 
 const store = read("ios/BideApp/Stores/WorkspaceStore.swift");
 for (const capability of [
