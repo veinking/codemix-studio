@@ -1,0 +1,69 @@
+name: bIDE iOS Quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - ".github/workflows/bide-ios-quality.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-ios-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          XCODE_PATH="/Applications/Xcode_16.4.app/Contents/Developer"
+          test -d "${XCODE_PATH}"
+          sudo xcode-select --switch "${XCODE_PATH}"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build iPhone/iPad simulator target
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/bIDE.xcodeproj \
+            -scheme bIDE \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee /tmp/bide-ios-build.log
+
+      - name: Upload build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bide-ios-build-diagnostics
+          path: /tmp/bide-ios-build.log
+          retention-days: 7
+          if-no-files-found: warn
