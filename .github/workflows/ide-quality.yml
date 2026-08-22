@@ -2,6 +2,11 @@ name: bIDE Quality
 
 on:
   pull_request:
+    paths-ignore:
+      - "ios/**"
+      - "scripts/validate-bide-ios-phase1.mjs"
+      - "scripts/release/build_bide_sideloadly_ipa.sh"
+      - ".github/workflows/bide-ios-quality.yml"
   push:
     branches: [main]
 
