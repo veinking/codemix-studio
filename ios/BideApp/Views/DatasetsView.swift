@@ -5,6 +5,7 @@ struct DatasetsView: View {
     @EnvironmentObject private var dataWorkspace: DataWorkspaceStore
 
     @State private var importerPresented = false
+    @State private var joinBuilderPresented = false
     @State private var shareURLs: [URL] = []
     @State private var deleteTarget: DatasetAsset?
 
@@ -81,6 +82,11 @@ struct DatasetsView: View {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 if !dataWorkspace.datasets.isEmpty, let projectID = workspace.activeProjectID {
                     Menu {
+                        if dataWorkspace.tables.count >= 2 {
+                            Button("Join Tables", systemImage: "arrow.triangle.merge") {
+                                joinBuilderPresented = true
+                            }
+                        }
                         Button("Rebuild SQL Database", systemImage: "arrow.clockwise") {
                             Task { await dataWorkspace.rebuildDatabase(projectID: projectID) }
                         }
@@ -114,6 +120,9 @@ struct DatasetsView: View {
             Task {
                 await dataWorkspace.importDatasets(urls, projectID: projectID)
             }
+        }
+        .sheet(isPresented: $joinBuilderPresented) {
+            SQLJoinBuilderView(tables: dataWorkspace.tables)
         }
         .sheet(isPresented: Binding(
             get: { !shareURLs.isEmpty },
