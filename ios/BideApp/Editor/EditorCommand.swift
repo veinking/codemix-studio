@@ -14,6 +14,9 @@ enum EditorAction: Equatable {
     case undo
     case redo
     case findReplace
+    case findNext(String)
+    case replaceNext(String, String)
+    case replaceAll(String, String)
     case replaceCurrentToken(String)
     case runSelection
 }
