@@ -19,11 +19,15 @@ struct WorkspaceView: View {
         horizontalSizeClass == .compact
     }
 
+    private var activeLanguage: CodeLanguage {
+        workspace.activeFile?.language ?? workspace.documentLanguage
+    }
+
     private var suggestions: [CompletionSuggestion] {
         CompletionProvider.suggestions(
             text: workspace.documentText,
             selection: selection,
-            language: workspace.documentLanguage,
+            language: activeLanguage,
             projectFiles: workspace.files,
             datasets: dataWorkspace.datasets
         )
@@ -73,7 +77,7 @@ struct WorkspaceView: View {
                 Button {
                     editorCommand = EditorCommand(action: .runSelection)
                 } label: {
-                    if workspace.documentLanguage == .sql && dataWorkspace.isRunningSQL {
+                    if activeLanguage == .sql && dataWorkspace.isRunningSQL {
                         ProgressView()
                             .controlSize(.small)
                     } else {
@@ -159,13 +163,13 @@ struct WorkspaceView: View {
                         get: { workspace.documentText },
                         set: { workspace.updateDocumentText($0) }
                     ),
-                    language: workspace.documentLanguage,
+                    language: activeLanguage,
                     documentID: documentID,
                     selection: $selection,
                     command: $editorCommand,
                     wrapLines: isCompact,
                     onRunRequested: { code in
-                        if workspace.documentLanguage == .sql,
+                        if activeLanguage == .sql,
                            let projectID = workspace.activeProjectID {
                             Task {
                                 await dataWorkspace.executeSQL(code, projectID: projectID)
@@ -205,7 +209,7 @@ struct WorkspaceView: View {
     private var editorHeader: some View {
         HStack(spacing: 10) {
             if let file = workspace.activeFile {
-                Image(systemName: workspace.documentLanguage.systemImage)
+                Image(systemName: activeLanguage.systemImage)
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(file.name)
@@ -222,7 +226,7 @@ struct WorkspaceView: View {
 
             Spacer()
 
-            if workspace.documentLanguage == .sql, !dataWorkspace.tables.isEmpty {
+            if activeLanguage == .sql, !dataWorkspace.tables.isEmpty {
                 Text("\(dataWorkspace.tables.count) tables")
                     .font(.caption2.monospaced().weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -231,7 +235,7 @@ struct WorkspaceView: View {
                     .background(.thinMaterial, in: Capsule())
             }
 
-            Text(workspace.documentLanguage.displayName)
+            Text(activeLanguage.displayName)
                 .font(.caption.monospaced().weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 8)
