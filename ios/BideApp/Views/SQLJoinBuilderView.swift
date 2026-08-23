@@ -16,31 +16,37 @@ struct SQLJoinBuilderView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Join Type") {
+                Section {
                     Picker("Type", selection: $joinType) {
                         ForEach(JoinType.allCases) { type in
                             Text(type.label).tag(type)
                         }
                     }
                     .pickerStyle(.segmented)
+                } header: {
+                    Text("Join Type")
+                } footer: {
+                    Text(joinType == .inner
+                         ? "Inner keeps only rows that match in both tables."
+                         : "Left keeps every row from the left table, even when the right table has no match.")
                 }
 
                 Section("Left Table") {
                     Picker("Table", selection: $leftTableID) {
                         ForEach(tables) { table in
-                            Text(table.sqliteName).tag(Optional(table.id))
+                            Text(table.displayName).tag(Optional(table.id))
                         }
                     }
                     .onChange(of: leftTableID) { _, _ in
-                        if let first = leftTable?.columns.first {
-                            leftColumn = first.name
-                        }
                         if rightTableID == leftTableID {
                             rightTableID = tables.first(where: { $0.id != leftTableID })?.id
                         }
+                        suggestJoinColumns()
                     }
 
                     if let table = leftTable {
+                        LabeledContent("SQL name", value: table.sqliteName)
+                            .font(.caption)
                         Picker("Match column", selection: $leftColumn) {
                             ForEach(table.columns) { column in
                                 Text(column.name).tag(column.name)
@@ -52,16 +58,16 @@ struct SQLJoinBuilderView: View {
                 Section("Right Table") {
                     Picker("Table", selection: $rightTableID) {
                         ForEach(tables.filter { $0.id != leftTableID }) { table in
-                            Text(table.sqliteName).tag(Optional(table.id))
+                            Text(table.displayName).tag(Optional(table.id))
                         }
                     }
                     .onChange(of: rightTableID) { _, _ in
-                        if let first = rightTable?.columns.first {
-                            rightColumn = first.name
-                        }
+                        suggestJoinColumns()
                     }
 
                     if let table = rightTable {
+                        LabeledContent("SQL name", value: table.sqliteName)
+                            .font(.caption)
                         Picker("Match column", selection: $rightColumn) {
                             ForEach(table.columns) { column in
                                 Text(column.name).tag(column.name)
@@ -70,15 +76,30 @@ struct SQLJoinBuilderView: View {
                     }
                 }
 
+                if !leftColumn.isEmpty, !rightColumn.isEmpty {
+                    Section {
+                        HStack {
+                            Image(systemName: leftColumn.caseInsensitiveCompare(rightColumn) == .orderedSame
+                                  ? "checkmark.circle.fill"
+                                  : "link")
+                                .foregroundStyle(.secondary)
+                            Text("\(leftColumn) ↔ \(rightColumn)")
+                                .font(.subheadline.monospaced())
+                        }
+                    } footer: {
+                        Text("bIDE automatically prefers same-named ID/key columns when both tables have one. You can change either column above.")
+                    }
+                }
+
                 if let sql = generatedSQL {
-                    Section("SQL Preview") {
+                    Section("Generated SQL") {
                         Text(sql)
                             .font(.caption.monospaced())
                             .textSelection(.enabled)
                     }
 
                     Section {
-                        Button("Create Join Query", systemImage: "doc.badge.plus") {
+                        Button("Create & Open Join Query", systemImage: "arrow.right.circle.fill") {
                             createQuery(sql)
                         }
                         .buttonStyle(.borderedProminent)
@@ -118,7 +139,7 @@ struct SQLJoinBuilderView: View {
         let rightKey = SQLiteProjectEngine.quoteIdentifier(rightColumn)
 
         return """
-        SELECT *
+        SELECT l.*, r.*
         FROM \(leftName) AS l
         \(joinType.sql) \(rightName) AS r
           ON l.\(leftKey) = r.\(rightKey);
@@ -127,10 +148,42 @@ struct SQLJoinBuilderView: View {
 
     private func configureDefaults() {
         guard tables.count >= 2 else { return }
-        if leftTableID == nil { leftTableID = tables[0].id }
-        if rightTableID == nil { rightTableID = tables[1].id }
-        if leftColumn.isEmpty { leftColumn = tables[0].columns.first?.name ?? "" }
-        if rightColumn.isEmpty { rightColumn = tables[1].columns.first?.name ?? "" }
+        leftTableID = leftTableID ?? tables[0].id
+        rightTableID = rightTableID ?? tables.first(where: { $0.id != leftTableID })?.id
+        suggestJoinColumns()
+    }
+
+    private func suggestJoinColumns() {
+        guard let leftTable, let rightTable else { return }
+
+        let rightNames = Dictionary(uniqueKeysWithValues: rightTable.columns.map {
+            ($0.name.lowercased(), $0.name)
+        })
+        let shared = leftTable.columns.compactMap { left -> (left: String, right: String, score: Int)? in
+            guard let right = rightNames[left.name.lowercased()] else { return nil }
+            return (left.name, right, joinKeyScore(left.name))
+        }
+        .sorted { lhs, rhs in
+            if lhs.score != rhs.score { return lhs.score > rhs.score }
+            return lhs.left.localizedStandardCompare(rhs.left) == .orderedAscending
+        }
+
+        if let best = shared.first {
+            leftColumn = best.left
+            rightColumn = best.right
+        } else {
+            leftColumn = leftTable.columns.first?.name ?? ""
+            rightColumn = rightTable.columns.first?.name ?? ""
+        }
+    }
+
+    private func joinKeyScore(_ name: String) -> Int {
+        let normalized = name.lowercased()
+        if normalized == "id" { return 90 }
+        if normalized.hasSuffix("_id") { return 100 }
+        if normalized.contains("key") { return 80 }
+        if normalized.contains("code") { return 70 }
+        return 10
     }
 
     private func createQuery(_ sql: String) {
