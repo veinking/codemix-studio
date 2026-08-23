@@ -29,7 +29,7 @@ struct SQLResultsView: View {
                 }
 
                 if exportableResult != nil {
-                    Section("Result Actions") {
+                    Section {
                         Button {
                             exportForSharing()
                         } label: {
@@ -52,6 +52,8 @@ struct SQLResultsView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                    } header: {
+                        Text("Result Actions")
                     } footer: {
                         Text("These actions use the complete read-only query result, not only the on-screen preview.")
                     }
