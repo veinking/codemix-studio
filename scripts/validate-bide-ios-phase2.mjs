@@ -43,6 +43,8 @@ for (const expected of [
   "public.json",
   "public.plain-text",
   "org.openxmlformats.spreadsheetml.sheet",
+  "MARKETING_VERSION: 0.2.1",
+  "CURRENT_PROJECT_VERSION: 3",
 ]) {
   assert.ok(project.includes(expected), `Phase 2 project wiring missing: ${expected}`);
 }
@@ -65,6 +67,7 @@ for (const parserCapability of [
   "parseSharedStrings",
   "delimitedRecords",
   "isStrictInteger",
+  "uniqueHeaders",
 ]) {
   assert.ok(parser.includes(parserCapability), `Dataset parser capability missing: ${parserCapability}`);
 }
@@ -102,19 +105,23 @@ for (const exportCapability of [
   "exportSQLResult",
   "exportReadOnlyQueryToCSV",
   "registerAsDataset",
-  "importDatasets",
+  "exportedRowCount",
+  "verification.primaryResult?.rows == expectedRows",
+  "removeFailedSavedResult",
 ]) {
-  assert.ok(exportStore.includes(exportCapability), `SQL export capability missing: ${exportCapability}`);
+  assert.ok(exportStore.includes(exportCapability), `SQL export/integrity capability missing: ${exportCapability}`);
 }
 
 const datasetsView = read("ios/BideApp/Views/DatasetsView.swift");
 for (const uiCapability of [
-  "Import datasets",
+  "Quick Actions",
+  "Import Dataset",
   "Project Datasets",
   "Query in SQL",
-  "Join Tables",
+  "Join Two Tables",
   "Rebuild SQL Database",
-  "Share All Dataset Files",
+  "Export Dataset Files",
+  "Export This Dataset",
 ]) {
   assert.ok(datasetsView.includes(uiCapability), `Datasets UI capability missing: ${uiCapability}`);
 }
@@ -123,14 +130,26 @@ const resultsView = read("ios/BideApp/Views/SQLResultsView.swift");
 for (const resultUI of [
   "SQLResultTableView",
   "First 500",
+  "Result Actions",
   "Share Result as CSV",
   "Save Result as Dataset",
+  "SQL that ran",
+  "No Rows Returned",
+  "View Datasets",
+  "defaultScrollAnchor(.top)",
 ]) {
   assert.ok(resultsView.includes(resultUI), `SQL results UI capability missing: ${resultUI}`);
 }
 
 const joinBuilder = read("ios/BideApp/Views/SQLJoinBuilderView.swift");
-for (const joinCapability of ["INNER JOIN", "LEFT JOIN", "Create Join Query"]) {
+for (const joinCapability of [
+  "INNER JOIN",
+  "LEFT JOIN",
+  "Create & Open Join Query",
+  "suggestJoinColumns",
+  "hasSuffix(\"_id\")",
+  "SELECT l.*, r.*",
+]) {
   assert.ok(joinBuilder.includes(joinCapability), `Guided join capability missing: ${joinCapability}`);
 }
 
@@ -142,6 +161,10 @@ assert.ok(completion.includes("table.columns"), "SQL autocomplete must include d
 const workspace = read("ios/BideApp/Views/WorkspaceView.swift");
 assert.ok(workspace.includes("dataWorkspace.executeSQL"), "Run Selection/File must execute SQL natively.");
 assert.ok(workspace.includes("SQLResultsView"), "Workspace must present structured SQL results.");
+assert.ok(
+  workspace.includes("workspace.activeFile?.language ?? workspace.documentLanguage"),
+  "The active file must be authoritative for runtime routing to prevent stale language state."
+);
 
 const app = read("ios/BideApp/BideApp.swift");
 assert.ok(app.includes("DatasetFormat.infer"), "Open in bIDE must route dataset file types.");
@@ -162,4 +185,4 @@ for (const forbidden of [
   assert.ok(!nativeSource.includes(forbidden), `Phase 2 scope leak detected: ${forbidden}`);
 }
 
-console.log("bIDE iOS Phase 2 data + SQL validation passed.");
+console.log("bIDE iOS Phase 2 audited data + SQL validation passed.");
