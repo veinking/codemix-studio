@@ -32,7 +32,7 @@ extension DataWorkspaceStore {
             .appendingPathComponent("bide_query_result_\(suffix).csv")
 
         do {
-            _ = try await Task.detached(priority: .userInitiated) {
+            let exportedRowCount = try await Task.detached(priority: .userInitiated) {
                 try SQLiteProjectEngine.exportReadOnlyQueryToCSV(
                     databaseURL: databaseURL,
                     sql: result.statementSQL,
@@ -48,8 +48,38 @@ extension DataWorkspaceStore {
 
             guard activeProjectID == projectID,
                   let imported = datasets.first(where: { !existingIDs.contains($0.id) }) else {
+                dataError = "The exported CSV was created, but bIDE could not register it as a project dataset."
                 return nil
             }
+
+            guard imported.tables.count == 1,
+                  let importedTable = imported.tables.first,
+                  imported.totalRows == exportedRowCount,
+                  importedTable.columns.count == result.columns.count else {
+                await removeFailedSavedResult(imported, projectID: projectID)
+                dataError = "Saved-result verification failed. bIDE removed the derived dataset instead of keeping an incomplete copy."
+                return nil
+            }
+
+            let sampleCount = min(result.rows.count, 100)
+            if sampleCount > 0 {
+                let tableName = SQLiteProjectEngine.quoteIdentifier(importedTable.sqliteName)
+                let verificationSQL = "SELECT * FROM \(tableName) LIMIT \(sampleCount);"
+                let verification = try await Task.detached(priority: .userInitiated) {
+                    try SQLiteProjectEngine.execute(
+                        databaseURL: databaseURL,
+                        sql: verificationSQL,
+                        rowLimit: sampleCount
+                    )
+                }.value
+                let expectedRows = Array(result.rows.prefix(sampleCount))
+                guard verification.primaryResult?.rows == expectedRows else {
+                    await removeFailedSavedResult(imported, projectID: projectID)
+                    dataError = "Saved-result value verification failed. bIDE removed the derived dataset instead of keeping altered values."
+                    return nil
+                }
+            }
+
             return fileURL(for: imported, projectID: projectID)
         } catch {
             try? manager.removeItem(at: outputURL)
@@ -58,5 +88,9 @@ extension DataWorkspaceStore {
             }
             return nil
         }
+    }
+
+    private func removeFailedSavedResult(_ asset: DatasetAsset, projectID: UUID) async {
+        await deleteDataset(asset, projectID: projectID)
     }
 }
