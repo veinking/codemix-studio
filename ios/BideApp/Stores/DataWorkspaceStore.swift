@@ -44,38 +44,8 @@ final class DataWorkspaceStore: ObservableObject {
     func reconcileProjectFiles(projectID: UUID) async {
         guard activeProjectID == projectID, !isImporting else { return }
 
-        let projectURL = projectDirectory(projectID)
         let registered = loadRegistry(projectID: projectID)
-        let knownPaths = Set(registered.map(\.relativePath))
-        guard let enumerator = fileManager.enumerator(
-            at: projectURL,
-            includingPropertiesForKeys: [.isRegularFileKey],
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
-        ) else { return }
-
-        let prefix = projectURL.path.hasSuffix("/") ? projectURL.path : projectURL.path + "/"
-        let bideMetadataNames: Set<String> = ["project.bide.json", "datasets.bide.json"]
-        var unregistered: [(URL, DatasetFormat)] = []
-
-        for case let url as URL in enumerator {
-            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else { continue }
-            let relativePath = url.path.replacingOccurrences(of: prefix, with: "")
-            guard !relativePath.isEmpty,
-                  !knownPaths.contains(relativePath),
-                  !relativePath.hasPrefix("exports/"),
-                  !bideMetadataNames.contains(url.lastPathComponent) else { continue }
-            guard let format = DatasetFormat.infer(from: url) else { continue }
-
-            // JSON and plain text are ambiguous in arbitrary project folders (package.json,
-            // config files, README.txt, etc.). Treat them as datasets automatically only
-            // when the project explicitly keeps them under data/. CSV/TSV/XLSX are
-            // sufficiently data-specific to discover anywhere in an imported project.
-            let isInsideDataFolder = relativePath.hasPrefix("data/")
-            if !isInsideDataFolder, format == .json || format == .text {
-                continue
-            }
-            unregistered.append((url, format))
-        }
+        let unregistered = discoverUnregisteredDatasets(projectID: projectID, registered: registered)
 
         guard !unregistered.isEmpty else { return }
         isImporting = true
@@ -352,6 +322,45 @@ final class DataWorkspaceStore: ObservableObject {
             }
             throw error
         }
+    }
+
+    private func discoverUnregisteredDatasets(
+        projectID: UUID,
+        registered: [DatasetAsset]
+    ) -> [(URL, DatasetFormat)] {
+        let projectURL = projectDirectory(projectID)
+        let knownPaths = Set(registered.map(\.relativePath))
+        guard let enumerator = fileManager.enumerator(
+            at: projectURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles, .skipsPackageDescendants]
+        ) else { return [] }
+
+        let prefix = projectURL.path.hasSuffix("/") ? projectURL.path : projectURL.path + "/"
+        let bideMetadataNames: Set<String> = ["project.bide.json", "datasets.bide.json"]
+        var unregistered: [(URL, DatasetFormat)] = []
+
+        for case let url as URL in enumerator {
+            guard (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else { continue }
+            let relativePath = url.path.replacingOccurrences(of: prefix, with: "")
+            guard !relativePath.isEmpty,
+                  !knownPaths.contains(relativePath),
+                  !relativePath.hasPrefix("exports/"),
+                  !bideMetadataNames.contains(url.lastPathComponent) else { continue }
+            guard let format = DatasetFormat.infer(from: url) else { continue }
+
+            // JSON and plain text are ambiguous in arbitrary project folders (package.json,
+            // config files, README.txt, etc.). Treat them as datasets automatically only
+            // when the project explicitly keeps them under data/. CSV/TSV/XLSX are
+            // sufficiently data-specific to discover anywhere in an imported project.
+            let isInsideDataFolder = relativePath.hasPrefix("data/")
+            if !isInsideDataFolder, format == .json || format == .text {
+                continue
+            }
+            unregistered.append((url, format))
+        }
+
+        return unregistered
     }
 
     private func projectDirectory(_ projectID: UUID) -> URL {
