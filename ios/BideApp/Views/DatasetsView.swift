@@ -9,6 +9,10 @@ struct DatasetsView: View {
     @State private var shareURLs: [URL] = []
     @State private var deleteTarget: DatasetAsset?
 
+    private var isBusy: Bool {
+        dataWorkspace.isImporting || dataWorkspace.isRunningSQL
+    }
+
     var body: some View {
         List {
             Section {
@@ -24,6 +28,50 @@ struct DatasetsView: View {
                     Image(systemName: "tablecells")
                         .font(.title2)
                         .foregroundStyle(.secondary)
+                }
+            }
+
+            Section {
+                Button {
+                    importerPresented = true
+                } label: {
+                    Label("Import Dataset", systemImage: "square.and.arrow.down")
+                }
+                .disabled(workspace.activeProjectID == nil || isBusy)
+
+                if !dataWorkspace.datasets.isEmpty {
+                    Button {
+                        joinBuilderPresented = true
+                    } label: {
+                        Label("Join Two Tables", systemImage: "arrow.triangle.merge")
+                    }
+                    .disabled(dataWorkspace.tables.count < 2 || isBusy)
+
+                    Button {
+                        guard let projectID = workspace.activeProjectID else { return }
+                        Task { await dataWorkspace.rebuildDatabase(projectID: projectID) }
+                    } label: {
+                        Label("Rebuild SQL Database", systemImage: "arrow.clockwise")
+                    }
+                    .disabled(isBusy)
+
+                    Button {
+                        guard let projectID = workspace.activeProjectID else { return }
+                        shareURLs = dataWorkspace.datasets.map {
+                            dataWorkspace.fileURL(for: $0, projectID: projectID)
+                        }
+                    } label: {
+                        Label("Export Dataset Files", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(isBusy)
+                }
+            } header: {
+                Text("Quick Actions")
+            } footer: {
+                if !dataWorkspace.datasets.isEmpty, dataWorkspace.tables.count < 2 {
+                    Text("Import at least two SQL tables to enable the guided join builder.")
+                } else {
+                    Text("Import, join, rebuild, and export project data without hunting through hidden menus.")
                 }
             }
 
@@ -44,7 +92,7 @@ struct DatasetsView: View {
                         systemImage: "tablecells.badge.ellipsis",
                         description: Text("Import CSV, TSV, JSON, text, or XLSX files into this project.")
                     )
-                    .frame(maxWidth: .infinity, minHeight: 240)
+                    .frame(maxWidth: .infinity, minHeight: 220)
                 }
             } else {
                 Section("Project Datasets") {
@@ -72,42 +120,21 @@ struct DatasetsView: View {
             }
 
             Section {
-                Text("Imported data stays inside this local bIDE project. SQL tables are rebuilt from the project files, so the original imported dataset remains the source asset.")
+                Text("Imported data stays inside this local bIDE project. The source file remains authoritative; SQLite is a derived local query layer that can be rebuilt from those files.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
         .navigationTitle("Datasets")
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                if !dataWorkspace.datasets.isEmpty, let projectID = workspace.activeProjectID {
-                    Menu {
-                        if dataWorkspace.tables.count >= 2 {
-                            Button("Join Tables", systemImage: "arrow.triangle.merge") {
-                                joinBuilderPresented = true
-                            }
-                        }
-                        Button("Rebuild SQL Database", systemImage: "arrow.clockwise") {
-                            Task { await dataWorkspace.rebuildDatabase(projectID: projectID) }
-                        }
-                        Button("Share All Dataset Files", systemImage: "square.and.arrow.up") {
-                            shareURLs = dataWorkspace.datasets.map {
-                                dataWorkspace.fileURL(for: $0, projectID: projectID)
-                            }
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .disabled(dataWorkspace.isImporting)
-                }
-
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     importerPresented = true
                 } label: {
                     Image(systemName: "plus")
                 }
-                .accessibilityLabel("Import datasets")
-                .disabled(workspace.activeProjectID == nil || dataWorkspace.isImporting)
+                .accessibilityLabel("Import Dataset")
+                .disabled(workspace.activeProjectID == nil || isBusy)
             }
         }
         .fileImporter(
@@ -149,7 +176,7 @@ struct DatasetsView: View {
             }
             Button("Cancel", role: .cancel) { deleteTarget = nil }
         } message: {
-            Text("The local dataset file and its SQL table(s) will be removed from this project.")
+            Text("The local dataset file and its generated SQL table(s) will be removed from this project. This cannot be undone from bIDE.")
         }
         .alert("Dataset Error", isPresented: Binding(
             get: { dataWorkspace.dataError != nil },
@@ -231,19 +258,17 @@ private struct DatasetAssetDetailView: View {
                     }
                 }
             }
-        }
-        .navigationTitle(asset.fileName)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+
+            Section {
                 Button {
                     sharePresented = true
                 } label: {
-                    Image(systemName: "square.and.arrow.up")
+                    Label("Export This Dataset", systemImage: "square.and.arrow.up")
                 }
-                .accessibilityLabel("Share dataset")
             }
         }
+        .navigationTitle(asset.fileName)
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $sharePresented) {
             if let projectID = workspace.activeProjectID {
                 ActivityShareSheet(urls: [dataWorkspace.fileURL(for: asset, projectID: projectID)])
@@ -269,6 +294,7 @@ private struct DatasetTableDetailView: View {
                 Button("Query in SQL", systemImage: "terminal") {
                     openQuery()
                 }
+                .buttonStyle(.borderedProminent)
             }
 
             Section("Columns") {
@@ -293,7 +319,7 @@ private struct DatasetTableDetailView: View {
                     }
                 } else if let result = preview?.primaryResult {
                     HStack {
-                        Text("First \(result.rowCount) rows")
+                        Text(result.rows.isEmpty ? "No rows returned" : "First \(result.rows.count) rows")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Spacer()
