@@ -31,6 +31,11 @@ struct BideApp: App {
 
                     if DatasetFormat.infer(from: url) != nil,
                        let projectID = workspace.activeProjectID {
+                        guard !dataWorkspace.isRunningSQL else {
+                            dataWorkspace.dataError = "Finish the current SQL run before importing another dataset."
+                            session.selectedSection = .datasets
+                            return
+                        }
                         Task {
                             await dataWorkspace.importDatasets([url], projectID: projectID)
                             session.selectedSection = .datasets
