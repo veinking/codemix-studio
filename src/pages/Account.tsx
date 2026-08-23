@@ -7,8 +7,10 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Crown, KeyRound, Loader2, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Crown, ExternalLink, KeyRound, Loader2, LogOut, RefreshCw, ShieldCheck } from 'lucide-react';
 import { updatePageSEO, SEO_CONFIGS } from '@/utils/seo';
+
+const POCKETBI_ACCOUNT_HOME = 'https://pocketbi.app/account';
 
 const Account = () => {
   const {
@@ -73,8 +75,8 @@ const Account = () => {
         <div className="space-y-5">
           <Card>
             <CardHeader>
-              <CardTitle>Account</CardTitle>
-              <CardDescription>Your PocketBI identity and bIDE access.</CardDescription>
+              <CardTitle>PocketBI ID in bIDE</CardTitle>
+              <CardDescription>Your shared PocketBI identity and this browser's bIDE session.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -83,15 +85,23 @@ const Account = () => {
                     <AvatarFallback className="text-lg">{user.email?.charAt(0).toUpperCase() || 'P'}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-semibold">PocketBI ID</p>
+                    <p className="font-semibold">Signed in to bIDE on this browser</p>
                     <p className="text-sm text-muted-foreground">{user.email}</p>
                   </div>
                 </div>
                 <Button variant="outline" onClick={handleSignOut} disabled={signingOut}>
                   {signingOut ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <LogOut className="h-4 w-4 mr-2" />}
-                  Sign out
+                  Sign out of bIDE
                 </Button>
               </div>
+
+              <Alert>
+                <ShieldCheck className="h-4 w-4" />
+                <AlertTitle>One PocketBI ID, separate browser sessions</AlertTitle>
+                <AlertDescription>
+                  Your PocketBI ID is the same account across the ecosystem. Because bIDE runs on bideide.com, being signed in here does not automatically create a browser session on pocketbi.app yet.
+                </AlertDescription>
+              </Alert>
 
               <Separator />
 
@@ -121,6 +131,22 @@ const Account = () => {
 
           <Card>
             <CardHeader>
+              <CardTitle>PocketBI ecosystem</CardTitle>
+              <CardDescription>Your central account home is the consistent place for access, products, billing, and Business features.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground leading-6">
+                Use bIDE for code-first work. Use the PocketBI Account Home when you want to see the rest of the ecosystem or manage shared access. Product files are not automatically shared just because the account is shared.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button asChild><a href={POCKETBI_ACCOUNT_HOME} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4 mr-2" />PocketBI Account Home</a></Button>
+                <Button variant="outline" asChild><a href="https://pocketbi.app/app" target="_blank" rel="noreferrer">Open PocketBI Workspace</a></Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2"><KeyRound className="h-5 w-5 text-primary" />Code Assist</CardTitle>
               <CardDescription>AI is optional and bring-your-own-key.</CardDescription>
             </CardHeader>
@@ -132,21 +158,8 @@ const Account = () => {
 
           <Card>
             <CardHeader>
-              <CardTitle>Connected services</CardTitle>
-              <CardDescription>Account and product billing stay outside the editor.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-muted-foreground leading-6">
-                bIDE can read capabilities attached to your PocketBI ID, but it does not maintain a separate AI subscription or token checkout.
-              </p>
-              <Button variant="outline" asChild><a href="https://pocketbi.app" target="_blank" rel="noreferrer">Open PocketBI</a></Button>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
               <CardTitle>Privacy and account requests</CardTitle>
-              <CardDescription>Need help with access, data, or account deletion?</CardDescription>
+              <CardDescription>Need help with bIDE access, data, or account deletion?</CardDescription>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">Never send passwords, API keys, or access tokens by email.</p>
