@@ -32,7 +32,7 @@ extension DataWorkspaceStore {
             .appendingPathComponent("bide_query_result_\(suffix).csv")
 
         do {
-            try await Task.detached(priority: .userInitiated) {
+            _ = try await Task.detached(priority: .userInitiated) {
                 try SQLiteProjectEngine.exportReadOnlyQueryToCSV(
                     databaseURL: databaseURL,
                     sql: result.statementSQL,
