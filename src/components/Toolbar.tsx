@@ -11,6 +11,7 @@ import {
   User,
   BarChart3,
   BookOpen,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -80,31 +81,34 @@ export const Toolbar = ({
   const navigate = useNavigate();
   const { user, isGuest, signOut } = useAuth();
 
+  const openPocketBIAccount = () => window.open("https://pocketbi.app/account", "_blank", "noopener,noreferrer");
+
   const accountControl = isGuest ? (
     <Button
       variant="ghost"
       size={isMobile ? "icon" : "sm"}
       onClick={onAuthClick}
       className={isMobile ? "h-9 w-9" : "h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"}
-      title="Sign in"
+      title="Connect PocketBI ID to bIDE"
     >
       <User className="h-4 w-4" />
-      {!isMobile && <span className="ml-1.5">Sign in</span>}
+      {!isMobile && <span className="ml-1.5">Connect PocketBI ID</span>}
     </Button>
   ) : (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : "h-8 px-2"}>
+        <Button variant="ghost" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : "h-8 px-2"} title="PocketBI ID in bIDE">
           <Avatar className="h-6 w-6">
             <AvatarFallback className="bg-primary/15 text-primary text-xs">{user?.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
           </Avatar>
           {!isMobile && <span className="ml-2 max-w-[90px] truncate text-xs">{user?.email?.split("@")[0]}</span>}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => navigate("/account")}><User className="mr-2 h-4 w-4" /> Account</DropdownMenuItem>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem onClick={() => navigate("/account")}><User className="mr-2 h-4 w-4" /> bIDE sign-in & access</DropdownMenuItem>
+        <DropdownMenuItem onClick={openPocketBIAccount}><ExternalLink className="mr-2 h-4 w-4" /> PocketBI Account Home</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> Sign out</DropdownMenuItem>
+        <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> Sign out of bIDE</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
