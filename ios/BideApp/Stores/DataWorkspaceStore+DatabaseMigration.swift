@@ -4,6 +4,41 @@ import Foundation
 extension DataWorkspaceStore {
     private static let derivedDatabaseGeneration = "2"
 
+    func isDerivedDatabaseReadyForSQL(projectID: UUID) -> Bool {
+        guard activeProjectID == projectID else { return false }
+
+        let manager = FileManager.default
+        let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let dataDirectory = documents
+            .appendingPathComponent("bIDE Projects", isDirectory: true)
+            .appendingPathComponent(projectID.uuidString, isDirectory: true)
+            .appendingPathComponent("data", isDirectory: true)
+        let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
+        let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
+
+        let storedGeneration = (try? String(contentsOf: markerURL, encoding: .utf8))?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard storedGeneration == Self.derivedDatabaseGeneration else { return false }
+
+        // Projects with registered datasets must have a database to query. An empty project
+        // may legitimately have no SQLite file yet; a simple SELECT can create the empty DB
+        // after the generation marker has already established that stale tables were cleared.
+        return datasets.isEmpty || manager.fileExists(atPath: databaseURL.path)
+    }
+
+    func prepareDerivedDatabaseForSQLIfNeeded(projectID: UUID) async -> Bool {
+        guard activeProjectID == projectID else { return false }
+        if isDerivedDatabaseReadyForSQL(projectID: projectID) { return true }
+
+        guard !hasActiveDataOperation(projectID: projectID),
+              !hasActiveSQLOperation(projectID: projectID) else {
+            return false
+        }
+
+        await migrateDerivedDatabaseIfNeeded(projectID: projectID)
+        return isDerivedDatabaseReadyForSQL(projectID: projectID)
+    }
+
     func migrateDerivedDatabaseIfNeeded(projectID: UUID) async {
         guard activeProjectID == projectID else { return }
 
@@ -20,7 +55,8 @@ extension DataWorkspaceStore {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let databaseExists = manager.fileExists(atPath: databaseURL.path)
 
-        guard storedGeneration != Self.derivedDatabaseGeneration || !databaseExists else { return }
+        let migrationNeeded = storedGeneration != Self.derivedDatabaseGeneration || (!datasets.isEmpty && !databaseExists)
+        guard migrationNeeded else { return }
         guard beginDataOperation(projectID: projectID, status: "Refreshing local SQL state…") else {
             return
         }
