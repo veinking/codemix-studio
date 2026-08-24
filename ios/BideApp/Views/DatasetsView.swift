@@ -68,7 +68,7 @@ struct DatasetsView: View {
                             dataWorkspace.fileURL(for: $0, projectID: projectID)
                         }
                     } label: {
-                        Label("Export Dataset Files", systemImage: "square.and.arrow.up")
+                        Label("Share Original Dataset Files", systemImage: "square.and.arrow.up")
                     }
                     .disabled(isBusy)
                 }
@@ -76,9 +76,9 @@ struct DatasetsView: View {
                 Text("Quick Actions")
             } footer: {
                 if !dataWorkspace.datasets.isEmpty, dataWorkspace.tables.count < 2 {
-                    Text("Import at least two SQL tables to enable the guided join builder.")
+                    Text("Import at least two SQL tables to enable the guided join builder. Original-file sharing does not export SQL or join results.")
                 } else {
-                    Text("Import, run joins, rebuild, and export project data without hunting through hidden menus.")
+                    Text("Use Join Two Tables for combined results. Share Original Dataset Files only shares the imported source files; join/query CSV export lives inside SQL Results.")
                 }
             }
 
@@ -100,6 +100,10 @@ struct DatasetsView: View {
                         Label("Open Join Results", systemImage: "tablecells")
                     }
                     .buttonStyle(.borderedProminent)
+
+                    Text("To export the join itself, open Join Results and choose Share Result as CSV. The original-file share action above is intentionally separate.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
 
