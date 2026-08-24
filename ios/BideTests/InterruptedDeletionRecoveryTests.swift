@@ -125,4 +125,28 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         XCTAssertEqual(generation, "2")
     }
+
+    @MainActor
+    func testRecoveryDoesNotTouchStagedFileOwnedByLiveDataOperation() throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let urls = try projectURLs(projectID: projectID)
+        try manager.createDirectory(at: urls.dataDirectory, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: urls.projectDirectory) }
+
+        let liveAssetID = UUID()
+        let stagedURL = urls.dataDirectory.appendingPathComponent(
+            ".bide-delete-\(liveAssetID.uuidString)-\(UUID().uuidString)"
+        )
+        try "id,value\n1,still-live\n".write(to: stagedURL, atomically: true, encoding: .utf8)
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertTrue(store.beginDataOperation(projectID: projectID, status: "Deleting live fixture…"))
+        defer { store.endDataOperation(projectID: projectID) }
+
+        XCTAssertFalse(store.recoverInterruptedDatasetDeletions(projectID: projectID))
+        XCTAssertNil(store.dataError)
+        XCTAssertTrue(manager.fileExists(atPath: stagedURL.path))
+    }
 }
