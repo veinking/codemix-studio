@@ -11,6 +11,7 @@ const required = [
   "ios/BideTests/DatabaseMigrationEdgeCaseTests.swift",
   "ios/BideTests/RebuildDatabaseFailureTests.swift",
   "ios/BideTests/ProjectImportFormatTests.swift",
+  "ios/BideTests/DatasetDeletionIntegrityTests.swift",
 ];
 
 for (const filePath of required) {
@@ -41,8 +42,11 @@ for (const capability of [
   "source datasets were left unchanged",
   "databaseURL.path + \"-wal\"",
   "databaseURL.path + \"-shm\"",
+  ".bide-delete-",
+  "saveRegistry(originalAssets, projectID: projectID)",
+  "restored the source file, registry, and derived SQL state",
 ]) {
-  assert.ok(store.includes(capability), `Rebuild fail-closed safeguard missing: ${capability}`);
+  assert.ok(store.includes(capability), `Phase 2 integrity safeguard missing: ${capability}`);
 }
 
 const emptyRegistryTest = read("ios/BideTests/DatabaseMigrationEdgeCaseTests.swift");
@@ -75,6 +79,18 @@ for (const regression of [
   "XCTAssertFalse",
 ]) {
   assert.ok(projectImportTest.includes(regression), `Project-format regression missing: ${regression}`);
+}
+
+const deletionTest = read("ios/BideTests/DatasetDeletionIntegrityTests.swift");
+for (const regression of [
+  "testDeleteDatasetRemovesSourceRegistryAndDerivedTable",
+  "testDeleteDatasetRollsBackWhenSQLCleanupFails",
+  "restored the source file, registry, and derived SQL state",
+  "XCTAssertTrue(manager.fileExists(atPath: fixture.sourceURL.path))",
+  "XCTAssertThrowsError",
+  ".bide-delete-",
+]) {
+  assert.ok(deletionTest.includes(regression), `Dataset-deletion regression missing: ${regression}`);
 }
 
 console.log("bIDE iOS Phase 2 integrity cleanup validation passed.");
