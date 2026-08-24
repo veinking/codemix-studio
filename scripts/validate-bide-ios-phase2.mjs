@@ -135,6 +135,7 @@ for (const dataCapability of [
   "preview",
   "registerDataset",
   "requestedBase = sheetName",
+  "prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID)",
 ]) {
   assert.ok(store.includes(dataCapability), `Dataset workspace capability missing: ${dataCapability}`);
 }
@@ -147,10 +148,12 @@ const migration = read("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.
 for (const migrationCapability of [
   "derivedDatabaseGeneration",
   ".bide-sqlite-generation",
+  "isDerivedDatabaseReadyForSQL",
+  "prepareDerivedDatabaseForSQLIfNeeded",
   "migrateDerivedDatabaseIfNeeded",
   "refreshDatasetRegistryFromSourceAssets",
   "rebuildDatabaseWithinDataOperation(projectID: projectID)",
-  "storedGeneration != Self.derivedDatabaseGeneration || !databaseExists",
+  "let migrationNeeded = storedGeneration != Self.derivedDatabaseGeneration || (!datasets.isEmpty && !databaseExists)",
   "id: existing.id",
   "rowCount: parsed.rows.count",
   "columns: parsed.columns",
@@ -165,6 +168,8 @@ for (const exportCapability of [
   "exportSQLResult",
   "exportReadOnlyQueryToCSV",
   "registerAsDataset",
+  "prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID)",
+  "verificationSampleCount",
   "exportSummary.columns == result.columns",
   "exportSummary.sampleRows == expectedSample",
   "exportSummary.rowCount",
