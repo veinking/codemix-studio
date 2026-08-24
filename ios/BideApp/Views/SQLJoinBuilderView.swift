@@ -4,6 +4,7 @@ struct SQLJoinBuilderView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var workspace: WorkspaceStore
     @EnvironmentObject private var session: AppSession
+    @EnvironmentObject private var dataWorkspace: DataWorkspaceStore
 
     let tables: [DatasetTableDescriptor]
 
@@ -99,10 +100,27 @@ struct SQLJoinBuilderView: View {
                     }
 
                     Section {
-                        Button("Create & Open Join Query", systemImage: "arrow.right.circle.fill") {
-                            createQuery(sql)
+                        Button {
+                            runJoin(sql)
+                        } label: {
+                            HStack {
+                                Label("Run Join & View Results", systemImage: "play.fill")
+                                if dataWorkspace.isRunningSQL {
+                                    Spacer()
+                                    ProgressView()
+                                        .controlSize(.small)
+                                }
+                            }
                         }
                         .buttonStyle(.borderedProminent)
+                        .disabled(dataWorkspace.isRunningSQL)
+
+                        Button("Create Editable Join Query", systemImage: "doc.badge.plus") {
+                            createQuery(sql)
+                        }
+                        .disabled(dataWorkspace.isRunningSQL)
+                    } footer: {
+                        Text("Run the join immediately to inspect, save, or share its result. Or create an editable SQL file if you want to customize it first.")
                     }
                 }
             }
@@ -112,6 +130,14 @@ struct SQLJoinBuilderView: View {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
+            }
+            .alert("SQL Error", isPresented: Binding(
+                get: { dataWorkspace.sqlError != nil },
+                set: { if !$0 { dataWorkspace.sqlError = nil } }
+            )) {
+                Button("OK", role: .cancel) { dataWorkspace.sqlError = nil }
+            } message: {
+                Text(dataWorkspace.sqlError ?? "Could not run the join.")
             }
             .onAppear(perform: configureDefaults)
         }
@@ -184,6 +210,17 @@ struct SQLJoinBuilderView: View {
         if normalized.contains("key") { return 80 }
         if normalized.contains("code") { return 70 }
         return 10
+    }
+
+    private func runJoin(_ sql: String) {
+        guard let projectID = workspace.activeProjectID,
+              !dataWorkspace.isRunningSQL else { return }
+        Task {
+            await dataWorkspace.executeSQL(sql, projectID: projectID)
+            if dataWorkspace.lastSQLRun != nil {
+                dismiss()
+            }
+        }
     }
 
     private func createQuery(_ sql: String) {
