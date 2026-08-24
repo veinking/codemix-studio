@@ -340,6 +340,18 @@ final class DataWorkspaceStore: ObservableObject {
             sqlError = "SQL is already running for this project."
             return
         }
+        guard await prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID) else {
+            sqlError = dataError ?? "bIDE could not prepare the local SQL database. SQL was not run."
+            return
+        }
+        guard !dataOperationProjects.contains(projectID) else {
+            sqlError = "Finish the current dataset operation before running SQL."
+            return
+        }
+        guard !sqlOperationProjects.contains(projectID) else {
+            sqlError = "SQL is already running for this project."
+            return
+        }
         guard beginSQLOperation(projectID: projectID) else { return }
 
         sqlError = nil
@@ -368,7 +380,13 @@ final class DataWorkspaceStore: ObservableObject {
             dataError = "Finish the current dataset or SQL operation before loading a preview."
             return nil
         }
-        guard beginSQLOperation(projectID: projectID) else {
+        guard await prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID) else {
+            dataError = dataError ?? "bIDE could not prepare the local SQL database for this preview."
+            return nil
+        }
+        guard !dataOperationProjects.contains(projectID),
+              !sqlOperationProjects.contains(projectID),
+              beginSQLOperation(projectID: projectID) else {
             dataError = "Finish the current dataset or SQL operation before loading a preview."
             return nil
         }
