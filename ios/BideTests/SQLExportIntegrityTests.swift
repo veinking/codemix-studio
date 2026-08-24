@@ -170,4 +170,40 @@ final class SQLExportIntegrityTests: XCTestCase {
             "Finish the current dataset or SQL operation before exporting this result."
         )
     }
+
+    @MainActor
+    func testSaveResultAsDatasetCommitsVerificationAndLeavesNoPendingMarker() async throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let fixture = try makeQueryFixture(projectID: projectID)
+        defer { try? manager.removeItem(at: fixture.projectDirectory) }
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        let savedURL = try XCTUnwrap(
+            await store.exportSQLResult(
+                fixture.report,
+                projectID: projectID,
+                registerAsDataset: true
+            )
+        )
+
+        XCTAssertNil(store.dataError)
+        XCTAssertEqual(store.datasets.count, 1)
+        let saved = try XCTUnwrap(store.datasets.first)
+        XCTAssertEqual(saved.fileName, savedURL.lastPathComponent)
+        XCTAssertEqual(saved.totalRows, 2)
+        XCTAssertTrue(manager.fileExists(atPath: savedURL.path))
+
+        let parsed = try XCTUnwrap(DatasetParser.parse(url: savedURL, format: .csv).first)
+        XCTAssertEqual(parsed.rows.count, 2)
+        XCTAssertEqual(parsed.rows[0], ["1", "first"])
+        XCTAssertEqual(parsed.rows[1], ["2", "second"])
+
+        let dataDirectory = fixture.databaseURL.deletingLastPathComponent()
+        let names = try manager.contentsOfDirectory(atPath: dataDirectory.path)
+        XCTAssertFalse(
+            names.contains { $0.hasPrefix(DataWorkspaceStore.pendingSavedResultMarkerPrefix) }
+        )
+    }
 }
