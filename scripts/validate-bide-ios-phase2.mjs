@@ -43,8 +43,8 @@ for (const expected of [
   "public.json",
   "public.plain-text",
   "org.openxmlformats.spreadsheetml.sheet",
-  "MARKETING_VERSION: 0.2.1",
-  "CURRENT_PROJECT_VERSION: 3",
+  "MARKETING_VERSION: 0.2.2",
+  "CURRENT_PROJECT_VERSION: 4",
 ]) {
   assert.ok(project.includes(expected), `Phase 2 project wiring missing: ${expected}`);
 }
@@ -96,9 +96,14 @@ for (const dataCapability of [
   "executeSQL",
   "preview",
   "registerDataset",
+  "requestedBase = sheetName",
 ]) {
   assert.ok(store.includes(dataCapability), `Dataset workspace capability missing: ${dataCapability}`);
 }
+assert.ok(
+  store.includes("parsedTable.sourceSheetName"),
+  "Multi-sheet Excel imports must derive their SQL table base from the worksheet name."
+);
 
 const exportStore = read("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift");
 for (const exportCapability of [
@@ -122,9 +127,15 @@ for (const uiCapability of [
   "Rebuild SQL Database",
   "Export Dataset Files",
   "Export This Dataset",
+  "joinResultReport",
+  "Join Results",
 ]) {
   assert.ok(datasetsView.includes(uiCapability), `Datasets UI capability missing: ${uiCapability}`);
 }
+assert.ok(
+  datasetsView.includes("dataWorkspace.lastSQLRun = nil"),
+  "Starting a guided join must clear stale SQL results before presenting the builder."
+);
 
 const resultsView = read("ios/BideApp/Views/SQLResultsView.swift");
 for (const resultUI of [
@@ -145,7 +156,9 @@ const joinBuilder = read("ios/BideApp/Views/SQLJoinBuilderView.swift");
 for (const joinCapability of [
   "INNER JOIN",
   "LEFT JOIN",
-  "Create & Open Join Query",
+  "Run Join & View Results",
+  "Create Editable Join Query",
+  "dataWorkspace.executeSQL",
   "suggestJoinColumns",
   "hasSuffix(\"_id\")",
   "SELECT l.*, r.*",
