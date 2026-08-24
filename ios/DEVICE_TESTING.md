@@ -1,104 +1,184 @@
 # bIDE iOS Physical Device Test Flow
 
-This guide is for the Phase 1 native editor + local project core. It does **not** require App Store signing, PocketBI authentication, StoreKit, or runtime execution.
+This guide covers the native editor/project foundation plus the current Phase 2 local Dataset + native SQL checkpoint. It does **not** require App Store signing, PocketBI authentication, StoreKit, cloud sync, Python execution, or R execution.
 
-## 1. Get the current device package
+## 1. Only install intentional checkpoint builds
 
-Use the latest successful `bIDE iOS Quality` run for `agent/bide-ios-foundation`.
+Do not create or install an IPA for every source change.
 
-Artifact name:
+Follow `ios/BIDE_IOS_BUILD_POLICY.md`:
 
-`bIDE-Phase1-Sideloadly-<run number>`
+1. Batch source fixes.
+2. Run the cheap `bIDE iOS Source Preflight` once when the batch is coherent.
+3. Run the manual macOS `bIDE iOS Quality` checkpoint only when the IPA is worth a full device session.
+4. Record the whole phone-test failure set before requesting another checkpoint.
 
-Inside the artifact ZIP, use:
+The `bIDE iOS Quality` artifact contains `bIDE-Sideloadly.ipa`. The workflow verifies the package is an unsigned arm64 iPhoneOS build targeted to iPhone + iPad and structurally valid for local sideload signing.
 
-`bIDE-Sideloadly.ipa`
+## 2. Install over the existing bIDE app when testing migration
 
-The workflow verifies before upload that the package is:
+For the current Phase 2 regression, install the next checkpoint over the existing bIDE installation using the same bundle ID. Do **not** delete the app first unless a separate clean-install test is explicitly required.
 
-- `iPhoneOS`
-- `arm64`
-- targeted to iPhone + iPad
-- packaged with code signing disabled for local sideload testing
-- structurally valid via `unzip -t`
+The update path matters because older builds can leave project-local derived `.bide.sqlite` state behind. The current app must reconcile source datasets, detect an old derived-database generation, and rebuild local SQL state from registered source assets.
 
-## 2. Install for local testing
+Source CSV/XLSX files and the dataset registry remain the authoritative project data. `.bide.sqlite` is derived state.
 
-Install `bIDE-Sideloadly.ipa` with the same local sideload workflow used for the other internal app builds.
+## 3. Phase 1 smoke test
 
-This package is intentionally unsigned by CI. The local sideload tool performs the temporary signing needed for installation with the tester's Apple ID/device.
-
-Do not add permanent distribution certificates, App Store provisioning, StoreKit products, or production credentials merely to perform this Phase 1 editor test.
-
-## 3. Smoke test before detailed acceptance
-
-On first launch, confirm all of the following before doing the full editor checklist:
+Before spending time on data workflows, confirm the editor shell still behaves normally:
 
 1. bIDE launches without immediately requesting sign-in.
-2. Workspace is the default working surface.
-3. A local starter project exists.
-4. The starter project exposes `analysis.py`, `query.sql`, and `model.R`.
-5. Opening each file changes the syntax language correctly.
-6. Run controls do not attempt real execution yet.
-7. Closing and reopening the app preserves local work.
+2. Workspace opens a local project.
+3. Python, SQL, and R source files still select the correct editor language.
+4. Projects/files remain local and survive relaunch.
+5. basic import/share behavior still opens the native Files/share surfaces.
 
-## 4. File ingress smoke test
+Run the complete editor checklist in `ios/PHASE_1_EDITOR_ACCEPTANCE.md` when a change touches the editor/project shell.
 
-- Projects → Import Project Folder can import a small local folder.
-- Projects → Import Code Files shows standalone `.py`, `.sql`, and `.R` files.
-- importing one standalone source file creates and opens a local bIDE project copy.
-- from iOS Files, Open/Share in bIDE is available for supported source files.
-- the original external file remains unchanged after editing the bIDE copy.
+## 4. Current Phase 2 regression bundle
 
-## 5. File export smoke test
+Use:
 
-- open the Files/project browser inside bIDE and tap the visible share icon.
-- Export Project Files opens the native iOS share sheet with all current source files.
-- long-press a source file and choose Share File; only that source file is shared.
-- Save to Files or another compatible destination receives normal `.py`, `.sql`, or `.R` files.
-- edit the active file immediately before sharing and confirm the exported copy contains the latest saved text.
+- `bIDE_Join_Practice_Orders.csv`
+- `bIDE_Join_Practice_Customers.csv`
+- `bIDE-Phase2-Test-MultiSheet.xlsx`
 
-## 6. Full Phase 1 acceptance
+### A. Verify source datasets after update
 
-Run every item in:
+Open Datasets and confirm the clean practice sources are still intact:
 
-`ios/PHASE_1_EDITOR_ACCEPTANCE.md`
+- Orders: **27 rows / 7 columns**
+- Customers: **15 rows / 5 columns**
 
-Prioritize the physical interactions that simulator CI cannot prove:
+A stale/corrupted derived result must not silently redefine those source values.
 
-- precise tap-to-place cursor behavior
-- long-press selection handles
-- copy/cut/paste
-- continuous typing stability
-- coding toolbar insertion
-- completion replacement around the caret
-- software keyboard show/hide
-- portrait/landscape rotation
-- project/file switching while unsaved edits exist
-- background + relaunch persistence
-- import/open-in-bIDE/export/share behavior
-- iPad persistent rail and hardware keyboard behavior
+### B. Guided LEFT JOIN
 
-## 7. Reporting a failure
+Open `Join Two Tables` and choose:
+
+- Left table: Orders
+- Right table: Customers
+- Left key: `customer_id`
+- Right key: `customer_id`
+- Join type: Left
+
+Run `Run Join & View Results`.
+
+Expected:
+
+- exactly **27 result rows**
+- **12 result columns**
+- `O1025 / C999` retained with blank/NULL customer-side fields
+- `O1026 / C888` retained with blank/NULL customer-side fields
+- repeated values remain unchanged, including `C001`, `Starter Plan`, `1`, `49.0`, `VA`, and other repeated cell values
+- ordinary row values never become suffixed data such as `C001_2`, `Starter Plan_2`, `1_2`, or `49.0_2`
+
+Duplicate **column headers** may be disambiguated safely, for example the second `customer_id` can become `customer_id_2` when a CSV is re-imported. Cell values must not be renamed.
+
+### C. Result presentation recovery
+
+Dismiss Join Results and confirm Datasets shows:
+
+`Last Join Result` → `Open Join Results`
+
+Reopen the completed result. The join must not appear lost because a sheet was dismissed.
+
+### D. Share Result as CSV
+
+From Join Results / SQL Results choose `Share Result as CSV`.
+
+The CSV must be one joined table:
+
+- 12 columns per joined row
+- 27 rows for this fixture
+- no Orders table followed by a pasted Customers table
+- no Customers header appended to the final Orders row
+- no data-value suffix mutation
+
+### E. Save Result as Dataset
+
+Choose `Save Result as Dataset`.
+
+Confirm the new dataset reports:
+
+- 27 rows
+- 12 columns
+
+Open/query it again and compare sampled values to the visible join result.
+
+Fully terminate bIDE, reopen it, and confirm:
+
+- original Orders remains
+- original Customers remains
+- the saved join-result dataset remains
+- the saved result is still queryable
+
+### F. Editable join query routing
+
+Run `Join Two Tables` again and choose `Create Editable Join Query`.
+
+Expected:
+
+- the builder dismisses cleanly
+- Workspace becomes visible only after dismissal
+- a new `join_<left>_<right>.sql` file is active
+- if SQL-file creation fails, the Join Builder stays open and reports the failure instead of disappearing
+
+### G. Full-result export beyond screen preview
+
+Run a read-only query returning more than 500 rows.
+
+The result screen may preview only the first 500 rows, but `Share Result as CSV` must contain the complete result. `Save Result as Dataset` must also use and verify the complete result rather than the UI preview.
+
+### H. Multi-sheet XLSX
+
+Import `bIDE-Phase2-Test-MultiSheet.xlsx`.
+
+Expected SQL tables:
+
+- `Inventory` — **6 data rows / 5 columns**
+- `Regions` — **3 data rows / 3 columns**
+
+Worksheet names should be the natural SQL-table bases unless a collision requires a normal uniqueness suffix.
+
+### I. Original source sharing vs query export
+
+Confirm Datasets labels source-file sharing as `Share Original Dataset Files` and explains that join/query CSV export lives inside SQL Results.
+
+The original-file action must never be mistaken for exporting the current join result.
+
+## 5. Damaged-file behavior
+
+A structurally inconsistent CSV must fail closed instead of being normalized into a misleading giant table.
+
+Examples that should be rejected:
+
+- unterminated quoted field
+- a header that strongly indicates most row separators were lost
+- a 7-column header followed by a 12-field data row suggesting another table/header was appended
+
+The app should surface a useful import/rebuild error and preserve the underlying source file for diagnosis rather than inventing hundreds of columns or renaming ordinary cell values.
+
+## 6. Reporting a failure
 
 For each failure record:
 
+- checkpoint version/build
 - device model
 - iOS/iPadOS version
 - orientation
-- active language/file
-- whether a hardware keyboard was attached
 - exact steps to reproduce
+- dataset/query involved
 - expected behavior
 - actual behavior
 - whether relaunch reproduces it
 
-A short screen recording is ideal for cursor, selection, keyboard, rotation, layout, or share-sheet failures.
+For data-integrity issues, also save/share the produced CSV if possible. For cursor, keyboard, layout, routing, or disappearing-sheet issues, a short screen recording is ideal.
 
-## 8. Phase boundary
+Do not request a new IPA immediately after the first failure. Finish the planned session and collect the entire failure set so the next source batch can address them together.
 
-Passing CI is the automated build gate. Passing the physical checklist is the editor + local file workflow gate.
+## 7. Phase boundary
 
-Do not begin Python/SQL/R runtime, authentication, billing, cloud sync, or PocketBI handoff implementation inside the Phase 1 PR until that gate is accepted.
+Passing source preflight and macOS CI proves the code compiled and the native regression suite passed. Physical-device acceptance proves the iOS interaction, persistence, update migration, Files/share surfaces, and actual installed-app behavior.
 
-Once accepted, begin the next implementation phase with one shared local Dataset/Asset registry plus **native SQLite execution + structured result inspection** while preserving this editor/project/import/export foundation.
+Do not begin the Phase 3 Python runtime inside the Phase 2 branch until this local-data/native-SQL gate is accepted on device. Phase 3 should reuse the same project files and Dataset/Asset registry rather than inventing a second data system.
