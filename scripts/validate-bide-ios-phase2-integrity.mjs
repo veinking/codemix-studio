@@ -10,6 +10,7 @@ const required = [
   "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift",
+  "ios/BideApp/Views/ProjectsView.swift",
   "ios/BideApp/BideApp.swift",
   "ios/BideTests/DatabaseMigrationEdgeCaseTests.swift",
   "ios/BideTests/RebuildDatabaseFailureTests.swift",
@@ -33,6 +34,10 @@ for (const supported of ['"csv"', '"tsv"', '"json"', '"xlsx"', '"txt"']) {
 
 const migration = read("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift");
 for (const capability of [
+  "isDerivedDatabaseReadyForSQL",
+  "prepareDerivedDatabaseForSQLIfNeeded",
+  "storedGeneration == Self.derivedDatabaseGeneration",
+  "datasets.isEmpty || manager.fileExists(atPath: databaseURL.path)",
   "if datasets.isEmpty",
   "databaseURL.path + \"-wal\"",
   "databaseURL.path + \"-shm\"",
@@ -54,6 +59,7 @@ for (const capability of [
   "endSQLOperation(projectID: UUID)",
   "hasActiveDataOperation(projectID: UUID)",
   "hasActiveSQLOperation(projectID: UUID)",
+  "prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID)",
   "rebuildDatabaseWithinDataOperation",
   "removeDerivedDatabaseFiles(at: dbURL)",
   "incomplete derived database was discarded",
@@ -64,7 +70,7 @@ for (const capability of [
   "saveRegistry(originalAssets, projectID: projectID)",
   "restored the source file, registry, and derived SQL state",
   "func preview",
-  "guard beginSQLOperation(projectID: projectID)",
+  "beginSQLOperation(projectID: projectID)",
 ]) {
   assert.ok(store.includes(capability), `Phase 2 integrity safeguard missing: ${capability}`);
 }
@@ -86,15 +92,29 @@ for (const capability of [
 
 const exportStore = read("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift");
 for (const capability of [
+  "prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID)",
   "beginSQLOperation(projectID: projectID)",
   "endSQLOperation(projectID: projectID)",
   "exportSummary.columns == result.columns",
   "exportSummary.sampleRows == expectedSample",
   "!result.isTruncated, exportSummary.rowCount != result.rowCount",
-  "Saved-result verification could not run because another project data operation started",
+  "Saved-result verification could not run because the local SQL database was not ready",
   "removeFailedSavedResult",
 ]) {
   assert.ok(exportStore.includes(capability), `Serialized SQL export safeguard missing: ${capability}`);
+}
+
+const projectsView = read("ios/BideApp/Views/ProjectsView.swift");
+for (const capability of [
+  "@EnvironmentObject private var dataWorkspace: DataWorkspaceStore",
+  "projectHasDatabaseWork",
+  "requestProjectDeletion",
+  "hasActiveDataOperation(projectID: projectID)",
+  "hasActiveSQLOperation(projectID: projectID)",
+  "Project Is Busy",
+  "Recheck at commit time",
+]) {
+  assert.ok(projectsView.includes(capability), `Project-deletion safety guard missing: ${capability}`);
 }
 
 const app = read("ios/BideApp/BideApp.swift");
@@ -108,15 +128,18 @@ assert.ok(
   "Deletion recovery must run before source reconciliation, which must run before SQLite migration."
 );
 
-const emptyRegistryTest = read("ios/BideTests/DatabaseMigrationEdgeCaseTests.swift");
+const migrationTest = read("ios/BideTests/DatabaseMigrationEdgeCaseTests.swift");
 for (const regression of [
   "testEmptyDatasetRegistryRemovesStaleDerivedDatabase",
   "testMigrationCannotMutateDatabaseWhileSQLSlotIsOwned",
-  "ghost_table",
+  "testExecuteSQLRepairsStaleGenerationBeforeRunningQuery",
+  "isDerivedDatabaseReadyForSQL",
   "XCTAssertEqual(blockedGeneration, \"1\")",
   "XCTAssertEqual(migratedGeneration, \"2\")",
+  "XCTAssertEqual(store.lastSQLRun?.primaryResult?.rows.first?.first ?? nil, \"2\")",
+  "OLD",
 ]) {
-  assert.ok(emptyRegistryTest.includes(regression), `Migration regression missing: ${regression}`);
+  assert.ok(migrationTest.includes(regression), `Migration regression missing: ${regression}`);
 }
 
 const rebuildFailureTest = read("ios/BideTests/RebuildDatabaseFailureTests.swift");
