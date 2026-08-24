@@ -15,6 +15,7 @@ extension DataWorkspaceStore {
         let dataDirectory = projectDirectory.appendingPathComponent("data", isDirectory: true)
         let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
         let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
+        let registryURL = projectDirectory.appendingPathComponent("datasets.bide.json")
 
         let storedGeneration = (try? String(contentsOf: markerURL, encoding: .utf8))?
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -24,12 +25,25 @@ extension DataWorkspaceStore {
 
         if datasets.isEmpty {
             do {
-                try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
-                try Self.derivedDatabaseGeneration.write(to: markerURL, atomically: true, encoding: .utf8)
+                // loadRegistry() intentionally returns [] when a registry cannot decode so
+                // ordinary project opening stays resilient. Migration cannot treat that
+                // ambiguous [] as proof that the project has no datasets, or a damaged
+                // registry could be stamped as successfully migrated forever.
+                if let registeredAssets = try strictRegistryAssetsIfPresent(at: registryURL),
+                   !registeredAssets.isEmpty {
+                    datasets = registeredAssets
+                } else {
+                    try recordDerivedDatabaseGeneration(
+                        manager: manager,
+                        dataDirectory: dataDirectory,
+                        markerURL: markerURL
+                    )
+                    return
+                }
             } catch {
-                dataError = "Could not record the local SQL engine version: \(error.localizedDescription)"
+                dataError = "bIDE found local dataset metadata but could not verify it safely for SQL migration: \(error.localizedDescription)"
+                return
             }
-            return
         }
 
         do {
@@ -52,11 +66,35 @@ extension DataWorkspaceStore {
         guard activeProjectID == projectID, dataError == nil else { return }
 
         do {
-            try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
-            try Self.derivedDatabaseGeneration.write(to: markerURL, atomically: true, encoding: .utf8)
+            try recordDerivedDatabaseGeneration(
+                manager: manager,
+                dataDirectory: dataDirectory,
+                markerURL: markerURL
+            )
         } catch {
             dataError = "The SQL database was rebuilt, but bIDE could not finish its local migration marker: \(error.localizedDescription)"
         }
+    }
+
+    private func strictRegistryAssetsIfPresent(at registryURL: URL) throws -> [DatasetAsset]? {
+        guard FileManager.default.fileExists(atPath: registryURL.path) else { return nil }
+        let registryData = try Data(contentsOf: registryURL)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode([DatasetAsset].self, from: registryData)
+    }
+
+    private func recordDerivedDatabaseGeneration(
+        manager: FileManager,
+        dataDirectory: URL,
+        markerURL: URL
+    ) throws {
+        try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
+        try Self.derivedDatabaseGeneration.write(
+            to: markerURL,
+            atomically: true,
+            encoding: .utf8
+        )
     }
 
     private func refreshDatasetRegistryFromSourceAssets(
