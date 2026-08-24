@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct ProjectsView: View {
     @EnvironmentObject private var workspace: WorkspaceStore
+    @EnvironmentObject private var dataWorkspace: DataWorkspaceStore
     @EnvironmentObject private var session: AppSession
 
     @State private var createPresented = false
@@ -12,6 +13,7 @@ struct ProjectsView: View {
     @State private var renameTarget: BideProjectManifest?
     @State private var renameValue = ""
     @State private var deleteTarget: BideProjectManifest?
+    @State private var projectOperationError: String?
 
     private var importableCodeTypes: [UTType] {
         var types: [UTType] = [.pythonScript]
@@ -66,7 +68,7 @@ struct ProjectsView: View {
                             }
                             Divider()
                             Button("Delete Project", systemImage: "trash", role: .destructive) {
-                                deleteTarget = project
+                                requestProjectDeletion(project)
                             }
                         } label: {
                             Image(systemName: "ellipsis.circle")
@@ -77,7 +79,7 @@ struct ProjectsView: View {
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         Button(role: .destructive) {
-                            deleteTarget = project
+                            requestProjectDeletion(project)
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
@@ -188,14 +190,41 @@ struct ProjectsView: View {
             titleVisibility: .visible
         ) {
             Button("Delete Project", role: .destructive) {
-                if let deleteTarget {
-                    workspace.deleteProject(deleteTarget)
-                }
+                guard let target = deleteTarget else { return }
                 deleteTarget = nil
+
+                // Recheck at commit time. A database task could have started after the
+                // confirmation dialog was presented.
+                guard !projectHasDatabaseWork(target.id) else {
+                    projectOperationError = "\(target.name) is still running a SQL or dataset operation. Finish that work before deleting the project."
+                    return
+                }
+                workspace.deleteProject(target)
             }
             Button("Cancel", role: .cancel) { deleteTarget = nil }
         } message: {
             Text("The project's local files will be removed from this device.")
         }
+        .alert("Project Is Busy", isPresented: Binding(
+            get: { projectOperationError != nil },
+            set: { if !$0 { projectOperationError = nil } }
+        )) {
+            Button("OK", role: .cancel) { projectOperationError = nil }
+        } message: {
+            Text(projectOperationError ?? "Finish the project's current database work before deleting it.")
+        }
+    }
+
+    private func projectHasDatabaseWork(_ projectID: UUID) -> Bool {
+        dataWorkspace.hasActiveDataOperation(projectID: projectID) ||
+            dataWorkspace.hasActiveSQLOperation(projectID: projectID)
+    }
+
+    private func requestProjectDeletion(_ project: BideProjectManifest) {
+        guard !projectHasDatabaseWork(project.id) else {
+            projectOperationError = "\(project.name) is still running a SQL or dataset operation. Finish that work before deleting the project."
+            return
+        }
+        deleteTarget = project
     }
 }
