@@ -43,8 +43,8 @@ for (const expected of [
   "public.json",
   "public.plain-text",
   "org.openxmlformats.spreadsheetml.sheet",
-  "MARKETING_VERSION: 0.2.3",
-  "CURRENT_PROJECT_VERSION: 5",
+  "MARKETING_VERSION: 0.2.4",
+  "CURRENT_PROJECT_VERSION: 6",
 ]) {
   assert.ok(project.includes(expected), `Phase 2 project wiring missing: ${expected}`);
 }
@@ -129,6 +129,9 @@ for (const uiCapability of [
   "Export This Dataset",
   "joinResultReport",
   "Join Results",
+  "lastCompletedJoinReport",
+  "Last Join Result",
+  "Open Join Results",
   "openWorkspaceAfterJoinDismiss",
   "handleJoinBuilderDismissal",
   "await Task.yield()",
@@ -142,6 +145,14 @@ assert.ok(
 assert.ok(
   datasetsView.includes("session.selectedSection = .workspace"),
   "Editable join query navigation must occur after the Join Builder dismisses."
+);
+assert.ok(
+  datasetsView.includes("lastCompletedJoinReport = report"),
+  "A successful guided join must leave a recoverable result breadcrumb in Datasets."
+);
+assert.ok(
+  datasetsView.includes("lastCompletedJoinReport = nil"),
+  "Recoverable join results must be cleared when the active project changes."
 );
 
 const resultsView = read("ios/BideApp/Views/SQLResultsView.swift");
