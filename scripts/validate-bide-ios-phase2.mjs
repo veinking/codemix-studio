@@ -26,6 +26,7 @@ const required = [
   "ios/BideApp/Editor/CompletionProvider.swift",
   "ios/BideApp/Views/WorkspaceView.swift",
   "ios/BideApp/BideApp.swift",
+  "ios/BideTests/JoinPipelineTests.swift",
 ];
 
 for (const filePath of required) {
@@ -43,8 +44,10 @@ for (const expected of [
   "public.json",
   "public.plain-text",
   "org.openxmlformats.spreadsheetml.sheet",
-  "MARKETING_VERSION: 0.2.4",
-  "CURRENT_PROJECT_VERSION: 6",
+  "MARKETING_VERSION: 0.2.5",
+  "CURRENT_PROJECT_VERSION: 7",
+  "bIDETests:",
+  "type: bundle.unit-test",
 ]) {
   assert.ok(project.includes(expected), `Phase 2 project wiring missing: ${expected}`);
 }
@@ -53,7 +56,14 @@ const models = read("ios/BideApp/Models/DatasetModels.swift");
 for (const format of ["case csv", "case tsv", "case json", "case text", "case xlsx"]) {
   assert.ok(models.includes(format), `Dataset format missing: ${format}`);
 }
-for (const resultCapability of ["statementSQL", "isReadOnly", "isTruncated", "SQLRunReport"]) {
+for (const resultCapability of [
+  "statementSQL",
+  "isReadOnly",
+  "isTruncated",
+  "SQLRunReport",
+  "SQLCSVExportSummary",
+  "sampleRows",
+]) {
   assert.ok(models.includes(resultCapability), `Structured SQL result capability missing: ${resultCapability}`);
 }
 
@@ -68,6 +78,10 @@ for (const parserCapability of [
   "delimitedRecords",
   "isStrictInteger",
   "uniqueHeaders",
+  "malformedDelimited",
+  "validateDelimitedShape",
+  "damaged row separators",
+  "unterminated quoted field",
 ]) {
   assert.ok(parser.includes(parserCapability), `Dataset parser capability missing: ${parserCapability}`);
 }
@@ -80,6 +94,9 @@ for (const sqlCapability of [
   "rowLimit: Int = 500",
   "isTruncated",
   "exportReadOnlyQueryToCSV",
+  "SQLCSVExportSummary",
+  "sampleLimit: Int = 100",
+  "sampleRows.append(row)",
   "BEGIN IMMEDIATE TRANSACTION",
 ]) {
   assert.ok(sqlite.includes(sqlCapability), `Native SQLite capability missing: ${sqlCapability}`);
@@ -110,7 +127,9 @@ for (const exportCapability of [
   "exportSQLResult",
   "exportReadOnlyQueryToCSV",
   "registerAsDataset",
-  "exportedRowCount",
+  "exportSummary.columns == result.columns",
+  "exportSummary.sampleRows == expectedSample",
+  "exportSummary.rowCount",
   "verification.primaryResult?.rows == expectedRows",
   "removeFailedSavedResult",
 ]) {
@@ -125,13 +144,15 @@ for (const uiCapability of [
   "Query in SQL",
   "Join Two Tables",
   "Rebuild SQL Database",
-  "Export Dataset Files",
+  "Share Original Dataset Files",
+  "join/query CSV export lives inside SQL Results",
   "Export This Dataset",
   "joinResultReport",
   "Join Results",
   "lastCompletedJoinReport",
   "Last Join Result",
   "Open Join Results",
+  "Share Result as CSV",
   "openWorkspaceAfterJoinDismiss",
   "handleJoinBuilderDismissal",
   "await Task.yield()",
@@ -190,6 +211,22 @@ assert.ok(
   !joinBuilder.includes("session.selectedSection = .workspace"),
   "The Join Builder must not switch tabs while its modal sheet is still dismissing."
 );
+
+const joinTests = read("ios/BideTests/JoinPipelineTests.swift");
+for (const regression of [
+  "testOrdersLeftJoinExportRoundTripPreservesRowsAndValues",
+  "testFlattenedCSVShapeFailsClosedInsteadOfTurningValuesIntoHeaders",
+  "XCTAssertEqual(orders.rows.count, 27)",
+  "C999",
+  "C888",
+  "customer_id_2",
+  "Starter Plan",
+  "49.0",
+  "XCTAssertEqual(exportSummary.rowCount, 27)",
+  "XCTAssertEqual(roundTrip.rows.count, 27)",
+]) {
+  assert.ok(joinTests.includes(regression), `Phone join regression coverage missing: ${regression}`);
+}
 
 const completion = read("ios/BideApp/Editor/CompletionProvider.swift");
 assert.ok(completion.includes("datasets: [DatasetAsset]"), "Autocomplete must receive project datasets.");
