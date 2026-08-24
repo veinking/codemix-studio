@@ -5,13 +5,20 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { completePocketBIOAuth } from '@/integrations/pocketbi/oauth';
 
+let callbackExchange: ReturnType<typeof completePocketBIOAuth> | null = null;
+
+function completeOnce() {
+  callbackExchange ??= completePocketBIOAuth();
+  return callbackExchange;
+}
+
 const PocketBICallback = () => {
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    void completePocketBIOAuth()
+    void completeOnce()
       .then((returnTo) => {
         if (active) navigate(returnTo, { replace: true });
       })
