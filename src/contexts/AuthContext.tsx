@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
+import { clearPocketBIOAuthSession, ensurePocketBIOAuthSession, isPocketBIOAuthSession } from '@/integrations/pocketbi/oauth';
 import { getGuestFingerprint } from '@/utils/guestFingerprint';
 
 interface Profile {
@@ -171,11 +172,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setAiUsage(null);
 
     if (!isSupabaseConfigured) return;
+    const oauthSession = isPocketBIOAuthSession();
     try {
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
       if (error) throw error;
     } catch (error) {
       console.error('[AUTH] Sign out error:', error);
+    } finally {
+      if (oauthSession) await clearPocketBIOAuthSession();
+      else await supabase.auth.startAutoRefresh();
     }
   };
 
@@ -201,13 +206,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    void supabase.auth.getSession().then(async ({ data: { session: currentSession } }) => {
+    void (async () => {
+      try {
+        await ensurePocketBIOAuthSession();
+      } catch (error) {
+        console.warn('[AUTH] PocketBI OAuth session could not be restored:', error);
+        try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* local cleanup only */ }
+        await clearPocketBIOAuthSession();
+      }
+
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
       if (!active) return;
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
       if (currentSession?.user) await syncSignedInUser(currentSession.user);
       if (active) setIsLoading(false);
-    });
+    })();
 
     return () => {
       active = false;
