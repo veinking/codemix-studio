@@ -83,8 +83,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios
         PRODUCT_NAME: bIDE
-        MARKETING_VERSION: 0.2.3
-        CURRENT_PROJECT_VERSION: 5
+        MARKETING_VERSION: 0.2.4
+        CURRENT_PROJECT_VERSION: 6
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         TARGETED_DEVICE_FAMILY: "1,2"
