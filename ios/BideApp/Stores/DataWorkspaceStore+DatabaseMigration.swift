@@ -65,7 +65,6 @@ extension DataWorkspaceStore {
     ) async throws {
         guard activeProjectID == projectID else { return }
 
-        let manager = FileManager.default
         let registryURL = projectDirectory.appendingPathComponent("datasets.bide.json")
         let registryData = try Data(contentsOf: registryURL)
         let decoder = JSONDecoder()
@@ -87,8 +86,9 @@ extension DataWorkspaceStore {
                 throw DatasetParserError.unreadable(asset.fileName)
             }
 
-            let refreshedTables = zip(parsedTables, asset.tables).map { parsed, existing in
-                DatasetTableDescriptor(
+            let refreshedTables = zip(parsedTables, asset.tables).map { pair in
+                let (parsed, existing) = pair
+                return DatasetTableDescriptor(
                     id: existing.id,
                     displayName: parsed.displayName,
                     sqliteName: existing.sqliteName,
