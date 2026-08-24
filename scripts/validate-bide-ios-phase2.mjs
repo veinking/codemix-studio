@@ -149,7 +149,7 @@ for (const migrationCapability of [
   ".bide-sqlite-generation",
   "migrateDerivedDatabaseIfNeeded",
   "refreshDatasetRegistryFromSourceAssets",
-  "rebuildDatabase(projectID: projectID)",
+  "rebuildDatabaseWithinDataOperation(projectID: projectID)",
   "storedGeneration != Self.derivedDatabaseGeneration || !databaseExists",
   "id: existing.id",
   "rowCount: parsed.rows.count",
