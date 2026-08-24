@@ -6,8 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { beginPocketBIOAuth, isPocketBIOAuthConfigured, markDirectPocketBISession } from "@/integrations/pocketbi/oauth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, ShieldCheck } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AuthDialogProps {
@@ -17,6 +18,7 @@ interface AuthDialogProps {
 
 export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [oauthLoading, setOauthLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -29,11 +31,33 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     setConfirmPassword("");
   };
 
+  const handlePocketBIConnect = async () => {
+    if (!isPocketBIOAuthConfigured()) {
+      toast({
+        title: "PocketBI connection is not enabled yet",
+        description: "Use the email/password fallback on this browser until this deployment receives its PocketBI OAuth client ID.",
+      });
+      return;
+    }
+    setOauthLoading(true);
+    try {
+      await beginPocketBIOAuth('/ide');
+    } catch (error: any) {
+      setOauthLoading(false);
+      toast({
+        variant: "destructive",
+        title: "PocketBI connection could not start",
+        description: error?.message || "Try again or use the email/password fallback.",
+      });
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
+      await markDirectPocketBISession();
       const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -74,6 +98,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     setIsLoading(true);
 
     try {
+      await markDirectPocketBISession();
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -146,7 +171,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     onOpenChange(false);
     toast({
       title: "Continuing as guest",
-      description: "You can sign in with PocketBI ID later when you want account-backed features.",
+      description: "You can connect PocketBI ID later when you want account-backed features.",
     });
   };
 
@@ -155,72 +180,85 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     clearPasswords();
   };
 
+  const pocketBIConnect = activeTab !== "reset" && (
+    <div className="space-y-3 mb-5">
+      <Button type="button" className="w-full" onClick={handlePocketBIConnect} disabled={oauthLoading || isLoading}>
+        {oauthLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Opening PocketBI…</> : <><ShieldCheck className="mr-2 h-4 w-4" />Continue with PocketBI ID</>}
+      </Button>
+      <p className="text-xs text-muted-foreground text-center leading-5">Recommended. PocketBI authorizes this bIDE browser with a one-time PKCE code; your access and refresh tokens are never placed in the URL.</p>
+      <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground"><span className="h-px flex-1 bg-border" /><span>or use password here</span><span className="h-px flex-1 bg-border" /></div>
+    </div>
+  );
+
   const authForm = (
-    <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="login">Sign In</TabsTrigger>
-        <TabsTrigger value="signup">Sign Up</TabsTrigger>
-      </TabsList>
+    <>
+      {pocketBIConnect}
+      <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="login">Sign In</TabsTrigger>
+          <TabsTrigger value="signup">Sign Up</TabsTrigger>
+        </TabsList>
 
-      <TabsContent value="login" className="space-y-4">
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="login-email">Email</Label>
-            <Input id="login-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="login-password">Password</Label>
-            <Input id="login-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required disabled={isLoading} />
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : "Sign In"}
-          </Button>
-          <Button type="button" variant="link" size="sm" onClick={() => changeTab("reset")} disabled={isLoading} className="text-xs text-muted-foreground hover:text-primary">
-            Forgot password?
-          </Button>
-        </form>
-      </TabsContent>
+        <TabsContent value="login" className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="login-email">Email</Label>
+              <Input id="login-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading || oauthLoading} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="login-password">Password</Label>
+              <Input id="login-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required disabled={isLoading || oauthLoading} />
+            </div>
+            <Button type="submit" variant="outline" className="w-full" disabled={isLoading || oauthLoading}>
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Signing in...</> : "Sign in with email & password"}
+            </Button>
+            <Button type="button" variant="link" size="sm" onClick={() => changeTab("reset")} disabled={isLoading || oauthLoading} className="text-xs text-muted-foreground hover:text-primary">
+              Forgot password?
+            </Button>
+          </form>
+        </TabsContent>
 
-      <TabsContent value="signup" className="space-y-4">
-        <form onSubmit={handleSignup} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="signup-email">Email</Label>
-            <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="signup-password">Password</Label>
-            <Input id="signup-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required disabled={isLoading} minLength={8} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="signup-confirm-password">Confirm password</Label>
-            <Input id="signup-confirm-password" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" required disabled={isLoading} minLength={8} />
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : "Create PocketBI ID"}
-          </Button>
-        </form>
-      </TabsContent>
+        <TabsContent value="signup" className="space-y-4">
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="signup-email">Email</Label>
+              <Input id="signup-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading || oauthLoading} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-password">Password</Label>
+              <Input id="signup-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required disabled={isLoading || oauthLoading} minLength={8} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-confirm-password">Confirm password</Label>
+              <Input id="signup-confirm-password" type="password" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" required disabled={isLoading || oauthLoading} minLength={8} />
+            </div>
+            <Button type="submit" variant="outline" className="w-full" disabled={isLoading || oauthLoading}>
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Creating account...</> : "Create PocketBI ID here"}
+            </Button>
+          </form>
+        </TabsContent>
 
-      <TabsContent value="reset" className="space-y-4">
-        <form onSubmit={handlePasswordReset} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="reset-email">Email</Label>
-            <Input id="reset-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading} />
-          </div>
-          <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending reset link...</> : "Send Reset Link"}
-          </Button>
-          <Button type="button" variant="link" size="sm" onClick={() => changeTab("login")} disabled={isLoading} className="w-full text-xs text-muted-foreground hover:text-primary">
-            Back to sign in
-          </Button>
-        </form>
-      </TabsContent>
-    </Tabs>
+        <TabsContent value="reset" className="space-y-4">
+          <form onSubmit={handlePasswordReset} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="reset-email">Email</Label>
+              <Input id="reset-email" type="email" placeholder="your@email.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required disabled={isLoading} />
+            </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending reset link...</> : "Send Reset Link"}
+            </Button>
+            <Button type="button" variant="link" size="sm" onClick={() => changeTab("login")} disabled={isLoading} className="w-full text-xs text-muted-foreground hover:text-primary">
+              Back to sign in
+            </Button>
+          </form>
+        </TabsContent>
+      </Tabs>
+    </>
   );
 
   const footer = (
     <div className="mt-4 pt-4 border-t border-border">
-      <Button variant="ghost" className="w-full" onClick={handleContinueAsGuest} disabled={isLoading}>
+      <Button variant="ghost" className="w-full" onClick={handleContinueAsGuest} disabled={isLoading || oauthLoading}>
         Continue as Guest
       </Button>
     </div>
@@ -229,7 +267,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const title = activeTab === "reset" ? "Reset Password" : "PocketBI ID for bIDE";
   const description = activeTab === "reset"
     ? "Enter your email to receive a password reset link"
-    : "Use one PocketBI identity across the product family, or keep coding as a guest.";
+    : "Connect your existing PocketBI session, use the password fallback, or keep coding as a guest.";
 
   if (isMobile) {
     return (
