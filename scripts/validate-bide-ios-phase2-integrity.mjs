@@ -8,10 +8,13 @@ const required = [
   "ios/BideApp/Stores/WorkspaceStore.swift",
   "ios/BideApp/Stores/DataWorkspaceStore.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift",
+  "ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift",
+  "ios/BideApp/BideApp.swift",
   "ios/BideTests/DatabaseMigrationEdgeCaseTests.swift",
   "ios/BideTests/RebuildDatabaseFailureTests.swift",
   "ios/BideTests/ProjectImportFormatTests.swift",
   "ios/BideTests/DatasetDeletionIntegrityTests.swift",
+  "ios/BideTests/InterruptedDeletionRecoveryTests.swift",
 ];
 
 for (const filePath of required) {
@@ -48,6 +51,30 @@ for (const capability of [
 ]) {
   assert.ok(store.includes(capability), `Phase 2 integrity safeguard missing: ${capability}`);
 }
+
+const recovery = read("ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift");
+for (const capability of [
+  "recoverInterruptedDatasetDeletions",
+  ".bide-delete-",
+  "registeredByID",
+  "manager.moveItem(at: staged.url, to: destination)",
+  "manager.removeItem(at: staged.url)",
+  ".bide-sqlite-generation",
+  "manager.removeItem(at: markerURL)",
+]) {
+  assert.ok(recovery.includes(capability), `Interrupted-delete recovery safeguard missing: ${capability}`);
+}
+
+const app = read("ios/BideApp/BideApp.swift");
+assert.ok(
+  app.includes("recoverInterruptedDatasetDeletions(projectID: projectID)"),
+  "Project startup must recover interrupted dataset deletions."
+);
+assert.ok(
+  app.indexOf("recoverInterruptedDatasetDeletions") < app.indexOf("reconcileProjectFiles") &&
+    app.indexOf("reconcileProjectFiles") < app.indexOf("migrateDerivedDatabaseIfNeeded"),
+  "Deletion recovery must run before source reconciliation, which must run before SQLite migration."
+);
 
 const emptyRegistryTest = read("ios/BideTests/DatabaseMigrationEdgeCaseTests.swift");
 for (const regression of [
@@ -91,6 +118,18 @@ for (const regression of [
   ".bide-delete-",
 ]) {
   assert.ok(deletionTest.includes(regression), `Dataset-deletion regression missing: ${regression}`);
+}
+
+const recoveryTest = read("ios/BideTests/InterruptedDeletionRecoveryTests.swift");
+for (const regression of [
+  "testRecoveryRestoresStagedSourceWhenRegistryStillOwnsAsset",
+  "testRecoveryFinishesCommittedDeletionAndForcesEmptyDatabaseMigration",
+  "recoverInterruptedDatasetDeletions",
+  "XCTAssertFalse(manager.fileExists(atPath: stagedURL.path))",
+  "XCTAssertFalse(manager.fileExists(atPath: urls.markerURL.path))",
+  "XCTAssertFalse(manager.fileExists(atPath: urls.databaseURL.path))",
+]) {
+  assert.ok(recoveryTest.includes(regression), `Interrupted-delete recovery regression missing: ${regression}`);
 }
 
 console.log("bIDE iOS Phase 2 integrity cleanup validation passed.");
