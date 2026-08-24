@@ -6,6 +6,7 @@ enum DatasetParserError: LocalizedError {
     case unsupportedJSON
     case emptyDataset(String)
     case invalidExcel
+    case malformedDelimited(String)
 
     var errorDescription: String? {
         switch self {
@@ -17,6 +18,8 @@ enum DatasetParserError: LocalizedError {
             return "\(name) does not contain any tabular rows."
         case .invalidExcel:
             return "The XLSX workbook could not be parsed. Legacy .xls files are not supported yet."
+        case .malformedDelimited(let message):
+            return message
         }
     }
 }
@@ -44,7 +47,8 @@ enum DatasetParser {
         if source.first == "\u{feff}" {
             source.removeFirst()
         }
-        let records = delimitedRecords(in: source, delimiter: delimiter)
+        let records = try delimitedRecords(in: source, delimiter: delimiter)
+        try validateDelimitedShape(records, displayName: url.lastPathComponent)
         return try normalize(records: records, displayName: url.deletingPathExtension().lastPathComponent)
     }
 
@@ -63,8 +67,10 @@ enum DatasetParser {
             .max { lhs, rhs in lhs.1 < rhs.1 }
 
         if let best, best.1 > 0 {
+            let records = try delimitedRecords(in: source, delimiter: best.0)
+            try validateDelimitedShape(records, displayName: url.lastPathComponent)
             return try normalize(
-                records: delimitedRecords(in: source, delimiter: best.0),
+                records: records,
                 displayName: url.deletingPathExtension().lastPathComponent
             )
         }
@@ -234,6 +240,30 @@ enum DatasetParser {
         )
     }
 
+    private static func validateDelimitedShape(_ records: [[String]], displayName: String) throws {
+        let nonEmpty = records.filter { row in
+            row.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        }
+        guard let header = nonEmpty.first else { return }
+        let dataWidths = nonEmpty.dropFirst().map(\.count).filter { $0 > 0 }.sorted()
+        guard !dataWidths.isEmpty else { return }
+
+        let medianWidth = dataWidths[dataWidths.count / 2]
+        let headerWidth = header.count
+
+        // A common damaged-CSV failure mode is losing most row separators. The parser then
+        // interprets hundreds of ordinary cell values as one giant header and uniqueHeaders()
+        // visibly mutates repeated values into names such as C001_2 or 49.0_2. Fail closed
+        // instead of registering that shape as a 0-row / hundreds-of-columns dataset.
+        if headerWidth >= 32,
+           headerWidth >= medianWidth * 3,
+           headerWidth - medianWidth >= 32 {
+            throw DatasetParserError.malformedDelimited(
+                "\(displayName) appears to have damaged row separators: the header expands to \(headerWidth) fields while typical data rows contain \(medianWidth). bIDE refused to import it rather than reinterpret data values as column names."
+            )
+        }
+    }
+
     private static func inferColumnType(rows: [[String?]], index: Int) -> DatasetColumnType {
         let values = rows.prefix(5_000).compactMap { row -> String? in
             guard index < row.count, let value = row[index] else { return nil }
@@ -302,7 +332,7 @@ enum DatasetParser {
         return max(0, value - 1)
     }
 
-    private static func delimitedRecords(in source: String, delimiter: Character) -> [[String]] {
+    private static func delimitedRecords(in source: String, delimiter: Character) throws -> [[String]] {
         var rows: [[String]] = []
         var row: [String] = []
         var field = ""
@@ -338,6 +368,12 @@ enum DatasetParser {
                 field.append(character)
             }
             index = nextIndex
+        }
+
+        guard !inQuotes else {
+            throw DatasetParserError.malformedDelimited(
+                "This delimited file contains an unterminated quoted field. bIDE refused to guess where the affected row ends."
+            )
         }
 
         if !field.isEmpty || !row.isEmpty {
