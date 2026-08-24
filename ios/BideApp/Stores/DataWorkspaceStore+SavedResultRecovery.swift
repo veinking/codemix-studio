@@ -14,6 +14,32 @@ extension DataWorkspaceStore {
             .appendingPathComponent(Self.pendingSavedResultMarkerPrefix + token)
     }
 
+    func beginSavedResultVerification(projectID: UUID, token: String) throws -> URL {
+        guard token.count == 8,
+              token.range(of: "^[a-f0-9]{8}$", options: .regularExpression) != nil else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
+
+        let markerURL = pendingSavedResultMarkerURL(projectID: projectID, token: token)
+        try FileManager.default.createDirectory(
+            at: markerURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try "pending".write(to: markerURL, atomically: true, encoding: .utf8)
+        return markerURL
+    }
+
+    func commitSavedResultVerification(markerURL: URL) throws {
+        try "verified".write(to: markerURL, atomically: true, encoding: .utf8)
+    }
+
+    func clearSavedResultVerificationMarker(_ markerURL: URL) throws {
+        let manager = FileManager.default
+        if manager.fileExists(atPath: markerURL.path) {
+            try manager.removeItem(at: markerURL)
+        }
+    }
+
     @discardableResult
     func recoverInterruptedSavedResults(projectID: UUID) -> Bool {
         guard activeProjectID == projectID else { return false }
