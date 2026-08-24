@@ -125,28 +125,102 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func deleteDataset(_ asset: DatasetAsset, projectID: UUID) async {
-        if activeProjectID == projectID { dataError = nil }
+        guard activeProjectID == projectID else { return }
+        dataError = nil
+
         let dbURL = databaseURL(projectID: projectID)
+        let sourceURL = projectDirectory(projectID).appendingPathComponent(asset.relativePath)
+        let stagedURL = sourceURL.deletingLastPathComponent().appendingPathComponent(
+            ".bide-delete-\(asset.id.uuidString)-\(UUID().uuidString)"
+        )
+        let originalAssets = loadRegistry(projectID: projectID)
+
+        guard originalAssets.contains(where: { $0.id == asset.id }) else {
+            dataError = "bIDE could not delete \(asset.fileName) because it is no longer present in the project dataset registry."
+            return
+        }
+
+        var updatedAssets = originalAssets
+        updatedAssets.removeAll { $0.id == asset.id }
+        var sourceWasStaged = false
+
         do {
-            let names = asset.tables.map(\.sqliteName)
-            try await Task.detached(priority: .utility) {
-                try SQLiteProjectEngine.dropTables(databaseURL: dbURL, names: names)
-            }.value
-            let url = projectDirectory(projectID).appendingPathComponent(asset.relativePath)
-            if fileManager.fileExists(atPath: url.path) {
-                try fileManager.removeItem(at: url)
+            if fileManager.fileExists(atPath: sourceURL.path) {
+                try fileManager.moveItem(at: sourceURL, to: stagedURL)
+                sourceWasStaged = true
             }
 
-            var updated = loadRegistry(projectID: projectID)
-            updated.removeAll { $0.id == asset.id }
-            try saveRegistry(updated, projectID: projectID)
-            if activeProjectID == projectID {
-                datasets = updated
+            do {
+                try saveRegistry(updatedAssets, projectID: projectID)
+            } catch {
+                if sourceWasStaged {
+                    do {
+                        try fileManager.moveItem(at: stagedURL, to: sourceURL)
+                    } catch {
+                        dataError = "bIDE could not update the dataset registry for \(asset.fileName), and restoring its staged source file also failed: \(error.localizedDescription)"
+                        return
+                    }
+                }
+                dataError = "bIDE could not update the dataset registry for \(asset.fileName). The source file and SQL tables were left unchanged."
+                return
             }
+
+            do {
+                let names = asset.tables.map(\.sqliteName)
+                try await Task.detached(priority: .utility) {
+                    try SQLiteProjectEngine.dropTables(databaseURL: dbURL, names: names)
+                }.value
+            } catch {
+                let dropError = error
+                var rollbackProblems: [String] = []
+
+                do {
+                    try saveRegistry(originalAssets, projectID: projectID)
+                } catch {
+                    rollbackProblems.append("registry restore failed: \(error.localizedDescription)")
+                }
+
+                if sourceWasStaged {
+                    do {
+                        try fileManager.moveItem(at: stagedURL, to: sourceURL)
+                    } catch {
+                        rollbackProblems.append("source restore failed: \(error.localizedDescription)")
+                    }
+                }
+
+                openProject(projectID)
+
+                if rollbackProblems.isEmpty {
+                    await rebuildDatabase(projectID: projectID)
+                    if let rebuildError = dataError {
+                        dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)). The source and registry were restored, but rebuilding SQL during rollback also failed: \(rebuildError)"
+                    } else {
+                        dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)). bIDE restored the source file, registry, and derived SQL state."
+                    }
+                } else {
+                    dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)), and rollback was incomplete: \(rollbackProblems.joined(separator: "; "))."
+                }
+                return
+            }
+
+            if sourceWasStaged {
+                do {
+                    try fileManager.removeItem(at: stagedURL)
+                } catch {
+                    datasets = updatedAssets
+                    dataError = "\(asset.fileName) was removed from the project and its SQL tables were deleted, but bIDE could not clean up a hidden staged source copy: \(error.localizedDescription)"
+                    return
+                }
+            }
+
+            datasets = updatedAssets
         } catch {
-            if activeProjectID == projectID {
-                dataError = "Could not delete \(asset.fileName): \(error.localizedDescription)"
+            if sourceWasStaged,
+               fileManager.fileExists(atPath: stagedURL.path),
+               !fileManager.fileExists(atPath: sourceURL.path) {
+                try? fileManager.moveItem(at: stagedURL, to: sourceURL)
             }
+            dataError = "Could not delete \(asset.fileName): \(error.localizedDescription)"
         }
     }
 
