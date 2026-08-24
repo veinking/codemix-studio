@@ -10,6 +10,7 @@ import DatasetCompletionBootstrap from "./components/DatasetCompletionBootstrap"
 import Landing from "./pages/Landing";
 import IDE from "./pages/IDE";
 import PocketBIHandoff from "./pages/PocketBIHandoff";
+import PocketBICallback from "./pages/PocketBICallback";
 import RuntimeLab from "./pages/RuntimeLab";
 import SharedCode from "./pages/SharedCode";
 import NotFound from "./pages/NotFound";
@@ -60,6 +61,7 @@ const App = () => {
                 <Route path="/" element={<Landing />} />
                 <Route path="/ide" element={<IDE />} />
                 <Route path="/pocketbi-handoff" element={<PocketBIHandoff />} />
+                <Route path="/auth/pocketbi/callback" element={<PocketBICallback />} />
                 <Route path="/runtime-lab" element={<RuntimeLab />} />
                 <Route path="/features" element={<Features />} />
                 <Route path="/tutorials" element={<Tutorials />} />
