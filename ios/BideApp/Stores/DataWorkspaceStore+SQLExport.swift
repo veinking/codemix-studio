@@ -122,23 +122,23 @@ extension DataWorkspaceStore {
               let importedTable = imported.tables.first,
               imported.totalRows == exportedRowCount,
               importedTable.columns.count == result.columns.count else {
-            await removeFailedSavedResult(
+            await rejectUnverifiedSavedResult(
                 imported,
                 projectID: projectID,
-                verificationMarkerURL: verificationMarkerURL
+                verificationMarkerURL: verificationMarkerURL,
+                reason: "Saved-result verification failed because the registered shape does not match the exported result."
             )
-            dataError = "Saved-result verification failed. bIDE removed the derived dataset instead of keeping an incomplete copy."
             return nil
         }
 
         guard await prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID),
               beginSQLOperation(projectID: projectID) else {
-            await removeFailedSavedResult(
+            await rejectUnverifiedSavedResult(
                 imported,
                 projectID: projectID,
-                verificationMarkerURL: verificationMarkerURL
+                verificationMarkerURL: verificationMarkerURL,
+                reason: "Saved-result verification could not run because the local SQL database was not ready."
             )
-            dataError = "Saved-result verification could not run because the local SQL database was not ready. bIDE removed the unverified derived dataset."
             return nil
         }
 
@@ -157,12 +157,12 @@ extension DataWorkspaceStore {
             }.value
         } catch {
             endSQLOperation(projectID: projectID)
-            await removeFailedSavedResult(
+            await rejectUnverifiedSavedResult(
                 imported,
                 projectID: projectID,
-                verificationMarkerURL: verificationMarkerURL
+                verificationMarkerURL: verificationMarkerURL,
+                reason: "Saved-result verification could not read the complete derived dataset: \(error.localizedDescription)"
             )
-            dataError = "Saved-result verification could not read the complete derived dataset. bIDE removed it instead of keeping an unverified copy: \(error.localizedDescription)"
             return nil
         }
         endSQLOperation(projectID: projectID)
@@ -170,12 +170,12 @@ extension DataWorkspaceStore {
         guard integritySummary.rowCount == exportSummary.rowCount,
               integritySummary.columns.count == exportSummary.columns.count,
               integritySummary.valueFingerprint == exportSummary.valueFingerprint else {
-            await removeFailedSavedResult(
+            await rejectUnverifiedSavedResult(
                 imported,
                 projectID: projectID,
-                verificationMarkerURL: verificationMarkerURL
+                verificationMarkerURL: verificationMarkerURL,
+                reason: "Saved-result full verification failed because rows or values changed during the CSV round trip."
             )
-            dataError = "Saved-result full verification failed. bIDE removed the derived dataset instead of keeping altered rows or values."
             return nil
         }
 
@@ -184,12 +184,12 @@ extension DataWorkspaceStore {
             // marker deletion keeps the verified dataset; startup simply removes the marker.
             try commitSavedResultVerification(markerURL: verificationMarkerURL)
         } catch {
-            await removeFailedSavedResult(
+            await rejectUnverifiedSavedResult(
                 imported,
                 projectID: projectID,
-                verificationMarkerURL: verificationMarkerURL
+                verificationMarkerURL: verificationMarkerURL,
+                reason: "The saved result passed data verification, but bIDE could not commit its verification state."
             )
-            dataError = "The saved result passed data verification, but bIDE could not commit its verification state. The uncommitted result was removed."
             return nil
         }
 
@@ -199,17 +199,24 @@ extension DataWorkspaceStore {
         return fileURL(for: imported, projectID: projectID)
     }
 
-    private func removeFailedSavedResult(
+    private func rejectUnverifiedSavedResult(
         _ asset: DatasetAsset,
         projectID: UUID,
-        verificationMarkerURL: URL
+        verificationMarkerURL: URL,
+        reason: String
     ) async {
         await deleteDataset(asset, projectID: projectID)
+        let removed = !datasets.contains(where: { $0.id == asset.id })
 
-        // Only clear the pending marker when deletion is visibly complete. If rollback kept
-        // the asset, leave the marker so startup recovery will fail closed and retry removal.
-        if !datasets.contains(where: { $0.id == asset.id }) {
+        if removed {
+            // The failed result no longer exists, so there is nothing left for startup
+            // recovery to roll back. Marker cleanup can be retried harmlessly if it fails.
             try? clearSavedResultVerificationMarker(verificationMarkerURL)
+            dataError = "\(reason) bIDE removed the unverified saved dataset instead of keeping it."
+            return
         }
+
+        let cleanupDetail = dataError
+        dataError = "\(reason) bIDE could not finish removing the unverified dataset immediately. It remains marked pending and will be removed on the next safe project open.\(cleanupDetail.map { " Cleanup detail: \($0)" } ?? "")"
     }
 }
