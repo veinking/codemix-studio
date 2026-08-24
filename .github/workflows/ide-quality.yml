@@ -23,6 +23,8 @@ jobs:
         run: node scripts/validate-bide-focus-v1.mjs
       - name: Validate bIDE Public Cleanup V1
         run: node scripts/validate-bide-public-cleanup-v1.mjs
+      - name: Validate bIDE Auth Entry V1
+        run: node scripts/validate-bide-auth-entry-v1.mjs
       - name: Typecheck
         run: npx tsc --noEmit -p tsconfig.app.json
       - name: Production build
