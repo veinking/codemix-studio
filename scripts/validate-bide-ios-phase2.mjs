@@ -15,6 +15,7 @@ function walk(directory) {
 const required = [
   ".github/workflows/bide-ios-quality.yml",
   ".github/workflows/bide-ios-preflight.yml",
+  "scripts/validate-bide-actions-budget.mjs",
   "ios/project.yml",
   "ios/BIDE_IOS_BUILD_POLICY.md",
   "ios/PHASE_2_DATA_SQL_ACCEPTANCE.md",
@@ -31,6 +32,9 @@ const required = [
   "ios/BideApp/Views/WorkspaceView.swift",
   "ios/BideApp/BideApp.swift",
   "ios/BideTests/JoinPipelineTests.swift",
+  "ios/BideTests/DatabaseMigrationFailureTests.swift",
+  "ios/BideTests/SQLExportLimitTests.swift",
+  "ios/BideTests/MultiSheetXLSXTests.swift",
 ];
 
 for (const filePath of required) {
@@ -39,6 +43,7 @@ for (const filePath of required) {
 
 const paidWorkflow = read(".github/workflows/bide-ios-quality.yml");
 assert.ok(paidWorkflow.includes("workflow_dispatch:"), "Paid macOS lane must remain manually dispatchable.");
+assert.ok(paidWorkflow.includes("validate-bide-actions-budget.mjs"), "Paid macOS lane must enforce the Actions budget policy.");
 for (const forbiddenTrigger of ["pull_request:", "push:", "schedule:"]) {
   assert.ok(
     !paidWorkflow.includes(forbiddenTrigger),
@@ -50,6 +55,7 @@ assert.ok(paidWorkflow.includes("runs-on: macos-15"), "Native checkpoint must re
 const preflightWorkflow = read(".github/workflows/bide-ios-preflight.yml");
 assert.ok(preflightWorkflow.includes("workflow_dispatch:"), "Source preflight must be manually dispatchable.");
 assert.ok(preflightWorkflow.includes("runs-on: ubuntu-latest"), "Source preflight must stay on the cheap Ubuntu lane.");
+assert.ok(preflightWorkflow.includes("validate-bide-actions-budget.mjs"), "Source preflight must enforce the Actions budget policy.");
 assert.ok(preflightWorkflow.includes("validate-bide-ios-phase2.mjs"), "Source preflight must run the Phase 2 validator.");
 
 const project = read("ios/project.yml");
@@ -103,6 +109,11 @@ for (const parserCapability of [
   "unterminated quoted field",
   "structurally inconsistent",
   "another table or damaged row was appended",
+  "var maxColumnIndex: Int?",
+  "guard let normalizedValue = normalizedCell(value)",
+  "guard let maxColumnIndex else { continue }",
+  "denseRows.dropFirst(headerIndex + 1).filter",
+  "formatting/style records for cells",
 ]) {
   assert.ok(parser.includes(parserCapability), `Dataset parser capability missing: ${parserCapability}`);
 }
@@ -149,6 +160,9 @@ for (const migrationCapability of [
   ".bide-sqlite-generation",
   "migrateDerivedDatabaseIfNeeded",
   "refreshDatasetRegistryFromSourceAssets",
+  "strictRegistryAssetsIfPresent",
+  "recordDerivedDatabaseGeneration",
+  "could not verify it safely for SQL migration",
   "rebuildDatabase(projectID: projectID)",
   "storedGeneration != Self.derivedDatabaseGeneration || !databaseExists",
   "id: existing.id",
@@ -271,6 +285,43 @@ for (const regression of [
   "XCTAssertEqual(generation, \"2\")",
 ]) {
   assert.ok(joinTests.includes(regression), `Phone join regression coverage missing: ${regression}`);
+}
+
+const migrationFailureTests = read("ios/BideTests/DatabaseMigrationFailureTests.swift");
+for (const regression of [
+  "testCorruptDatasetRegistryDoesNotGetMarkedAsMigrated",
+  "{not-valid-json",
+  "could not verify it safely",
+  "XCTAssertFalse(",
+  ".bide-sqlite-generation",
+]) {
+  assert.ok(migrationFailureTests.includes(regression), `Migration fail-closed regression missing: ${regression}`);
+}
+
+const exportLimitTests = read("ios/BideTests/SQLExportLimitTests.swift");
+for (const regression of [
+  "testFullCSVExportIsNotLimitedTo500RowPreview",
+  "XCTAssertEqual(preview.rows.count, 500)",
+  "XCTAssertTrue(preview.isTruncated)",
+  "XCTAssertEqual(summary.rowCount, 650)",
+  "XCTAssertEqual(roundTrip.rows.count, 650)",
+  "row_650",
+]) {
+  assert.ok(exportLimitTests.includes(regression), `Full-result export regression missing: ${regression}`);
+}
+
+const xlsxTests = read("ios/BideTests/MultiSheetXLSXTests.swift");
+for (const regression of [
+  "testInventoryAndRegionsIgnoreStyledEmptyCellsAndRows",
+  "bIDE-Phase2-Test-MultiSheet.xlsx",
+  'sourceSheetName == "Inventory"',
+  "XCTAssertEqual(inventory.columns.count, 5)",
+  "XCTAssertEqual(inventory.rows.count, 6)",
+  'sourceSheetName == "Regions"',
+  "XCTAssertEqual(regions.columns.count, 3)",
+  "XCTAssertEqual(regions.rows.count, 3)",
+]) {
+  assert.ok(xlsxTests.includes(regression), `Multi-sheet XLSX regression missing: ${regression}`);
 }
 
 const completion = read("ios/BideApp/Editor/CompletionProvider.swift");
