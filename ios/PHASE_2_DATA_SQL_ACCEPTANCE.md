@@ -10,13 +10,17 @@ Phase 2 turns the accepted native editor/project foundation into a usable local 
 - Native SQLite is linked through `libsqlite3.tbd`; sql.js is not used by the native SQL path.
 - Swift 6 strict-concurrency simulator build succeeds for iPhone + iPad.
 - Unsigned arm64 physical-device IPA packages successfully.
-- Audited checkpoint reports app version 0.2.2 build 4.
+- Audited checkpoint reports app version 0.2.3 build 5.
 
 ## Audited real-device checkpoint
 
 Use the Phase-2 customer/order CSV fixtures plus `bIDE-Phase2-Test-MultiSheet.xlsx` for the final hardware pass.
 
 - From Datasets, `Join Two Tables` visibly offers `Run Join & View Results`; the tester should not have to create a SQL file and hunt for the Run button just to inspect a guided join.
+- `Run Join & View Results` must dismiss the Join Builder first and only then present Join Results; the results sheet must not flash and disappear during the modal handoff.
+- `Create Editable Join Query` must verify that a new active `.sql` file was actually created before dismissing. If creation fails, the Join Builder stays open and shows an error.
+- After a successful `Create Editable Join Query`, the Join Builder dismisses before bIDE switches to Workspace, and the newly created SQL file remains active and visible.
+- The join flow must behave the same whether the user started in Datasets or Workspace; no pre-existing SQL tab ritual or manually empty project is required.
 - For the customer/order LEFT JOIN, customers with multiple orders repeat once per matching order while all three customers with no orders remain present with NULL/blank right-side order fields.
 - From Join Results / SQL Results, `Save Result as Dataset` creates a reusable local dataset. After fully terminating bIDE and reopening it, both original CSV assets and the saved result must still appear in the project.
 - `Share Result as CSV` must contain the complete read-only query result from SQLite, including rows beyond the 500-row screen preview.
@@ -109,6 +113,7 @@ Use known-good test queries rather than requiring the tester to remember SQL syn
 - the guided join builder prefers same-named columns and prioritizes likely keys such as `customer_id` / other `*_id` fields rather than blindly choosing each table's first column.
 - the guided join can be run directly and viewed without first creating a SQL file.
 - generated join SQL can still be saved as normal editable SQL in Workspace.
+- modal dismissal and tab/result presentation are serialized so one transition cannot cancel the next.
 
 ## Result reuse gate
 
