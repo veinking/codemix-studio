@@ -6,22 +6,36 @@ name: bIDE iOS Source Preflight
 # regressions before we spend a paid native checkpoint.
 on:
   workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact branch, tag, or commit to validate
+        required: true
+        type: string
+      confirm:
+        description: Type TEST to spend Actions minutes on source preflight
+        required: true
+        default: ""
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: bide-ios-preflight-${{ github.ref }}
+  group: bide-ios-preflight-${{ inputs.source_ref }}
   cancel-in-progress: true
 
 jobs:
   validate:
+    if: ${{ inputs.confirm == 'TEST' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
     steps:
-      - name: Check out source
+      - name: Check out requested source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
 
       - name: Validate Actions budget policy
         run: node scripts/validate-bide-actions-budget.mjs
@@ -42,9 +56,10 @@ jobs:
 
           const workflow = fs.readFileSync('.github/workflows/bide-ios-quality.yml', 'utf8');
           assert.match(workflow, /workflow_dispatch:/, 'Paid macOS lane must keep workflow_dispatch.');
+          assert.match(workflow, /inputs\.confirm == 'TEST'/, 'Paid macOS lane must require explicit TEST confirmation.');
           for (const forbidden of ['pull_request:', 'push:', 'schedule:']) {
             assert.ok(!workflow.includes(forbidden), `Paid macOS lane must not contain ${forbidden}`);
           }
           assert.ok(workflow.includes('runs-on: macos-15'), 'Paid lane must remain the explicit macOS/Xcode checkpoint.');
-          console.log('Paid bIDE macOS lane is manual-only.');
+          console.log('Paid bIDE macOS lane is explicit, exact-ref, and manual-only.');
           NODE
