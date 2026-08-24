@@ -11,6 +11,8 @@ const required = [
   "ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift",
   "ios/BideApp/Views/ProjectsView.swift",
+  "ios/BideApp/Views/DatasetsView.swift",
+  "ios/BideApp/Views/SQLResultsView.swift",
   "ios/BideApp/BideApp.swift",
   "ios/BideTests/DatabaseMigrationEdgeCaseTests.swift",
   "ios/BideTests/RebuildDatabaseFailureTests.swift",
@@ -95,6 +97,8 @@ for (const capability of [
   "prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID)",
   "beginSQLOperation(projectID: projectID)",
   "endSQLOperation(projectID: projectID)",
+  "verificationSampleCount",
+  "result.isTruncated",
   "exportSummary.columns == result.columns",
   "exportSummary.sampleRows == expectedSample",
   "!result.isTruncated, exportSummary.rowCount != result.rowCount",
@@ -115,6 +119,27 @@ for (const capability of [
   "Recheck at commit time",
 ]) {
   assert.ok(projectsView.includes(capability), `Project-deletion safety guard missing: ${capability}`);
+}
+
+const datasetsView = read("ios/BideApp/Views/DatasetsView.swift");
+for (const capability of [
+  "rebuildConfirmationPresented",
+  "Rebuild SQL Database?",
+  "Button(\"Rebuild Database\", role: .destructive)",
+  "SQL-only CREATE/INSERT/UPDATE/DELETE changes",
+  "Your original dataset files are not modified",
+]) {
+  assert.ok(datasetsView.includes(capability), `Derived-database rebuild warning missing: ${capability}`);
+}
+
+const resultsView = read("ios/BideApp/Views/SQLResultsView.swift");
+for (const capability of [
+  "if !result.isReadOnly",
+  "local derived SQLite database",
+  "Imported CSV/XLSX/JSON source files are unchanged",
+  "Rebuilding or migrating the derived database can replace SQL-only edits",
+]) {
+  assert.ok(resultsView.includes(capability), `Mutating-SQL persistence disclosure missing: ${capability}`);
 }
 
 const app = read("ios/BideApp/BideApp.swift");
@@ -204,9 +229,11 @@ for (const regression of [
 const exportTest = read("ios/BideTests/SQLExportIntegrityTests.swift");
 for (const regression of [
   "testNonTruncatedExportRefusesStaleRowCountEvenWhenOriginalSampleStillMatches",
+  "testNonTruncatedExportVerifiesValuesBeyondFirstHundredRows",
   "testExportRefusesWhileDatasetMutationOwnsProject",
-  "INSERT INTO",
+  "changed_tail",
   "CSV row count no longer matches the SQL result",
+  "CSV values no longer match the SQL result",
   "Finish the current dataset or SQL operation before exporting this result",
 ]) {
   assert.ok(exportTest.includes(regression), `SQL-export integrity regression missing: ${regression}`);
