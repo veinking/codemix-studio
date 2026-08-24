@@ -10,7 +10,20 @@ Phase 2 turns the accepted native editor/project foundation into a usable local 
 - Native SQLite is linked through `libsqlite3.tbd`; sql.js is not used by the native SQL path.
 - Swift 6 strict-concurrency simulator build succeeds for iPhone + iPad.
 - Unsigned arm64 physical-device IPA packages successfully.
-- Audited checkpoint reports app version 0.2.1 build 3.
+- Audited checkpoint reports app version 0.2.2 build 4.
+
+## Audited real-device checkpoint
+
+Use the Phase-2 customer/order CSV fixtures plus `bIDE-Phase2-Test-MultiSheet.xlsx` for the final hardware pass.
+
+- From Datasets, `Join Two Tables` visibly offers `Run Join & View Results`; the tester should not have to create a SQL file and hunt for the Run button just to inspect a guided join.
+- For the customer/order LEFT JOIN, customers with multiple orders repeat once per matching order while all three customers with no orders remain present with NULL/blank right-side order fields.
+- From Join Results / SQL Results, `Save Result as Dataset` creates a reusable local dataset. After fully terminating bIDE and reopening it, both original CSV assets and the saved result must still appear in the project.
+- `Share Result as CSV` must contain the complete read-only query result from SQLite, including rows beyond the 500-row screen preview.
+- Importing `bIDE-Phase2-Test-MultiSheet.xlsx` must expose both non-empty worksheets as SQL tables using the worksheet names as their natural table bases:
+  - `Inventory` — 6 data rows / 5 columns
+  - `Regions` — 3 data rows / 3 columns
+- If the fixture names collide with an existing SQL table, normal uniqueness suffixing is allowed; otherwise the workbook filename must not obscure the worksheet table names.
 
 ## Discoverability gate
 
@@ -18,6 +31,8 @@ Critical data actions must be visible without guessing that they live behind an 
 
 - Datasets visibly exposes Import Dataset.
 - With two or more SQL tables, Datasets visibly exposes Join Two Tables.
+- Join Two Tables visibly exposes Run Join & View Results and Create Editable Join Query.
+- A directly run guided join returns to a native Join Results sheet with the same result actions as ordinary SQL execution.
 - Datasets visibly exposes Rebuild SQL Database and Export Dataset Files once data exists.
 - Dataset detail visibly exposes Export This Dataset.
 - SQL Results visibly exposes Share Result as CSV and Save Result as Dataset for read-only results.
@@ -46,6 +61,7 @@ Also verify:
 - JSON/TXT outside a `data/` directory are not blindly auto-classified during project-folder discovery
 - bIDE metadata JSON files are never shown as datasets
 - imported dataset source files remain local to the project and survive relaunch
+- multi-sheet XLSX worksheet names are used as the natural SQL-table bases rather than being prefixed by the workbook filename
 
 ## Data integrity gate
 
@@ -91,7 +107,8 @@ Use known-good test queries rather than requiring the tester to remember SQL syn
 - Dataset → Query in SQL creates an editable query file against the selected table.
 - Join Two Tables lets the user choose left/right tables, matching columns, and INNER or LEFT join without memorizing join syntax.
 - the guided join builder prefers same-named columns and prioritizes likely keys such as `customer_id` / other `*_id` fields rather than blindly choosing each table's first column.
-- generated join SQL remains normal editable SQL in Workspace.
+- the guided join can be run directly and viewed without first creating a SQL file.
+- generated join SQL can still be saved as normal editable SQL in Workspace.
 
 ## Result reuse gate
 
