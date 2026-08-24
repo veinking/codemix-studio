@@ -1,26 +1,18 @@
 name: bIDE iOS Quality
 
-# The macOS/Xcode lane is intentionally checkpoint-only because GitHub-hosted
-# macOS minutes are expensive. During active device QA we batch fixes, then run
-# this workflow when an audited Phase-2 PR is explicitly marked ready for review.
+# EXPENSIVE CHECKPOINT LANE.
+# This workflow is manual-only by design. Do not attach push, pull_request,
+# ready_for_review, or schedule triggers here. During active development we batch
+# fixes, run the cheap source preflight once, and dispatch this macOS/Xcode lane
+# only when the resulting IPA is worth installing on a physical device.
 on:
   workflow_dispatch:
-  pull_request:
-    types: [ready_for_review]
-    branches:
-      - agent/bide-ios-phase2-build-gate
-    paths:
-      - "ios/**"
-      - "scripts/validate-bide-ios-phase1.mjs"
-      - "scripts/validate-bide-ios-phase2.mjs"
-      - "scripts/release/build_bide_sideloadly_ipa.sh"
-      - ".github/workflows/bide-ios-quality.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: bide-ios-${{ github.event.pull_request.number || github.ref }}
+  group: bide-ios-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
