@@ -137,14 +137,11 @@ enum DatasetParser {
                 guard !worksheetRows.isEmpty else { continue }
 
                 var sparseRows: [[Int: String?]] = []
-                var maxColumnIndex = 0
+                var maxColumnIndex: Int?
 
                 for row in worksheetRows {
                     var valuesByIndex: [Int: String?] = [:]
                     for cell in row.cells {
-                        let index = excelColumnIndex(cell.reference.column.value)
-                        maxColumnIndex = max(maxColumnIndex, index)
-
                         let sharedValue: String?
                         if let sharedStrings {
                             sharedValue = cell.stringValue(sharedStrings)
@@ -152,11 +149,20 @@ enum DatasetParser {
                             sharedValue = nil
                         }
                         let value = cell.inlineString?.text ?? sharedValue ?? cell.value
-                        valuesByIndex[index] = normalizedCell(value)
+                        guard let normalizedValue = normalizedCell(value) else {
+                            // Excel frequently stores formatting/style records for cells
+                            // that have no value. Those must not widen the inferred table.
+                            continue
+                        }
+
+                        let index = excelColumnIndex(cell.reference.column.value)
+                        maxColumnIndex = max(maxColumnIndex ?? index, index)
+                        valuesByIndex[index] = normalizedValue
                     }
                     sparseRows.append(valuesByIndex)
                 }
 
+                guard let maxColumnIndex else { continue }
                 let denseRows = sparseRows.map { valuesByIndex in
                     (0...maxColumnIndex).map { valuesByIndex[$0] ?? nil }
                 }
@@ -169,7 +175,12 @@ enum DatasetParser {
                 }) else { continue }
 
                 let headerRow = denseRows[headerIndex]
-                let dataRows = Array(denseRows.dropFirst(headerIndex + 1))
+                let dataRows = denseRows.dropFirst(headerIndex + 1).filter { row in
+                    row.contains { value in
+                        guard let value else { return false }
+                        return !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    }
+                }
                 let sheetName = name ?? "Sheet \(sheetIndex)"
                 let table = makeTable(
                     displayName: sheetName,
@@ -178,7 +189,7 @@ enum DatasetParser {
                         let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
                         return trimmed.isEmpty ? "Column \(index + 1)" : trimmed
                     },
-                    rows: dataRows
+                    rows: Array(dataRows)
                 )
                 parsed.append(table)
             }
