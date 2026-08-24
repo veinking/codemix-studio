@@ -7,7 +7,8 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
         projectDirectory: URL,
         dataDirectory: URL,
         databaseURL: URL,
-        markerURL: URL
+        markerURL: URL,
+        registryURL: URL
     ) {
         let manager = FileManager.default
         let documents = try XCTUnwrap(manager.urls(for: .documentDirectory, in: .userDomainMask).first)
@@ -19,7 +20,8 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
             projectDirectory,
             dataDirectory,
             dataDirectory.appendingPathComponent(".bide.sqlite"),
-            dataDirectory.appendingPathComponent(".bide-sqlite-generation")
+            dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
+            projectDirectory.appendingPathComponent("datasets.bide.json")
         )
     }
 
@@ -89,5 +91,73 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
         let migratedGeneration = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         XCTAssertEqual(migratedGeneration, "2")
+    }
+
+    @MainActor
+    func testExecuteSQLRepairsStaleGenerationBeforeRunningQuery() async throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let urls = try projectURLs(projectID: projectID)
+        try manager.createDirectory(at: urls.dataDirectory, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: urls.projectDirectory) }
+
+        let sourceURL = urls.dataDirectory.appendingPathComponent("orders.csv")
+        try "order_id,value\nO1,source-one\nO2,source-two\n".write(
+            to: sourceURL,
+            atomically: true,
+            encoding: .utf8
+        )
+        let parsed = try XCTUnwrap(DatasetParser.parse(url: sourceURL, format: .csv).first)
+        let asset = DatasetAsset(
+            fileName: "orders.csv",
+            relativePath: "data/orders.csv",
+            format: .csv,
+            sizeBytes: Int64((try Data(contentsOf: sourceURL)).count),
+            tables: [
+                DatasetTableDescriptor(
+                    displayName: "orders",
+                    sqliteName: "orders",
+                    rowCount: parsed.rows.count,
+                    columns: parsed.columns
+                )
+            ]
+        )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([asset]).write(to: urls.registryURL, options: .atomic)
+
+        // Simulate an older/corrupt derived database. The visible source-of-truth CSV has
+        // two rows, while the stale SQLite table contains one unrelated row.
+        _ = try SQLiteProjectEngine.execute(
+            databaseURL: urls.databaseURL,
+            sql: "CREATE TABLE orders (order_id TEXT, value TEXT); INSERT INTO orders VALUES ('OLD', 'stale');"
+        )
+        try "1".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertFalse(store.isDerivedDatabaseReadyForSQL(projectID: projectID))
+
+        await store.executeSQL(
+            "SELECT COUNT(*) AS row_count FROM \"orders\";",
+            projectID: projectID
+        )
+
+        XCTAssertNil(store.sqlError)
+        XCTAssertNil(store.dataError)
+        XCTAssertTrue(store.isDerivedDatabaseReadyForSQL(projectID: projectID))
+        XCTAssertEqual(store.lastSQLRun?.primaryResult?.rows.first?.first ?? nil, "2")
+
+        let generation = try String(contentsOf: urls.markerURL, encoding: .utf8)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        XCTAssertEqual(generation, "2")
+
+        let repairedRows = try SQLiteProjectEngine.execute(
+            databaseURL: urls.databaseURL,
+            sql: "SELECT order_id, value FROM \"orders\" ORDER BY order_id;"
+        ).primaryResult?.rows
+        XCTAssertEqual(repairedRows, [["O1", "source-one"], ["O2", "source-two"]])
     }
 }
