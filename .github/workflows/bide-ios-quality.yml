@@ -6,22 +6,36 @@ name: bIDE iOS Quality
 # the macOS/Xcode lane only when an exact candidate head is worth device validation.
 on:
   workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact branch, tag, or commit to validate and package
+        required: true
+        type: string
+      confirm:
+        description: Type TEST to spend macOS/Xcode Actions minutes
+        required: true
+        default: ""
+        type: string
 
 permissions:
   contents: read
 
 concurrency:
-  group: bide-ios-${{ github.ref }}
+  group: bide-ios-${{ inputs.source_ref }}
   cancel-in-progress: true
 
 jobs:
   build:
+    if: ${{ inputs.confirm == 'TEST' }}
     runs-on: macos-15
     timeout-minutes: 30
 
     steps:
-      - name: Check out source
+      - name: Check out requested source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
 
       - name: Validate Actions budget policy
         run: node scripts/validate-bide-actions-budget.mjs
