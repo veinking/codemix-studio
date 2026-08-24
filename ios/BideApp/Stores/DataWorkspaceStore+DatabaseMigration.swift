@@ -21,6 +21,10 @@ extension DataWorkspaceStore {
         let databaseExists = manager.fileExists(atPath: databaseURL.path)
 
         guard storedGeneration != Self.derivedDatabaseGeneration || !databaseExists else { return }
+        guard beginDataOperation(projectID: projectID, status: "Refreshing local SQL state…") else {
+            return
+        }
+        defer { endDataOperation(projectID: projectID) }
 
         if datasets.isEmpty {
             do {
@@ -39,7 +43,9 @@ extension DataWorkspaceStore {
 
                 try Self.derivedDatabaseGeneration.write(to: markerURL, atomically: true, encoding: .utf8)
             } catch {
-                dataError = "Could not reset the empty project's local SQL database: \(error.localizedDescription)"
+                if activeProjectID == projectID {
+                    dataError = "Could not reset the empty project's local SQL database: \(error.localizedDescription)"
+                }
             }
             return
         }
@@ -57,10 +63,11 @@ extension DataWorkspaceStore {
 
         guard activeProjectID == projectID else { return }
 
-        // Reload the freshly reconstructed registry before rebuilding SQLite so both the
-        // Datasets UI metadata and the derived SQL tables come from the same source parse.
+        // Reload the freshly reconstructed registry while retaining the project-level data
+        // operation lock. The following SQLite rebuild therefore cannot race SQL, previews,
+        // exports, imports, deletes, or another rebuild.
         openProject(projectID)
-        await rebuildDatabase(projectID: projectID)
+        await rebuildDatabaseWithinDataOperation(projectID: projectID)
         guard activeProjectID == projectID, dataError == nil else { return }
 
         do {
