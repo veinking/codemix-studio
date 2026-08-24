@@ -83,19 +83,37 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios
         PRODUCT_NAME: bIDE
-        MARKETING_VERSION: 0.2.4
-        CURRENT_PROJECT_VERSION: 6
+        MARKETING_VERSION: 0.2.5
+        CURRENT_PROJECT_VERSION: 7
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         TARGETED_DEVICE_FAMILY: "1,2"
         SUPPORTS_MACCATALYST: NO
+
+  bIDETests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: BideTests
+    dependencies:
+      - target: bIDE
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios.tests
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
 
 schemes:
   bIDE:
     build:
       targets:
         bIDE: all
+        bIDETests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - bIDETests
     archive:
       config: Release
