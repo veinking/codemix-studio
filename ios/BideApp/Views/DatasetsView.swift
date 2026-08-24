@@ -8,6 +8,7 @@ struct DatasetsView: View {
     @State private var importerPresented = false
     @State private var joinBuilderPresented = false
     @State private var joinResultReport: SQLRunReport?
+    @State private var lastCompletedJoinReport: SQLRunReport?
     @State private var openWorkspaceAfterJoinDismiss = false
     @State private var shareURLs: [URL] = []
     @State private var deleteTarget: DatasetAsset?
@@ -78,6 +79,27 @@ struct DatasetsView: View {
                     Text("Import at least two SQL tables to enable the guided join builder.")
                 } else {
                     Text("Import, run joins, rebuild, and export project data without hunting through hidden menus.")
+                }
+            }
+
+            if let report = lastCompletedJoinReport {
+                Section("Last Join Result") {
+                    if let result = report.primaryResult {
+                        LabeledContent("Rows", value: result.rowCount.formatted())
+                        LabeledContent("Columns", value: result.columns.count.formatted())
+                        if result.isTruncated {
+                            Label("Screen preview shows the first 500 rows. Reopening this result keeps full-result save/share actions available.", systemImage: "info.circle")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+
+                    Button {
+                        joinResultReport = report
+                    } label: {
+                        Label("Open Join Results", systemImage: "tablecells")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
             }
 
@@ -201,6 +223,11 @@ struct DatasetsView: View {
         } message: {
             Text(dataWorkspace.dataError ?? "Unknown dataset error.")
         }
+        .onChange(of: workspace.activeProjectID) { _, _ in
+            joinResultReport = nil
+            lastCompletedJoinReport = nil
+            openWorkspaceAfterJoinDismiss = false
+        }
     }
 
     private var datasetSummary: String {
@@ -222,6 +249,7 @@ struct DatasetsView: View {
 
         guard let report = dataWorkspace.lastSQLRun else { return }
         dataWorkspace.lastSQLRun = nil
+        lastCompletedJoinReport = report
         Task { @MainActor in
             await Task.yield()
             joinResultReport = report
