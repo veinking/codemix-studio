@@ -45,8 +45,8 @@ extension DataWorkspaceStore {
             .appendingPathComponent("\(Self.savedResultFilePrefix)\(token).csv")
 
         // If the on-screen result is complete, verify every visible row. Only genuinely
-        // truncated (>500-row) results use a bounded sample while the exporter still streams
-        // the complete query result to disk.
+        // truncated (>500-row) results use a bounded display comparison while the exporter
+        // still streams and fingerprints the complete query result.
         let verificationSampleCount = result.isTruncated
             ? min(result.rows.count, 100)
             : result.rows.count
@@ -131,52 +131,52 @@ extension DataWorkspaceStore {
             return nil
         }
 
-        let sampleCount = verificationSampleCount
-        if sampleCount > 0 {
-            guard await prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID),
-                  beginSQLOperation(projectID: projectID) else {
-                await removeFailedSavedResult(
-                    imported,
-                    projectID: projectID,
-                    verificationMarkerURL: verificationMarkerURL
-                )
-                dataError = "Saved-result verification could not run because the local SQL database was not ready. bIDE removed the unverified derived dataset."
-                return nil
-            }
+        guard await prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID),
+              beginSQLOperation(projectID: projectID) else {
+            await removeFailedSavedResult(
+                imported,
+                projectID: projectID,
+                verificationMarkerURL: verificationMarkerURL
+            )
+            dataError = "Saved-result verification could not run because the local SQL database was not ready. bIDE removed the unverified derived dataset."
+            return nil
+        }
 
-            let tableName = SQLiteProjectEngine.quoteIdentifier(importedTable.sqliteName)
-            let verificationSQL = "SELECT * FROM \(tableName) LIMIT \(sampleCount);"
-            let verification: SQLRunReport
-            do {
-                verification = try await Task.detached(priority: .userInitiated) {
-                    try SQLiteProjectEngine.execute(
-                        databaseURL: databaseURL,
-                        sql: verificationSQL,
-                        rowLimit: sampleCount
-                    )
-                }.value
-            } catch {
-                endSQLOperation(projectID: projectID)
-                await removeFailedSavedResult(
-                    imported,
-                    projectID: projectID,
-                    verificationMarkerURL: verificationMarkerURL
+        // CSV re-import may intentionally disambiguate duplicate header names, so full
+        // verification compares column count plus row/value order rather than exact headers.
+        // ORDER BY rowid reproduces the CSV insertion order without materializing all rows.
+        let tableName = SQLiteProjectEngine.quoteIdentifier(importedTable.sqliteName)
+        let verificationSQL = "SELECT * FROM \(tableName) ORDER BY rowid;"
+        let integritySummary: SQLQueryIntegritySummary
+        do {
+            integritySummary = try await Task.detached(priority: .userInitiated) {
+                try SQLiteProjectEngine.integritySummaryForReadOnlyQuery(
+                    databaseURL: databaseURL,
+                    sql: verificationSQL
                 )
-                dataError = "Saved-result verification could not read the derived dataset. bIDE removed it instead of keeping an unverified copy: \(error.localizedDescription)"
-                return nil
-            }
+            }.value
+        } catch {
             endSQLOperation(projectID: projectID)
+            await removeFailedSavedResult(
+                imported,
+                projectID: projectID,
+                verificationMarkerURL: verificationMarkerURL
+            )
+            dataError = "Saved-result verification could not read the complete derived dataset. bIDE removed it instead of keeping an unverified copy: \(error.localizedDescription)"
+            return nil
+        }
+        endSQLOperation(projectID: projectID)
 
-            let expectedRows = Array(result.rows.prefix(sampleCount))
-            guard verification.primaryResult?.rows == expectedRows else {
-                await removeFailedSavedResult(
-                    imported,
-                    projectID: projectID,
-                    verificationMarkerURL: verificationMarkerURL
-                )
-                dataError = "Saved-result value verification failed. bIDE removed the derived dataset instead of keeping altered values."
-                return nil
-            }
+        guard integritySummary.rowCount == exportSummary.rowCount,
+              integritySummary.columns.count == exportSummary.columns.count,
+              integritySummary.valueFingerprint == exportSummary.valueFingerprint else {
+            await removeFailedSavedResult(
+                imported,
+                projectID: projectID,
+                verificationMarkerURL: verificationMarkerURL
+            )
+            dataError = "Saved-result full verification failed. bIDE removed the derived dataset instead of keeping altered rows or values."
+            return nil
         }
 
         do {
