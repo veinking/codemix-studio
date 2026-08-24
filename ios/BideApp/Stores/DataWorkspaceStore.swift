@@ -170,7 +170,14 @@ final class DataWorkspaceStore: ObservableObject {
         }
 
         let dbURL = databaseURL(projectID: projectID)
-        try? fileManager.removeItem(at: dbURL)
+        do {
+            try removeDerivedDatabaseFiles(at: dbURL)
+        } catch {
+            if activeProjectID == projectID {
+                dataError = "Could not reset the old SQL database before rebuilding: \(error.localizedDescription)"
+            }
+            return
+        }
 
         do {
             for asset in assets {
@@ -196,8 +203,17 @@ final class DataWorkspaceStore: ObservableObject {
                 }
             }
         } catch {
+            let rebuildError = error
+            do {
+                try removeDerivedDatabaseFiles(at: dbURL)
+            } catch {
+                if activeProjectID == projectID {
+                    dataError = "SQL rebuild failed (\(rebuildError.localizedDescription)) and bIDE could not remove the partial derived database: \(error.localizedDescription)"
+                }
+                return
+            }
             if activeProjectID == projectID {
-                dataError = "Could not rebuild the SQL database: \(error.localizedDescription)"
+                dataError = "Could not rebuild the SQL database: \(rebuildError.localizedDescription). The incomplete derived database was discarded; source datasets were left unchanged."
             }
         }
     }
@@ -402,6 +418,16 @@ final class DataWorkspaceStore: ObservableObject {
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(assets)
         try data.write(to: registryURL(projectID: projectID), options: .atomic)
+    }
+
+    private func removeDerivedDatabaseFiles(at databaseURL: URL) throws {
+        for url in [
+            databaseURL,
+            URL(fileURLWithPath: databaseURL.path + "-wal"),
+            URL(fileURLWithPath: databaseURL.path + "-shm"),
+        ] where fileManager.fileExists(atPath: url.path) {
+            try fileManager.removeItem(at: url)
+        }
     }
 
     private func uniqueDestination(for fileName: String, in directory: URL) -> URL {
