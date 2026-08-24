@@ -173,8 +173,9 @@ enum SQLiteProjectEngine {
     static func exportReadOnlyQueryToCSV(
         databaseURL: URL,
         sql: String,
-        outputURL: URL
-    ) throws -> Int {
+        outputURL: URL,
+        sampleLimit: Int = 100
+    ) throws -> SQLCSVExportSummary {
         let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw SQLiteProjectEngineError.emptySQL }
 
@@ -212,10 +213,14 @@ enum SQLiteProjectEngine {
 
         var outputBuffer = csvLine(columns.map(Optional.some))
         var rowCount = 0
+        var sampleRows: [[String?]] = []
         var stepResult = sqlite3_step(statement)
         while stepResult == SQLITE_ROW {
             let row = (0..<columnCount).map { columnValue(statement, index: Int32($0)) }
             outputBuffer.append(csvLine(row))
+            if sampleRows.count < sampleLimit {
+                sampleRows.append(row)
+            }
             rowCount += 1
 
             if outputBuffer.utf8.count >= 64 * 1_024 {
@@ -231,7 +236,11 @@ enum SQLiteProjectEngine {
         if !outputBuffer.isEmpty {
             try write(outputBuffer, to: handle)
         }
-        return rowCount
+        return SQLCSVExportSummary(
+            rowCount: rowCount,
+            columns: columns,
+            sampleRows: sampleRows
+        )
     }
 
     static func quoteIdentifier(_ identifier: String) -> String {
