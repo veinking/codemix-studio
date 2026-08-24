@@ -266,8 +266,11 @@ final class DataWorkspaceStore: ObservableObject {
                 let requestedBase: String
                 if parsedTables.count == 1 {
                     requestedBase = fileBase
+                } else if let sheetName = parsedTable.sourceSheetName,
+                          !sheetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    requestedBase = sheetName
                 } else {
-                    requestedBase = "\(fileBase)_\(parsedTable.sourceSheetName ?? "sheet_\(index + 1)")"
+                    requestedBase = "\(fileBase)_sheet_\(index + 1)"
                 }
                 let sqliteName = uniqueSQLiteName(base: requestedBase, usedNames: &usedNames)
                 if activeProjectID == projectID {
