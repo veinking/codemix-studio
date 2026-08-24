@@ -32,14 +32,29 @@ extension DataWorkspaceStore {
             .appendingPathComponent("bide_query_result_\(suffix).csv")
 
         do {
-            let exportedRowCount = try await Task.detached(priority: .userInitiated) {
+            let exportSummary = try await Task.detached(priority: .userInitiated) {
                 try SQLiteProjectEngine.exportReadOnlyQueryToCSV(
                     databaseURL: databaseURL,
                     sql: result.statementSQL,
-                    outputURL: outputURL
+                    outputURL: outputURL,
+                    sampleLimit: min(result.rows.count, 100)
                 )
             }.value
 
+            guard exportSummary.columns == result.columns else {
+                try? manager.removeItem(at: outputURL)
+                dataError = "Export verification failed because the CSV columns no longer match the SQL result. bIDE did not share or save the file."
+                return nil
+            }
+
+            let expectedSample = Array(result.rows.prefix(exportSummary.sampleRows.count))
+            guard exportSummary.sampleRows == expectedSample else {
+                try? manager.removeItem(at: outputURL)
+                dataError = "Export verification failed because the CSV values no longer match the SQL result. bIDE did not share or save the file."
+                return nil
+            }
+
+            let exportedRowCount = exportSummary.rowCount
             guard registerAsDataset else { return outputURL }
 
             let existingIDs = Set(datasets.map(\.id))
