@@ -187,4 +187,77 @@ final class JoinPipelineTests: XCTestCase {
             XCTAssertTrue(message.contains("header declares 7"))
         }
     }
+
+    @MainActor
+    func testDerivedDatabaseMigrationRepairsStaleZeroBy234MetadataFromSource() async throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let documents = try XCTUnwrap(manager.urls(for: .documentDirectory, in: .userDomainMask).first)
+        let projectDirectory = documents
+            .appendingPathComponent("bIDE Projects", isDirectory: true)
+            .appendingPathComponent(projectID.uuidString, isDirectory: true)
+        let dataDirectory = projectDirectory.appendingPathComponent("data", isDirectory: true)
+        try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: projectDirectory) }
+
+        let ordersURL = dataDirectory.appendingPathComponent("bIDE_Join_Practice_Orders.csv")
+        try ordersCSV.write(to: ordersURL, atomically: true, encoding: .utf8)
+
+        let staleColumns = (1...234).map { index in
+            DatasetColumn(name: "stale_\(index)", type: .text)
+        }
+        let staleTable = DatasetTableDescriptor(
+            displayName: "bIDE_Join_Practice_Orders",
+            sqliteName: "orders",
+            rowCount: 0,
+            columns: staleColumns
+        )
+        let staleAsset = DatasetAsset(
+            fileName: ordersURL.lastPathComponent,
+            relativePath: "data/\(ordersURL.lastPathComponent)",
+            format: .csv,
+            sizeBytes: Int64(ordersCSV.utf8.count),
+            importedAt: Date(timeIntervalSince1970: 1_700_000_000),
+            tables: [staleTable]
+        )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        try encoder.encode([staleAsset]).write(
+            to: projectDirectory.appendingPathComponent("datasets.bide.json"),
+            options: .atomic
+        )
+        try Data().write(to: dataDirectory.appendingPathComponent(".bide.sqlite"), options: .atomic)
+        try "1".write(
+            to: dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertEqual(store.datasets.first?.tables.first?.rowCount, 0)
+        XCTAssertEqual(store.datasets.first?.tables.first?.columns.count, 234)
+
+        await store.migrateDerivedDatabaseIfNeeded(projectID: projectID)
+
+        XCTAssertNil(store.dataError)
+        let repaired = try XCTUnwrap(store.datasets.first?.tables.first)
+        XCTAssertEqual(repaired.rowCount, 27)
+        XCTAssertEqual(repaired.columns.count, 7)
+        XCTAssertEqual(repaired.columns.first?.name, "order_id")
+        XCTAssertEqual(repaired.columns[1].name, "customer_id")
+
+        await store.executeSQL("SELECT COUNT(*) AS row_count FROM \"orders\";", projectID: projectID)
+        let countResult = try XCTUnwrap(store.lastSQLRun?.primaryResult)
+        let countValue = countResult.rows.first?.first ?? nil
+        XCTAssertEqual(countValue, "27")
+
+        let generation = try String(
+            contentsOf: dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
+            encoding: .utf8
+        ).trimmingCharacters(in: .whitespacesAndNewlines)
+        XCTAssertEqual(generation, "2")
+    }
 }
