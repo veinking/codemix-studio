@@ -44,6 +44,13 @@ extension DataWorkspaceStore {
         let outputURL = manager.temporaryDirectory
             .appendingPathComponent("bide_query_result_\(suffix).csv")
 
+        // If the on-screen result is complete, verify every visible row. Only genuinely
+        // truncated (>500-row) results use a bounded sample while the exporter still streams
+        // the complete query result to disk.
+        let verificationSampleCount = result.isTruncated
+            ? min(result.rows.count, 100)
+            : result.rows.count
+
         let exportSummary: SQLCSVExportSummary
         do {
             exportSummary = try await Task.detached(priority: .userInitiated) {
@@ -51,7 +58,7 @@ extension DataWorkspaceStore {
                     databaseURL: databaseURL,
                     sql: result.statementSQL,
                     outputURL: outputURL,
-                    sampleLimit: min(result.rows.count, 100)
+                    sampleLimit: verificationSampleCount
                 )
             }.value
         } catch {
@@ -105,7 +112,7 @@ extension DataWorkspaceStore {
             return nil
         }
 
-        let sampleCount = min(result.rows.count, 100)
+        let sampleCount = verificationSampleCount
         if sampleCount > 0 {
             guard await prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID),
                   beginSQLOperation(projectID: projectID) else {
