@@ -1,46 +1,45 @@
-name: bIDE Phase 2 Checkpoint Observer
+name: bIDE Phase 2 Scope Diagnostic
 
+# Manual diagnostic only. This workflow must never wake up from a push or write
+# commits back into the branch. Use it only when the scope scan is worth a run.
 on:
-  push:
-    branches:
-      - agent/bide-ios-phase2-data-sql
-    paths:
-      - ".github/workflows/bide-phase2-checkpoint-observer.yml"
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Branch, tag, or commit to inspect
+        required: true
+        default: agent/bide-ios-phase2-data-sql
+        type: string
+      confirm:
+        description: Type SCAN to run the diagnostic
+        required: true
+        default: ""
+        type: string
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: bide-phase2-scope-${{ inputs.source_ref }}
+  cancel-in-progress: true
 
 jobs:
   diagnose:
+    if: ${{ inputs.confirm == 'SCAN' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    env:
-      STATUS_FILE: .github/bide-phase2-scope-scan.txt
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/bide-ios-phase2-data-sql
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
 
       - name: Scan native Swift scope literals
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p .github
-          {
-            echo "WKWebView matches:"
-            grep -RIn --include='*.swift' 'WKWebView' ios/BideApp || true
-            echo
-            echo "Other deferred-runtime matches:"
-            grep -RIn --include='*.swift' -E 'Pyodide|webR|import StoreKit|import Supabase' ios/BideApp || true
-          } > "${STATUS_FILE}"
-          cat "${STATUS_FILE}"
-
-      - name: Publish diagnostic
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "${STATUS_FILE}"
-          git commit -m "Record Phase 2 scope scan"
-          git push origin HEAD:agent/bide-ios-phase2-data-sql
+          echo "WKWebView matches:"
+          grep -RIn --include='*.swift' 'WKWebView' ios/BideApp || true
+          echo
+          echo "Other deferred-runtime matches:"
+          grep -RIn --include='*.swift' -E 'Pyodide|webR|import StoreKit|import Supabase' ios/BideApp || true
