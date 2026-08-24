@@ -9,21 +9,27 @@ Phase 2 turns the accepted native editor/project foundation into a usable local 
 - CoreXLSX is pinned to exactly 0.14.2.
 - Native SQLite is linked through `libsqlite3.tbd`; sql.js is not used by the native SQL path.
 - Swift 6 strict-concurrency simulator build succeeds for iPhone + iPad.
+- Native XCTest executes the real parser → SQLite → LEFT JOIN → full CSV export → parser round trip using the phone-test Orders/Customers shape.
+- The regression asserts Orders-left LEFT JOIN returns exactly 27 rows, retains `C999` and `C888` with NULL customer-side fields, preserves ordinary values such as `C001`, `Starter Plan`, `1`, and `49.0`, and re-imports the exported CSV as 27 rows / 12 columns.
+- A deliberately flattened/damaged CSV fixture must fail closed instead of becoming a 0-row / hundreds-of-columns dataset with values renamed as headers.
 - Unsigned arm64 physical-device IPA packages successfully.
-- Audited checkpoint reports app version 0.2.3 build 5.
+- Current audited target is app version 0.2.5 build 7.
 
 ## Audited real-device checkpoint
 
-Use the Phase-2 customer/order CSV fixtures plus `bIDE-Phase2-Test-MultiSheet.xlsx` for the final hardware pass.
+Use `bIDE_Join_Practice_Orders.csv`, `bIDE_Join_Practice_Customers.csv`, and `bIDE-Phase2-Test-MultiSheet.xlsx` for the final hardware pass.
 
 - From Datasets, `Join Two Tables` visibly offers `Run Join & View Results`; the tester should not have to create a SQL file and hunt for the Run button just to inspect a guided join.
 - `Run Join & View Results` must dismiss the Join Builder first and only then present Join Results; the results sheet must not flash and disappear during the modal handoff.
+- After a successful guided join, Datasets keeps a visible `Last Join Result` → `Open Join Results` breadcrumb so dismissing the result sheet cannot make the completed join appear lost.
 - `Create Editable Join Query` must verify that a new active `.sql` file was actually created before dismissing. If creation fails, the Join Builder stays open and shows an error.
 - After a successful `Create Editable Join Query`, the Join Builder dismisses before bIDE switches to Workspace, and the newly created SQL file remains active and visible.
 - The join flow must behave the same whether the user started in Datasets or Workspace; no pre-existing SQL tab ritual or manually empty project is required.
-- For the customer/order LEFT JOIN, customers with multiple orders repeat once per matching order while all three customers with no orders remain present with NULL/blank right-side order fields.
+- For the phone regression, select **Orders as the left table**, **Customers as the right table**, `customer_id ↔ customer_id`, and `Left` join. The result must contain exactly 27 rows. `C999` and `C888` remain because they are left-side Orders rows, with NULL/blank customer-side fields.
+- Ordinary source values must remain data values. They must never become generated headers such as `C001_2`, `Starter Plan_2`, `1_2`, or `49.0_2`.
 - From Join Results / SQL Results, `Save Result as Dataset` creates a reusable local dataset. After fully terminating bIDE and reopening it, both original CSV assets and the saved result must still appear in the project.
 - `Share Result as CSV` must contain the complete read-only query result from SQLite, including rows beyond the 500-row screen preview.
+- `Share Original Dataset Files` must be clearly distinct from query/join export. It shares the imported source files only; it must never be presented as the way to export a join result.
 - Importing `bIDE-Phase2-Test-MultiSheet.xlsx` must expose both non-empty worksheets as SQL tables using the worksheet names as their natural table bases:
   - `Inventory` — 6 data rows / 5 columns
   - `Regions` — 3 data rows / 3 columns
@@ -37,7 +43,9 @@ Critical data actions must be visible without guessing that they live behind an 
 - With two or more SQL tables, Datasets visibly exposes Join Two Tables.
 - Join Two Tables visibly exposes Run Join & View Results and Create Editable Join Query.
 - A directly run guided join returns to a native Join Results sheet with the same result actions as ordinary SQL execution.
-- Datasets visibly exposes Rebuild SQL Database and Export Dataset Files once data exists.
+- A completed guided join leaves a visible Last Join Result / Open Join Results recovery path in Datasets.
+- Datasets visibly exposes Rebuild SQL Database and Share Original Dataset Files once data exists.
+- The original-file share copy explicitly says it is not a SQL/join-result export.
 - Dataset detail visibly exposes Export This Dataset.
 - SQL Results visibly exposes Share Result as CSV and Save Result as Dataset for read-only results.
 - a saved result offers a direct View Datasets action.
@@ -66,12 +74,16 @@ Also verify:
 - bIDE metadata JSON files are never shown as datasets
 - imported dataset source files remain local to the project and survive relaunch
 - multi-sheet XLSX worksheet names are used as the natural SQL-table bases rather than being prefixed by the workbook filename
+- delimited files with unterminated quoted fields fail closed rather than guessing row boundaries
+- files whose header width strongly indicates lost row separators fail closed rather than reinterpreting ordinary values as hundreds of column headers
 
 ## Data integrity gate
 
 - repeated cell values remain repeated values; bIDE must never suffix ordinary data such as `VA`, `VA_2`, `VA_3` merely because the value occurs more than once.
 - duplicate column headers may be disambiguated for SQL safety, but row values must remain untouched.
 - leading-zero identifiers such as `00123` remain text rather than becoming `123`.
+- full-result CSV export records the actual streamed columns, full row count, and a bounded value sample.
+- before bIDE shares or saves a SQL-result CSV, the streamed export columns and sampled rows must match the exact SQL result that was shown.
 - Save Result as Dataset verifies complete exported row count before reporting success.
 - Save Result as Dataset verifies imported column count against the query result.
 - Save Result as Dataset round-trips and compares a sample of actual values; a failed verification removes the derived dataset rather than retaining altered output.
@@ -84,7 +96,7 @@ Also verify:
 - Dataset detail exposes all generated SQL tables.
 - Table detail exposes SQL table name, row count, column names, and inferred SQLite affinity.
 - Table preview displays the first 50 rows without freezing navigation.
-- sharing one dataset and sharing all dataset source files opens the native iOS share sheet.
+- sharing one dataset and sharing all original dataset source files opens the native iOS share sheet.
 - deleting a dataset requires explicit confirmation and removes its source asset and generated SQL tables.
 - Rebuild SQL Database recreates queryable tables from the registered source assets.
 
@@ -152,4 +164,4 @@ Do not add yet:
 
 ## Exit
 
-When this checklist passes, bIDE has a real standalone local SQL + dataset workflow on iPhone/iPad. Phase 3 can then reuse the same project assets for Pyodide/Python instead of inventing a second file/data system.
+When this checklist passes, bIDE has a real standalone local SQL + dataset workflow on iPhone/iPad. Phase 3 can then reuse the same project assets for Python instead of inventing a second file/data system.
