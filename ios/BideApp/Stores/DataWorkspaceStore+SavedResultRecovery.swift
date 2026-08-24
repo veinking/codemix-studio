@@ -40,6 +40,20 @@ extension DataWorkspaceStore {
         }
     }
 
+    func savedResultFileName(_ fileName: String, matchesToken token: String) -> Bool {
+        let base = Self.savedResultFilePrefix + token
+        if fileName == base + ".csv" { return true }
+
+        // uniqueDestination(...) resolves an exact filename collision as
+        // `name 2.csv`, `name 3.csv`, etc. Match only that generated shape so recovery
+        // can never sweep up a manually named `..._<token>_backup.csv` file.
+        guard fileName.hasPrefix(base + " "), fileName.hasSuffix(".csv") else { return false }
+        let suffixStart = fileName.index(fileName.startIndex, offsetBy: base.count + 1)
+        let suffixEnd = fileName.index(fileName.endIndex, offsetBy: -4)
+        guard suffixStart < suffixEnd else { return false }
+        return Int(fileName[suffixStart..<suffixEnd]).map { $0 >= 2 } ?? false
+    }
+
     @discardableResult
     func recoverInterruptedSavedResults(projectID: UUID) -> Bool {
         guard activeProjectID == projectID else { return false }
@@ -104,7 +118,7 @@ extension DataWorkspaceStore {
             var updatedAssets = datasets
             updatedAssets.removeAll { asset in
                 pendingTokens.contains { token in
-                    asset.fileName.hasPrefix(Self.savedResultFilePrefix + token)
+                    savedResultFileName(asset.fileName, matchesToken: token)
                 }
             }
 
@@ -117,9 +131,8 @@ extension DataWorkspaceStore {
             try encoder.encode(updatedAssets).write(to: registryURL, options: .atomic)
 
             for token in pendingTokens {
-                let filePrefix = Self.savedResultFilePrefix + token
                 let matchingFiles = entries.filter { entry in
-                    entry.lastPathComponent.hasPrefix(filePrefix)
+                    savedResultFileName(entry.lastPathComponent, matchesToken: token)
                 }
                 for file in matchingFiles where manager.fileExists(atPath: file.path) {
                     try manager.removeItem(at: file)
