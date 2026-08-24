@@ -54,6 +54,7 @@ struct BideApp: App {
         guard let projectID else { return }
         Task {
             await dataWorkspace.reconcileProjectFiles(projectID: projectID)
+            await dataWorkspace.migrateDerivedDatabaseIfNeeded(projectID: projectID)
         }
     }
 }
