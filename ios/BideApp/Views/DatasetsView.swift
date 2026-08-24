@@ -6,6 +6,7 @@ struct DatasetsView: View {
 
     @State private var importerPresented = false
     @State private var joinBuilderPresented = false
+    @State private var joinResultReport: SQLRunReport?
     @State private var shareURLs: [URL] = []
     @State private var deleteTarget: DatasetAsset?
 
@@ -41,6 +42,8 @@ struct DatasetsView: View {
 
                 if !dataWorkspace.datasets.isEmpty {
                     Button {
+                        dataWorkspace.lastSQLRun = nil
+                        joinResultReport = nil
                         joinBuilderPresented = true
                     } label: {
                         Label("Join Two Tables", systemImage: "arrow.triangle.merge")
@@ -71,7 +74,7 @@ struct DatasetsView: View {
                 if !dataWorkspace.datasets.isEmpty, dataWorkspace.tables.count < 2 {
                     Text("Import at least two SQL tables to enable the guided join builder.")
                 } else {
-                    Text("Import, join, rebuild, and export project data without hunting through hidden menus.")
+                    Text("Import, run joins, rebuild, and export project data without hunting through hidden menus.")
                 }
             }
 
@@ -148,8 +151,17 @@ struct DatasetsView: View {
                 await dataWorkspace.importDatasets(urls, projectID: projectID)
             }
         }
-        .sheet(isPresented: $joinBuilderPresented) {
+        .sheet(isPresented: $joinBuilderPresented, onDismiss: {
+            if let report = dataWorkspace.lastSQLRun {
+                joinResultReport = report
+                dataWorkspace.lastSQLRun = nil
+            }
+        }) {
             SQLJoinBuilderView(tables: dataWorkspace.tables)
+        }
+        .sheet(item: $joinResultReport) { report in
+            SQLResultsView(report: report, title: "Join Results")
+                .presentationDetents([.medium, .large])
         }
         .sheet(isPresented: Binding(
             get: { !shareURLs.isEmpty },
