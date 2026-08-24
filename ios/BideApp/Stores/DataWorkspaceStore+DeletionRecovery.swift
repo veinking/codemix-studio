@@ -6,6 +6,14 @@ extension DataWorkspaceStore {
     func recoverInterruptedDatasetDeletions(projectID: UUID) -> Bool {
         guard activeProjectID == projectID else { return false }
 
+        // A staged delete file is only a crash-recovery artifact when no live operation
+        // still owns this project. Switching away and back during a legitimate delete must
+        // never cause startup recovery to race the in-flight transaction.
+        guard !hasActiveDataOperation(projectID: projectID),
+              !hasActiveSQLOperation(projectID: projectID) else {
+            return false
+        }
+
         let manager = FileManager.default
         let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
         let projectDirectory = documents
