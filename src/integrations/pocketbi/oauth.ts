@@ -7,6 +7,7 @@ const TRANSACTION_KEY = 'bide.pocketbi.oauth.transaction.v1';
 const SESSION_KEY = 'bide.pocketbi.oauth.session.v1';
 const MAX_TRANSACTION_AGE_MS = 15 * 60 * 1000;
 const REFRESH_SKEW_SECONDS = 120;
+let refreshTimer: number | null = null;
 
 type OAuthTransaction = {
   state: string;
@@ -82,6 +83,24 @@ function saveStoredSession(tokens: OAuthTokenResponse) {
   return stored;
 }
 
+function cancelScheduledRefresh() {
+  if (refreshTimer !== null) window.clearTimeout(refreshTimer);
+  refreshTimer = null;
+}
+
+function scheduleRefresh(stored: StoredOAuthSession) {
+  cancelScheduledRefresh();
+  const now = Math.floor(Date.now() / 1000);
+  const seconds = Math.max(15, stored.expiresAt - now - REFRESH_SKEW_SECONDS);
+  refreshTimer = window.setTimeout(() => {
+    void refreshPocketBIOAuthSession().catch(async (error) => {
+      console.warn('[PocketBI OAuth] Scheduled refresh failed:', error);
+      try { await supabase.auth.signOut({ scope: 'local' }); } catch { /* local cleanup only */ }
+      await clearPocketBIOAuthSession();
+    });
+  }, seconds * 1000);
+}
+
 async function tokenRequest(params: Record<string, string>) {
   if (!SUPABASE_URL || !CLIENT_ID) throw new Error('PocketBI ID connection is not configured for this bIDE deployment.');
   const response = await fetch(`${SUPABASE_URL}/auth/v1/oauth/token`, {
@@ -104,6 +123,20 @@ async function seedSupabaseSession(stored: StoredOAuthSession) {
   });
   await supabase.auth.stopAutoRefresh();
   if (error) throw error;
+}
+
+async function refreshPocketBIOAuthSession() {
+  const stored = loadStoredSession();
+  if (!stored) return false;
+  const tokens = await tokenRequest({
+    grant_type: 'refresh_token',
+    refresh_token: stored.refreshToken,
+    client_id: CLIENT_ID,
+  });
+  const refreshed = saveStoredSession(tokens);
+  await seedSupabaseSession(refreshed);
+  scheduleRefresh(refreshed);
+  return true;
 }
 
 export function isPocketBIOAuthConfigured() {
@@ -167,6 +200,7 @@ export async function completePocketBIOAuth(search = window.location.search) {
   });
   const stored = saveStoredSession(tokens);
   await seedSupabaseSession(stored);
+  scheduleRefresh(stored);
   history.replaceState(null, '', CALLBACK_PATH);
   return safeReturnTo(transaction.returnTo);
 }
@@ -178,24 +212,22 @@ export async function ensurePocketBIOAuthSession() {
   await supabase.auth.stopAutoRefresh();
   const now = Math.floor(Date.now() / 1000);
   if (stored.expiresAt <= now + REFRESH_SKEW_SECONDS) {
-    const tokens = await tokenRequest({
-      grant_type: 'refresh_token',
-      refresh_token: stored.refreshToken,
-      client_id: CLIENT_ID,
-    });
-    stored = saveStoredSession(tokens);
+    return refreshPocketBIOAuthSession();
   }
   await seedSupabaseSession(stored);
+  scheduleRefresh(stored);
   return true;
 }
 
 export async function clearPocketBIOAuthSession() {
+  cancelScheduledRefresh();
   localStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(TRANSACTION_KEY);
   await supabase.auth.startAutoRefresh();
 }
 
 export async function markDirectPocketBISession() {
+  cancelScheduledRefresh();
   localStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(TRANSACTION_KEY);
   await supabase.auth.startAutoRefresh();
