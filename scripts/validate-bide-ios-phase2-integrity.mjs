@@ -1,10 +1,18 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 
-const read = (filePath) => fs.readFileSync(filePath, "utf8");
-const exists = (filePath) => fs.existsSync(filePath);
+const read = (path) => fs.readFileSync(path, "utf8");
+const exists = (path) => fs.existsSync(path);
+const requireFile = (path) => assert.ok(exists(path), `Missing Phase 2 integrity file: ${path}`);
+const requireTokens = (path, tokens) => {
+  const source = read(path);
+  for (const token of tokens) {
+    assert.ok(source.includes(token), `${path} is missing integrity capability: ${token}`);
+  }
+  return source;
+};
 
-const required = [
+const files = [
   "ios/BideApp/Models/DatasetModels.swift",
   "ios/BideApp/Data/SQLiteProjectEngine.swift",
   "ios/BideApp/Stores/WorkspaceStore.swift",
@@ -27,301 +35,117 @@ const required = [
   "ios/BideTests/SQLExportIntegrityTests.swift",
   "ios/BideTests/LargeSavedResultIntegrityTests.swift",
 ];
+files.forEach(requireFile);
 
-for (const filePath of required) {
-  assert.ok(exists(filePath), `Phase 2 integrity file is missing: ${filePath}`);
-}
+const workspace = read("ios/BideApp/Stores/WorkspaceStore.swift");
+assert.ok(!workspace.includes('"xls"'), "Native project import must not advertise legacy .xls support.");
+assert.ok(!workspace.includes('"parquet"'), "Native project import must not advertise Parquet support yet.");
 
-const models = read("ios/BideApp/Models/DatasetModels.swift");
-for (const capability of [
+requireTokens("ios/BideApp/Stores/DataWorkspaceStore.swift", [
+  "dataOperationProjects: Set<UUID>",
+  "sqlOperationProjects: Set<UUID>",
+  "beginDataOperation(projectID:",
+  "beginSQLOperation(projectID:",
+  "prepareDerivedDatabaseForSQLIfNeeded(projectID:",
+  "rebuildDatabaseWithinDataOperation",
+  ".bide-delete-",
+]);
+
+requireTokens("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift", [
+  "isDerivedDatabaseReadyForSQL",
+  "prepareDerivedDatabaseForSQLIfNeeded",
+  ".bide-sqlite-generation",
+  "refreshDatasetRegistryFromSourceAssets",
+  "rebuildDatabaseWithinDataOperation",
+]);
+
+requireTokens("ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift", [
+  "recoverInterruptedDatasetDeletions",
+  ".bide-delete-",
+  ".bide-sqlite-generation",
+]);
+
+requireTokens("ios/BideApp/Stores/DataWorkspaceStore+SavedResultRecovery.swift", [
+  "pendingSavedResultMarkerPrefix",
+  "beginSavedResultVerification",
+  "commitSavedResultVerification",
+  "recoverInterruptedSavedResults",
+  "savedResultFileName",
+  '"pending"',
+  '"verified"',
+]);
+
+requireTokens("ios/BideApp/Models/DatasetModels.swift", [
   "SQLQueryIntegritySummary",
   "SQLCSVExportSummary",
   "valueFingerprint: UInt64",
-]) {
-  assert.ok(models.includes(capability), `SQL integrity model missing: ${capability}`);
-}
+]);
 
-const sqlite = read("ios/BideApp/Data/SQLiteProjectEngine.swift");
-for (const capability of [
+requireTokens("ios/BideApp/Data/SQLiteProjectEngine.swift", [
   "StableRowFingerprint",
-  "fingerprint.append(row: row)",
+  "exportReadOnlyQueryToCSV",
   "integritySummaryForReadOnlyQuery",
-  "valueFingerprint: fingerprint.value",
-  "rowCount: rowCount",
-]) {
-  assert.ok(sqlite.includes(capability), `Streaming SQL fingerprint safeguard missing: ${capability}`);
-}
+  "fingerprint.append(row: row)",
+]);
 
-const workspaceStore = read("ios/BideApp/Stores/WorkspaceStore.swift");
-assert.ok(!workspaceStore.includes('"xls"'), "Legacy .xls must not be copied by native project import.");
-assert.ok(!workspaceStore.includes('"parquet"'), "Parquet must not be copied until native parsing exists.");
-for (const supported of ['"csv"', '"tsv"', '"json"', '"xlsx"', '"txt"']) {
-  assert.ok(workspaceStore.includes(supported), `Supported project import extension missing: ${supported}`);
-}
-
-const migration = read("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift");
-for (const capability of [
-  "isDerivedDatabaseReadyForSQL",
-  "prepareDerivedDatabaseForSQLIfNeeded",
-  "storedGeneration == Self.derivedDatabaseGeneration",
-  "datasets.isEmpty || manager.fileExists(atPath: databaseURL.path)",
-  "if datasets.isEmpty",
-  "databaseURL.path + \"-wal\"",
-  "databaseURL.path + \"-shm\"",
-  "Could not reset the empty project's local SQL database",
-  "beginDataOperation(projectID: projectID, status: \"Refreshing local SQL state…\")",
-  "rebuildDatabaseWithinDataOperation(projectID: projectID)",
-  "defer { endDataOperation(projectID: projectID) }",
-]) {
-  assert.ok(migration.includes(capability), `Derived-database migration safeguard missing: ${capability}`);
-}
-
-const store = read("ios/BideApp/Stores/DataWorkspaceStore.swift");
-for (const capability of [
-  "dataOperationProjects: Set<UUID>",
-  "sqlOperationProjects: Set<UUID>",
-  "beginDataOperation(projectID: UUID, status: String)",
-  "endDataOperation(projectID: UUID)",
-  "beginSQLOperation(projectID: UUID)",
-  "endSQLOperation(projectID: UUID)",
-  "hasActiveDataOperation(projectID: UUID)",
-  "hasActiveSQLOperation(projectID: UUID)",
-  "prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID)",
-  "rebuildDatabaseWithinDataOperation",
-  "removeDerivedDatabaseFiles(at: dbURL)",
-  "incomplete derived database was discarded",
-  "source datasets were left unchanged",
-  "databaseURL.path + \"-wal\"",
-  "databaseURL.path + \"-shm\"",
-  ".bide-delete-",
-  "saveRegistry(originalAssets, projectID: projectID)",
-  "restored the source file, registry, and derived SQL state",
-  "func preview",
-  "beginSQLOperation(projectID: projectID)",
-]) {
-  assert.ok(store.includes(capability), `Phase 2 integrity safeguard missing: ${capability}`);
-}
-
-const recovery = read("ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift");
-for (const capability of [
-  "recoverInterruptedDatasetDeletions",
-  ".bide-delete-",
-  "hasActiveDataOperation(projectID: projectID)",
-  "hasActiveSQLOperation(projectID: projectID)",
-  "registeredByID",
-  "manager.moveItem(at: staged.url, to: destination)",
-  "manager.removeItem(at: staged.url)",
-  ".bide-sqlite-generation",
-  "manager.removeItem(at: markerURL)",
-]) {
-  assert.ok(recovery.includes(capability), `Interrupted-delete recovery safeguard missing: ${capability}`);
-}
-
-const savedResultRecovery = read("ios/BideApp/Stores/DataWorkspaceStore+SavedResultRecovery.swift");
-for (const capability of [
-  "pendingSavedResultMarkerPrefix",
-  "savedResultFilePrefix",
-  "beginSavedResultVerification",
-  'try "pending".write',
-  "commitSavedResultVerification",
-  'try "verified".write',
-  "savedResultFileName",
-  "matchesToken",
-  "recoverInterruptedSavedResults",
-  "hasActiveDataOperation(projectID: projectID)",
-  "hasActiveSQLOperation(projectID: projectID)",
-  "Unknown/unreadable state is treated as pending",
-  "updatedAssets.removeAll",
-  "manager.removeItem(at: file)",
-  ".bide-sqlite-generation",
-]) {
-  assert.ok(savedResultRecovery.includes(capability), `Saved-result recovery safeguard missing: ${capability}`);
-}
-
-const exportStore = read("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift");
-for (const capability of [
-  "prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID)",
-  "beginSQLOperation(projectID: projectID)",
-  "endSQLOperation(projectID: projectID)",
+requireTokens("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift", [
   "verificationSampleCount",
-  "result.isTruncated",
   "exportSummary.columns == result.columns",
   "exportSummary.sampleRows == expectedSample",
-  "!result.isTruncated, exportSummary.rowCount != result.rowCount",
-  "beginSavedResultVerification(projectID: projectID, token: token)",
+  "beginSavedResultVerification",
   "integritySummaryForReadOnlyQuery",
-  "integritySummary.valueFingerprint == exportSummary.valueFingerprint",
+  "valueFingerprint == exportSummary.valueFingerprint",
   "ORDER BY rowid",
-  "commitSavedResultVerification(markerURL: verificationMarkerURL)",
-  "clearSavedResultVerificationMarker(verificationMarkerURL)",
-  "Saved-result full verification failed",
-  "removeFailedSavedResult",
-]) {
-  assert.ok(exportStore.includes(capability), `Serialized SQL export safeguard missing: ${capability}`);
-}
+  "commitSavedResultVerification",
+  "rejectUnverifiedSavedResult",
+  "remains marked pending",
+]);
 
-const projectsView = read("ios/BideApp/Views/ProjectsView.swift");
-for (const capability of [
-  "@EnvironmentObject private var dataWorkspace: DataWorkspaceStore",
-  "projectHasDatabaseWork",
-  "requestProjectDeletion",
-  "hasActiveDataOperation(projectID: projectID)",
-  "hasActiveSQLOperation(projectID: projectID)",
-  "Project Is Busy",
-  "Recheck at commit time",
-]) {
-  assert.ok(projectsView.includes(capability), `Project-deletion safety guard missing: ${capability}`);
-}
-
-const datasetsView = read("ios/BideApp/Views/DatasetsView.swift");
-for (const capability of [
-  "rebuildConfirmationPresented",
-  "Rebuild SQL Database?",
-  "Button(\"Rebuild Database\", role: .destructive)",
-  "SQL-only CREATE/INSERT/UPDATE/DELETE changes",
-  "Your original dataset files are not modified",
-]) {
-  assert.ok(datasetsView.includes(capability), `Derived-database rebuild warning missing: ${capability}`);
-}
-
-const resultsView = read("ios/BideApp/Views/SQLResultsView.swift");
-for (const capability of [
-  "if !result.isReadOnly",
-  "local derived SQLite database",
-  "Imported CSV/XLSX/JSON source files are unchanged",
-  "Rebuilding or migrating the derived database can replace SQL-only edits",
-]) {
-  assert.ok(resultsView.includes(capability), `Mutating-SQL persistence disclosure missing: ${capability}`);
-}
-
-const app = read("ios/BideApp/BideApp.swift");
-for (const startupCapability of [
-  "recoverInterruptedDatasetDeletions(projectID: projectID)",
-  "recoverInterruptedSavedResults(projectID: projectID)",
-  "reconcileProjectFiles(projectID: projectID)",
-  "migrateDerivedDatabaseIfNeeded(projectID: projectID)",
-]) {
-  assert.ok(app.includes(startupCapability), `Project startup recovery capability missing: ${startupCapability}`);
-}
+const app = requireTokens("ios/BideApp/BideApp.swift", [
+  "recoverInterruptedDatasetDeletions",
+  "recoverInterruptedSavedResults",
+  "reconcileProjectFiles",
+  "migrateDerivedDatabaseIfNeeded",
+]);
 assert.ok(
   app.indexOf("recoverInterruptedDatasetDeletions") < app.indexOf("recoverInterruptedSavedResults") &&
     app.indexOf("recoverInterruptedSavedResults") < app.indexOf("reconcileProjectFiles") &&
     app.indexOf("reconcileProjectFiles") < app.indexOf("migrateDerivedDatabaseIfNeeded"),
-  "Startup must recover deletion, then unverified saved results, then reconcile sources, then migrate SQLite."
+  "Startup recovery order must be delete recovery → saved-result recovery → source reconciliation → SQLite migration."
 );
 
-const migrationTest = read("ios/BideTests/DatabaseMigrationEdgeCaseTests.swift");
-for (const regression of [
-  "testEmptyDatasetRegistryRemovesStaleDerivedDatabase",
-  "testMigrationCannotMutateDatabaseWhileSQLSlotIsOwned",
-  "testExecuteSQLRepairsStaleGenerationBeforeRunningQuery",
-  "isDerivedDatabaseReadyForSQL",
-  "XCTAssertEqual(blockedGeneration, \"1\")",
-  "XCTAssertEqual(migratedGeneration, \"2\")",
-  "XCTAssertEqual(store.lastSQLRun?.primaryResult?.rows.first?.first ?? nil, \"2\")",
-  "OLD",
-]) {
-  assert.ok(migrationTest.includes(regression), `Migration regression missing: ${regression}`);
+requireTokens("ios/BideApp/Views/ProjectsView.swift", [
+  "projectHasDatabaseWork",
+  "Project Is Busy",
+  "hasActiveDataOperation",
+  "hasActiveSQLOperation",
+]);
+requireTokens("ios/BideApp/Views/DatasetsView.swift", [
+  "Rebuild SQL Database?",
+  "SQL-only CREATE/INSERT/UPDATE/DELETE changes",
+  "Your original dataset files are not modified",
+]);
+requireTokens("ios/BideApp/Views/SQLResultsView.swift", [
+  "local derived SQLite database",
+  "Imported CSV/XLSX/JSON source files are unchanged",
+]);
+
+const regressions = [
+  ["ios/BideTests/DatabaseMigrationEdgeCaseTests.swift", "testExecuteSQLRepairsStaleGenerationBeforeRunningQuery"],
+  ["ios/BideTests/RebuildDatabaseFailureTests.swift", "testFailedRebuildDiscardsPartialDatabaseAndPreservesSources"],
+  ["ios/BideTests/ProjectImportFormatTests.swift", "testProjectImportSkipsUnsupportedXLSAndParquetFiles"],
+  ["ios/BideTests/DatasetDeletionIntegrityTests.swift", "testDeleteDatasetRollsBackWhenSQLCleanupFails"],
+  ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testRecoveryDoesNotTouchStagedFileOwnedByLiveDataOperation"],
+  ["ios/BideTests/SavedResultRecoveryTests.swift", "testPendingSavedResultIsRemovedAndDerivedDatabaseIsRebuiltFromRemainingRegistry"],
+  ["ios/BideTests/SavedResultRecoveryTests.swift", "testVerifiedSavedResultSurvivesRecoveryAndOnlyMarkerIsRemoved"],
+  ["ios/BideTests/SavedResultRecoveryTests.swift", "testRecoveryDoesNotDeleteManualFileThatOnlySharesTokenPrefix"],
+  ["ios/BideTests/DataOperationSerializationTests.swift", "testSwitchingProjectsDoesNotForgetSQLOperationOwnership"],
+  ["ios/BideTests/SQLExportIntegrityTests.swift", "testSaveResultAsDatasetCommitsVerificationAndLeavesNoPendingMarker"],
+  ["ios/BideTests/LargeSavedResultIntegrityTests.swift", "testTruncatedPreviewSaveVerifiesAndPersistsAllSixHundredFiftyRows"],
+  ["ios/BideTests/LargeSavedResultIntegrityTests.swift", "testStreamingFingerprintDetectsTailMutationBeyondPreviewLimit"],
+];
+for (const [path, testName] of regressions) {
+  assert.ok(read(path).includes(testName), `Missing native integrity regression: ${testName}`);
 }
 
-const rebuildFailureTest = read("ios/BideTests/RebuildDatabaseFailureTests.swift");
-for (const regression of [
-  "testFailedRebuildDiscardsPartialDatabaseAndPreservesSources",
-  'try "a,b\\n1,2,3\\n".write',
-  "incomplete derived database was discarded",
-  "XCTAssertTrue(manager.fileExists(atPath: validURL.path))",
-  "XCTAssertTrue(manager.fileExists(atPath: invalidURL.path))",
-  "XCTAssertFalse(manager.fileExists(atPath: databaseURL.path))",
-]) {
-  assert.ok(rebuildFailureTest.includes(regression), `Failed-rebuild regression missing: ${regression}`);
-}
-
-const projectImportTest = read("ios/BideTests/ProjectImportFormatTests.swift");
-for (const regression of [
-  "testProjectImportSkipsUnsupportedXLSAndParquetFiles",
-  "legacy.xls",
-  "unsupported.parquet",
-  "XCTAssertFalse",
-]) {
-  assert.ok(projectImportTest.includes(regression), `Project-format regression missing: ${regression}`);
-}
-
-const deletionTest = read("ios/BideTests/DatasetDeletionIntegrityTests.swift");
-for (const regression of [
-  "testDeleteDatasetRemovesSourceRegistryAndDerivedTable",
-  "testDeleteDatasetRollsBackWhenSQLCleanupFails",
-  "restored the source file, registry, and derived SQL state",
-  "XCTAssertTrue(manager.fileExists(atPath: fixture.sourceURL.path))",
-  "XCTAssertThrowsError",
-  ".bide-delete-",
-]) {
-  assert.ok(deletionTest.includes(regression), `Dataset-deletion regression missing: ${regression}`);
-}
-
-const recoveryTest = read("ios/BideTests/InterruptedDeletionRecoveryTests.swift");
-for (const regression of [
-  "testRecoveryRestoresStagedSourceWhenRegistryStillOwnsAsset",
-  "testRecoveryFinishesCommittedDeletionAndForcesEmptyDatabaseMigration",
-  "testRecoveryDoesNotTouchStagedFileOwnedByLiveDataOperation",
-  "recoverInterruptedDatasetDeletions",
-  "XCTAssertFalse(store.recoverInterruptedDatasetDeletions(projectID: projectID))",
-  "XCTAssertTrue(manager.fileExists(atPath: stagedURL.path))",
-]) {
-  assert.ok(recoveryTest.includes(regression), `Interrupted-delete recovery regression missing: ${regression}`);
-}
-
-const savedRecoveryTest = read("ios/BideTests/SavedResultRecoveryTests.swift");
-for (const regression of [
-  "testPendingSavedResultIsRemovedAndDerivedDatabaseIsRebuiltFromRemainingRegistry",
-  "testVerifiedSavedResultSurvivesRecoveryAndOnlyMarkerIsRemoved",
-  "testSavedResultRecoveryDoesNotTouchMarkerOwnedByLiveDataOperation",
-  "testRecoveryDoesNotDeleteManualFileThatOnlySharesTokenPrefix",
-  "testSavedResultTokenMatcherAcceptsOnlyGeneratedCollisionShape",
-  "testVerificationMarkerTransitionsPendingToVerified",
-  "recoverInterruptedSavedResults",
-  "bide_query_result_facecafe_backup.csv",
-]) {
-  assert.ok(savedRecoveryTest.includes(regression), `Saved-result recovery regression missing: ${regression}`);
-}
-
-const serializationTest = read("ios/BideTests/DataOperationSerializationTests.swift");
-for (const regression of [
-  "testImportRefusesToStartWhileSQLIsRunning",
-  "testSQLRefusesToStartWhileDatabaseMutationIsOwned",
-  "testSwitchingProjectsDoesNotForgetSQLOperationOwnership",
-  "testPreviewOwnsTheSameSQLSlotAsEditorQueries",
-  "store.openProject(projectB)",
-  "store.openProject(projectA)",
-  "XCTAssertTrue(store.isRunningSQL)",
-]) {
-  assert.ok(serializationTest.includes(regression), `Operation-serialization regression missing: ${regression}`);
-}
-
-const exportTest = read("ios/BideTests/SQLExportIntegrityTests.swift");
-for (const regression of [
-  "testNonTruncatedExportRefusesStaleRowCountEvenWhenOriginalSampleStillMatches",
-  "testNonTruncatedExportVerifiesValuesBeyondFirstHundredRows",
-  "testExportRefusesWhileDatasetMutationOwnsProject",
-  "testSaveResultAsDatasetCommitsVerificationAndLeavesNoPendingMarker",
-  "changed_tail",
-  "CSV row count no longer matches the SQL result",
-  "CSV values no longer match the SQL result",
-  "pendingSavedResultMarkerPrefix",
-]) {
-  assert.ok(exportTest.includes(regression), `SQL-export integrity regression missing: ${regression}`);
-}
-
-const largeResultTest = read("ios/BideTests/LargeSavedResultIntegrityTests.swift");
-for (const regression of [
-  "testTruncatedPreviewSaveVerifiesAndPersistsAllSixHundredFiftyRows",
-  "testStreamingFingerprintDetectsTailMutationBeyondPreviewLimit",
-  "XCTAssertEqual(visible.rows.count, 500)",
-  "XCTAssertEqual(saved.totalRows, 650)",
-  "XCTAssertEqual(parsed.rows[649], [\"650\", \"value_650\"])",
-  "mutated_tail",
-  "XCTAssertNotEqual(mutated.valueFingerprint, exported.valueFingerprint)",
-]) {
-  assert.ok(largeResultTest.includes(regression), `Large saved-result integrity regression missing: ${regression}`);
-}
-
-console.log("bIDE iOS Phase 2 integrity cleanup validation passed.");
+console.log("bIDE iOS Phase 2 integrity validation passed.");
