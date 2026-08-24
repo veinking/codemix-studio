@@ -148,6 +148,40 @@ final class SavedResultRecoveryTests: XCTestCase {
     }
 
     @MainActor
+    func testRecoveryDoesNotDeleteManualFileThatOnlySharesTokenPrefix() throws {
+        let projectID = UUID()
+        let token = "cafefeed"
+        let manager = FileManager.default
+        let fixture = try makeFixture(projectID: projectID, token: token, markerState: "pending")
+        defer { try? manager.removeItem(at: fixture.projectDirectory) }
+
+        let manualURL = fixture.dataDirectory
+            .appendingPathComponent("bide_query_result_\(token)_backup.csv")
+        try "id,value\n99,manual-backup\n".write(to: manualURL, atomically: true, encoding: .utf8)
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertTrue(store.recoverInterruptedSavedResults(projectID: projectID))
+
+        XCTAssertFalse(manager.fileExists(atPath: fixture.sourceURL.path))
+        XCTAssertTrue(manager.fileExists(atPath: manualURL.path))
+        XCTAssertTrue(store.datasets.isEmpty)
+    }
+
+    @MainActor
+    func testSavedResultTokenMatcherAcceptsOnlyGeneratedCollisionShape() {
+        let store = DataWorkspaceStore()
+        let token = "facecafe"
+
+        XCTAssertTrue(store.savedResultFileName("bide_query_result_facecafe.csv", matchesToken: token))
+        XCTAssertTrue(store.savedResultFileName("bide_query_result_facecafe 2.csv", matchesToken: token))
+        XCTAssertTrue(store.savedResultFileName("bide_query_result_facecafe 12.csv", matchesToken: token))
+        XCTAssertFalse(store.savedResultFileName("bide_query_result_facecafe 1.csv", matchesToken: token))
+        XCTAssertFalse(store.savedResultFileName("bide_query_result_facecafe_backup.csv", matchesToken: token))
+        XCTAssertFalse(store.savedResultFileName("bide_query_result_facecafe 2.json", matchesToken: token))
+    }
+
+    @MainActor
     func testVerificationMarkerTransitionsPendingToVerified() throws {
         let projectID = UUID()
         let token = "facecafe"
