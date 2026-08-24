@@ -12,6 +12,7 @@ struct DatasetsView: View {
     @State private var openWorkspaceAfterJoinDismiss = false
     @State private var shareURLs: [URL] = []
     @State private var deleteTarget: DatasetAsset?
+    @State private var rebuildConfirmationPresented = false
 
     private var isBusy: Bool {
         dataWorkspace.isImporting || dataWorkspace.isRunningSQL
@@ -55,8 +56,7 @@ struct DatasetsView: View {
                     .disabled(dataWorkspace.tables.count < 2 || isBusy)
 
                     Button {
-                        guard let projectID = workspace.activeProjectID else { return }
-                        Task { await dataWorkspace.rebuildDatabase(projectID: projectID) }
+                        rebuildConfirmationPresented = true
                     } label: {
                         Label("Rebuild SQL Database", systemImage: "arrow.clockwise")
                     }
@@ -199,6 +199,19 @@ struct DatasetsView: View {
             ActivityShareSheet(urls: shareURLs)
         }
         .confirmationDialog(
+            "Rebuild SQL Database?",
+            isPresented: $rebuildConfirmationPresented,
+            titleVisibility: .visible
+        ) {
+            Button("Rebuild Database", role: .destructive) {
+                guard let projectID = workspace.activeProjectID else { return }
+                Task { await dataWorkspace.rebuildDatabase(projectID: projectID) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("bIDE will replace the local derived SQLite database from the registered source datasets. SQL-only CREATE/INSERT/UPDATE/DELETE changes that are not present in those source files can be lost. Your original dataset files are not modified.")
+        }
+        .confirmationDialog(
             "Delete this dataset?",
             isPresented: Binding(
                 get: { deleteTarget != nil },
@@ -231,6 +244,7 @@ struct DatasetsView: View {
             joinResultReport = nil
             lastCompletedJoinReport = nil
             openWorkspaceAfterJoinDismiss = false
+            rebuildConfirmationPresented = false
         }
     }
 
