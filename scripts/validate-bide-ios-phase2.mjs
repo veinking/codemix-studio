@@ -19,6 +19,7 @@ const required = [
   "ios/BideApp/Data/DatasetParser.swift",
   "ios/BideApp/Data/SQLiteProjectEngine.swift",
   "ios/BideApp/Stores/DataWorkspaceStore.swift",
+  "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift",
   "ios/BideApp/Views/DatasetsView.swift",
   "ios/BideApp/Views/SQLResultsView.swift",
@@ -82,6 +83,8 @@ for (const parserCapability of [
   "validateDelimitedShape",
   "damaged row separators",
   "unterminated quoted field",
+  "structurally inconsistent",
+  "another table or damaged row was appended",
 ]) {
   assert.ok(parser.includes(parserCapability), `Dataset parser capability missing: ${parserCapability}`);
 }
@@ -121,6 +124,17 @@ assert.ok(
   store.includes("parsedTable.sourceSheetName"),
   "Multi-sheet Excel imports must derive their SQL table base from the worksheet name."
 );
+
+const migration = read("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift");
+for (const migrationCapability of [
+  "derivedDatabaseGeneration",
+  ".bide-sqlite-generation",
+  "migrateDerivedDatabaseIfNeeded",
+  "rebuildDatabase(projectID: projectID)",
+  "storedGeneration != Self.derivedDatabaseGeneration || !databaseExists",
+]) {
+  assert.ok(migration.includes(migrationCapability), `Derived SQLite migration capability missing: ${migrationCapability}`);
+}
 
 const exportStore = read("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift");
 for (const exportCapability of [
@@ -216,6 +230,7 @@ const joinTests = read("ios/BideTests/JoinPipelineTests.swift");
 for (const regression of [
   "testOrdersLeftJoinExportRoundTripPreservesRowsAndValues",
   "testFlattenedCSVShapeFailsClosedInsteadOfTurningValuesIntoHeaders",
+  "testPhoneExportConcatenationShapeFailsClosed",
   "XCTAssertEqual(orders.rows.count, 27)",
   "C999",
   "C888",
@@ -224,6 +239,8 @@ for (const regression of [
   "49.0",
   "XCTAssertEqual(exportSummary.rowCount, 27)",
   "XCTAssertEqual(roundTrip.rows.count, 27)",
+  "12 fields",
+  "header declares 7",
 ]) {
   assert.ok(joinTests.includes(regression), `Phone join regression coverage missing: ${regression}`);
 }
@@ -244,6 +261,11 @@ assert.ok(
 const app = read("ios/BideApp/BideApp.swift");
 assert.ok(app.includes("DatasetFormat.infer"), "Open in bIDE must route dataset file types.");
 assert.ok(app.includes("reconcileProjectFiles"), "Project open must discover existing local datasets.");
+assert.ok(app.includes("migrateDerivedDatabaseIfNeeded"), "Project open must migrate stale derived SQLite state.");
+assert.ok(
+  app.indexOf("reconcileProjectFiles") < app.indexOf("migrateDerivedDatabaseIfNeeded"),
+  "Source reconciliation must finish before the derived SQLite migration runs."
+);
 
 const nativeSource = walk("ios/BideApp")
   .filter((filePath) => filePath.endsWith(".swift"))
