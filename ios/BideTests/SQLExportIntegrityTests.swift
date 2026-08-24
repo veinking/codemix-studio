@@ -180,13 +180,12 @@ final class SQLExportIntegrityTests: XCTestCase {
 
         let store = DataWorkspaceStore()
         store.openProject(projectID)
-        let savedURL = try XCTUnwrap(
-            await store.exportSQLResult(
-                fixture.report,
-                projectID: projectID,
-                registerAsDataset: true
-            )
+        let savedCandidate = await store.exportSQLResult(
+            fixture.report,
+            projectID: projectID,
+            registerAsDataset: true
         )
+        let savedURL = try XCTUnwrap(savedCandidate)
 
         XCTAssertNil(store.dataError)
         XCTAssertEqual(store.datasets.count, 1)
