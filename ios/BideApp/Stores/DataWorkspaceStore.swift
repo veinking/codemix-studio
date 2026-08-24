@@ -42,7 +42,7 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func reconcileProjectFiles(projectID: UUID) async {
-        guard activeProjectID == projectID, !isImporting else { return }
+        guard activeProjectID == projectID, !isImporting, !isRunningSQL else { return }
 
         let registered = loadRegistry(projectID: projectID)
         let unregistered = discoverUnregisteredDatasets(projectID: projectID, registered: registered)
@@ -76,7 +76,11 @@ final class DataWorkspaceStore: ObservableObject {
             openProject(projectID)
         }
         guard !isImporting else {
-            dataError = "Another dataset import is already in progress."
+            dataError = "Another dataset operation is already in progress."
+            return
+        }
+        guard !isRunningSQL else {
+            dataError = "Finish the current SQL run before importing another dataset."
             return
         }
 
@@ -126,7 +130,24 @@ final class DataWorkspaceStore: ObservableObject {
 
     func deleteDataset(_ asset: DatasetAsset, projectID: UUID) async {
         guard activeProjectID == projectID else { return }
+        guard !isImporting else {
+            dataError = "Finish the current dataset operation before deleting another dataset."
+            return
+        }
+        guard !isRunningSQL else {
+            dataError = "Finish the current SQL run before deleting a dataset."
+            return
+        }
+
+        isImporting = true
+        importStatus = "Deleting \(asset.fileName)…"
         dataError = nil
+        defer {
+            if activeProjectID == projectID {
+                isImporting = false
+                importStatus = nil
+            }
+        }
 
         let dbURL = databaseURL(projectID: projectID)
         let sourceURL = projectDirectory(projectID).appendingPathComponent(asset.relativePath)
@@ -226,7 +247,11 @@ final class DataWorkspaceStore: ObservableObject {
 
     func rebuildDatabase(projectID: UUID) async {
         guard !isImporting || activeProjectID != projectID else {
-            dataError = "Finish the current dataset import before rebuilding SQL."
+            dataError = "Finish the current dataset operation before rebuilding SQL."
+            return
+        }
+        guard !isRunningSQL else {
+            dataError = "Finish the current SQL run before rebuilding the database."
             return
         }
         let assets = loadRegistry(projectID: projectID)
@@ -294,6 +319,12 @@ final class DataWorkspaceStore: ObservableObject {
 
     func executeSQL(_ sql: String, projectID: UUID) async {
         guard activeProjectID == projectID else { return }
+        guard !isImporting else {
+            sqlError = "Finish the current dataset operation before running SQL."
+            return
+        }
+        guard !isRunningSQL else { return }
+
         isRunningSQL = true
         sqlError = nil
         lastSQLRun = nil
@@ -317,6 +348,13 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func preview(_ table: DatasetTableDescriptor, projectID: UUID) async -> SQLRunReport? {
+        guard !isImporting, !isRunningSQL else {
+            if activeProjectID == projectID {
+                dataError = "Finish the current dataset or SQL operation before loading a preview."
+            }
+            return nil
+        }
+
         let dbURL = databaseURL(projectID: projectID)
         do {
             let sql = "SELECT * FROM \(SQLiteProjectEngine.quoteIdentifier(table.sqliteName)) LIMIT 50;"
