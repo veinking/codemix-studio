@@ -13,7 +13,10 @@ function walk(directory) {
 }
 
 const required = [
+  ".github/workflows/bide-ios-quality.yml",
+  ".github/workflows/bide-ios-preflight.yml",
   "ios/project.yml",
+  "ios/BIDE_IOS_BUILD_POLICY.md",
   "ios/PHASE_2_DATA_SQL_ACCEPTANCE.md",
   "ios/BideApp/Models/DatasetModels.swift",
   "ios/BideApp/Data/DatasetParser.swift",
@@ -33,6 +36,21 @@ const required = [
 for (const filePath of required) {
   assert.ok(exists(filePath), `Phase 2 native file is missing: ${filePath}`);
 }
+
+const paidWorkflow = read(".github/workflows/bide-ios-quality.yml");
+assert.ok(paidWorkflow.includes("workflow_dispatch:"), "Paid macOS lane must remain manually dispatchable.");
+for (const forbiddenTrigger of ["pull_request:", "push:", "schedule:"]) {
+  assert.ok(
+    !paidWorkflow.includes(forbiddenTrigger),
+    `Paid macOS lane must remain manual-only; found ${forbiddenTrigger}`
+  );
+}
+assert.ok(paidWorkflow.includes("runs-on: macos-15"), "Native checkpoint must remain on the explicit macOS/Xcode lane.");
+
+const preflightWorkflow = read(".github/workflows/bide-ios-preflight.yml");
+assert.ok(preflightWorkflow.includes("workflow_dispatch:"), "Source preflight must be manually dispatchable.");
+assert.ok(preflightWorkflow.includes("runs-on: ubuntu-latest"), "Source preflight must stay on the cheap Ubuntu lane.");
+assert.ok(preflightWorkflow.includes("validate-bide-ios-phase2.mjs"), "Source preflight must run the Phase 2 validator.");
 
 const project = read("ios/project.yml");
 for (const expected of [
@@ -130,8 +148,14 @@ for (const migrationCapability of [
   "derivedDatabaseGeneration",
   ".bide-sqlite-generation",
   "migrateDerivedDatabaseIfNeeded",
+  "refreshDatasetRegistryFromSourceAssets",
   "rebuildDatabase(projectID: projectID)",
   "storedGeneration != Self.derivedDatabaseGeneration || !databaseExists",
+  "id: existing.id",
+  "rowCount: parsed.rows.count",
+  "columns: parsed.columns",
+  "openProject(projectID)",
+  "refreshedData.write(to: registryURL, options: .atomic)",
 ]) {
   assert.ok(migration.includes(migrationCapability), `Derived SQLite migration capability missing: ${migrationCapability}`);
 }
