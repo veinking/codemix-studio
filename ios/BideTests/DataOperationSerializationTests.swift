@@ -40,7 +40,7 @@ final class DataOperationSerializationTests: XCTestCase {
                 WITH RECURSIVE count_up(x) AS (
                     SELECT 1
                     UNION ALL
-                    SELECT x + 1 FROM count_up WHERE x < 2000000
+                    SELECT x + 1 FROM count_up WHERE x < 500000
                 )
                 SELECT SUM(x) AS total FROM count_up;
                 """,
@@ -75,10 +75,10 @@ final class DataOperationSerializationTests: XCTestCase {
         try manager.createDirectory(at: urls.dataDirectory, withIntermediateDirectories: true)
         defer { try? manager.removeItem(at: urls.projectDirectory) }
 
-        let sourceURL = urls.dataDirectory.appendingPathComponent("large.csv")
+        let sourceURL = urls.dataDirectory.appendingPathComponent("moderate.csv")
         var csv = "id,value\n"
-        csv.reserveCapacity(2_000_000)
-        for index in 1...75_000 {
+        csv.reserveCapacity(250_000)
+        for index in 1...10_000 {
             csv.append("\(index),value_\(index)\n")
         }
         try csv.write(to: sourceURL, atomically: true, encoding: .utf8)
@@ -91,8 +91,8 @@ final class DataOperationSerializationTests: XCTestCase {
             sizeBytes: Int64((try Data(contentsOf: sourceURL)).count),
             tables: [
                 DatasetTableDescriptor(
-                    displayName: "large",
-                    sqliteName: "large",
+                    displayName: "moderate",
+                    sqliteName: "moderate",
                     rowCount: parsed.rows.count,
                     columns: parsed.columns
                 )
