@@ -14,6 +14,8 @@ final class DataWorkspaceStore: ObservableObject {
 
     private let fileManager: FileManager
     private let projectsRoot: URL
+    private var dataOperationProjects: Set<UUID> = []
+    private var sqlOperationProjects: Set<UUID> = []
 
     init() {
         let manager = FileManager.default
@@ -28,34 +30,36 @@ final class DataWorkspaceStore: ObservableObject {
 
     func openProject(_ projectID: UUID?) {
         activeProjectID = projectID
-        isImporting = false
-        importStatus = nil
-        isRunningSQL = false
         lastSQLRun = nil
         sqlError = nil
         dataError = nil
+
         guard let projectID else {
             datasets = []
+            isImporting = false
+            importStatus = nil
+            isRunningSQL = false
             return
         }
+
         datasets = loadRegistry(projectID: projectID)
+        isImporting = dataOperationProjects.contains(projectID)
+        importStatus = isImporting ? "Dataset operation in progress…" : nil
+        isRunningSQL = sqlOperationProjects.contains(projectID)
     }
 
     func reconcileProjectFiles(projectID: UUID) async {
-        guard activeProjectID == projectID, !isImporting, !isRunningSQL else { return }
+        guard activeProjectID == projectID,
+              !dataOperationProjects.contains(projectID),
+              !sqlOperationProjects.contains(projectID) else { return }
 
         let registered = loadRegistry(projectID: projectID)
         let unregistered = discoverUnregisteredDatasets(projectID: projectID, registered: registered)
 
         guard !unregistered.isEmpty else { return }
-        isImporting = true
+        guard beginDataOperation(projectID: projectID, status: "Reconciling project datasets…") else { return }
         dataError = nil
-        defer {
-            if activeProjectID == projectID {
-                isImporting = false
-                importStatus = nil
-            }
-        }
+        defer { endDataOperation(projectID: projectID) }
 
         for (url, format) in unregistered {
             guard activeProjectID == projectID else { return }
@@ -75,24 +79,18 @@ final class DataWorkspaceStore: ObservableObject {
         if activeProjectID != projectID {
             openProject(projectID)
         }
-        guard !isImporting else {
+        guard !dataOperationProjects.contains(projectID) else {
             dataError = "Another dataset operation is already in progress."
             return
         }
-        guard !isRunningSQL else {
+        guard !sqlOperationProjects.contains(projectID) else {
             dataError = "Finish the current SQL run before importing another dataset."
             return
         }
+        guard beginDataOperation(projectID: projectID, status: "Preparing import…") else { return }
 
-        isImporting = true
-        importStatus = "Preparing import…"
         dataError = nil
-        defer {
-            if activeProjectID == projectID {
-                isImporting = false
-                importStatus = nil
-            }
-        }
+        defer { endDataOperation(projectID: projectID) }
 
         for sourceURL in sourceURLs {
             guard activeProjectID == projectID else { return }
@@ -130,22 +128,21 @@ final class DataWorkspaceStore: ObservableObject {
 
     func deleteDataset(_ asset: DatasetAsset, projectID: UUID) async {
         guard activeProjectID == projectID else { return }
-        guard !isImporting else {
+        guard !dataOperationProjects.contains(projectID) else {
             dataError = "Finish the current dataset operation before deleting another dataset."
             return
         }
-        guard !isRunningSQL else {
+        guard !sqlOperationProjects.contains(projectID) else {
             dataError = "Finish the current SQL run before deleting a dataset."
             return
         }
+        guard beginDataOperation(projectID: projectID, status: "Deleting \(asset.fileName)…") else { return }
 
-        isImporting = true
-        importStatus = "Deleting \(asset.fileName)…"
+        var ownsDataOperation = true
         dataError = nil
         defer {
-            if activeProjectID == projectID {
-                isImporting = false
-                importStatus = nil
+            if ownsDataOperation {
+                endDataOperation(projectID: projectID)
             }
         }
 
@@ -209,9 +206,10 @@ final class DataWorkspaceStore: ObservableObject {
                     }
                 }
 
-                openProject(projectID)
-
                 if rollbackProblems.isEmpty {
+                    endDataOperation(projectID: projectID)
+                    ownsDataOperation = false
+                    openProject(projectID)
                     await rebuildDatabase(projectID: projectID)
                     if let rebuildError = dataError {
                         dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)). The source and registry were restored, but rebuilding SQL during rollback also failed: \(rebuildError)"
@@ -246,27 +244,22 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func rebuildDatabase(projectID: UUID) async {
-        guard !isImporting || activeProjectID != projectID else {
+        guard !dataOperationProjects.contains(projectID) else {
             dataError = "Finish the current dataset operation before rebuilding SQL."
             return
         }
-        guard !isRunningSQL else {
+        guard !sqlOperationProjects.contains(projectID) else {
             dataError = "Finish the current SQL run before rebuilding the database."
             return
         }
         let assets = loadRegistry(projectID: projectID)
         guard !assets.isEmpty else { return }
+        guard beginDataOperation(projectID: projectID, status: "Rebuilding project SQL database…") else { return }
+
         if activeProjectID == projectID {
-            isImporting = true
-            importStatus = "Rebuilding project SQL database…"
             dataError = nil
         }
-        defer {
-            if activeProjectID == projectID {
-                isImporting = false
-                importStatus = nil
-            }
-        }
+        defer { endDataOperation(projectID: projectID) }
 
         let dbURL = databaseURL(projectID: projectID)
         do {
@@ -319,18 +312,19 @@ final class DataWorkspaceStore: ObservableObject {
 
     func executeSQL(_ sql: String, projectID: UUID) async {
         guard activeProjectID == projectID else { return }
-        guard !isImporting else {
+        guard !dataOperationProjects.contains(projectID) else {
             sqlError = "Finish the current dataset operation before running SQL."
             return
         }
-        guard !isRunningSQL else { return }
+        guard !sqlOperationProjects.contains(projectID) else {
+            sqlError = "SQL is already running for this project."
+            return
+        }
+        guard beginSQLOperation(projectID: projectID) else { return }
 
-        isRunningSQL = true
         sqlError = nil
         lastSQLRun = nil
-        defer {
-            if activeProjectID == projectID { isRunningSQL = false }
-        }
+        defer { endSQLOperation(projectID: projectID) }
 
         let dbURL = databaseURL(projectID: projectID)
         do {
@@ -348,7 +342,8 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func preview(_ table: DatasetTableDescriptor, projectID: UUID) async -> SQLRunReport? {
-        guard !isImporting, !isRunningSQL else {
+        guard !dataOperationProjects.contains(projectID),
+              !sqlOperationProjects.contains(projectID) else {
             if activeProjectID == projectID {
                 dataError = "Finish the current dataset or SQL operation before loading a preview."
             }
@@ -492,6 +487,42 @@ final class DataWorkspaceStore: ObservableObject {
         }
 
         return unregistered
+    }
+
+    private func beginDataOperation(projectID: UUID, status: String) -> Bool {
+        guard !dataOperationProjects.contains(projectID),
+              !sqlOperationProjects.contains(projectID) else { return false }
+        dataOperationProjects.insert(projectID)
+        if activeProjectID == projectID {
+            isImporting = true
+            importStatus = status
+        }
+        return true
+    }
+
+    private func endDataOperation(projectID: UUID) {
+        dataOperationProjects.remove(projectID)
+        if activeProjectID == projectID {
+            isImporting = false
+            importStatus = nil
+        }
+    }
+
+    private func beginSQLOperation(projectID: UUID) -> Bool {
+        guard !dataOperationProjects.contains(projectID),
+              !sqlOperationProjects.contains(projectID) else { return false }
+        sqlOperationProjects.insert(projectID)
+        if activeProjectID == projectID {
+            isRunningSQL = true
+        }
+        return true
+    }
+
+    private func endSQLOperation(projectID: UUID) {
+        sqlOperationProjects.remove(projectID)
+        if activeProjectID == projectID {
+            isRunningSQL = false
+        }
     }
 
     private func projectDirectory(_ projectID: UUID) -> URL {
