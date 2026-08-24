@@ -17,6 +17,41 @@ enum SQLiteProjectEngineError: LocalizedError, Sendable {
     }
 }
 
+private struct StableRowFingerprint {
+    private(set) var value: UInt64 = 14_695_981_039_346_656_037
+
+    mutating func append(row: [String?]) {
+        mix(byte: 0x52)
+        mix(number: UInt64(row.count))
+
+        for cell in row {
+            guard let cell else {
+                mix(byte: 0x00)
+                continue
+            }
+
+            mix(byte: 0x01)
+            mix(number: UInt64(cell.utf8.count))
+            for byte in cell.utf8 {
+                mix(byte: byte)
+            }
+        }
+    }
+
+    private mutating func mix(number: UInt64) {
+        var remaining = number
+        for _ in 0..<8 {
+            mix(byte: UInt8(truncatingIfNeeded: remaining))
+            remaining >>= 8
+        }
+    }
+
+    private mutating func mix(byte: UInt8) {
+        value ^= UInt64(byte)
+        value &*= 1_099_511_628_211
+    }
+}
+
 enum SQLiteProjectEngine {
     static func importTable(
         databaseURL: URL,
@@ -214,10 +249,12 @@ enum SQLiteProjectEngine {
         var outputBuffer = csvLine(columns.map(Optional.some))
         var rowCount = 0
         var sampleRows: [[String?]] = []
+        var fingerprint = StableRowFingerprint()
         var stepResult = sqlite3_step(statement)
         while stepResult == SQLITE_ROW {
             let row = (0..<columnCount).map { columnValue(statement, index: Int32($0)) }
             outputBuffer.append(csvLine(row))
+            fingerprint.append(row: row)
             if sampleRows.count < sampleLimit {
                 sampleRows.append(row)
             }
@@ -239,7 +276,57 @@ enum SQLiteProjectEngine {
         return SQLCSVExportSummary(
             rowCount: rowCount,
             columns: columns,
-            sampleRows: sampleRows
+            sampleRows: sampleRows,
+            valueFingerprint: fingerprint.value
+        )
+    }
+
+    static func integritySummaryForReadOnlyQuery(
+        databaseURL: URL,
+        sql: String
+    ) throws -> SQLQueryIntegritySummary {
+        let trimmed = sql.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw SQLiteProjectEngineError.emptySQL }
+
+        let db = try openDatabase(at: databaseURL)
+        defer { sqlite3_close(db) }
+        let statement = try prepare(db, trimmed)
+        defer { sqlite3_finalize(statement) }
+
+        guard sqlite3_stmt_readonly(statement) != 0 else {
+            throw SQLiteProjectEngineError.exportRequiresReadOnlyQuery
+        }
+
+        let columnCount = Int(sqlite3_column_count(statement))
+        guard columnCount > 0 else {
+            throw SQLiteProjectEngineError.exportRequiresResultColumns
+        }
+
+        let columns = (0..<columnCount).map { index -> String in
+            guard let pointer = sqlite3_column_name(statement, Int32(index)) else {
+                return "Column \(index + 1)"
+            }
+            return String(cString: pointer)
+        }
+
+        var rowCount = 0
+        var fingerprint = StableRowFingerprint()
+        var stepResult = sqlite3_step(statement)
+        while stepResult == SQLITE_ROW {
+            let row = (0..<columnCount).map { columnValue(statement, index: Int32($0)) }
+            fingerprint.append(row: row)
+            rowCount += 1
+            stepResult = sqlite3_step(statement)
+        }
+
+        guard stepResult == SQLITE_DONE else {
+            throw SQLiteProjectEngineError.sqlite(lastError(db))
+        }
+
+        return SQLQueryIntegritySummary(
+            rowCount: rowCount,
+            columns: columns,
+            valueFingerprint: fingerprint.value
         )
     }
 
