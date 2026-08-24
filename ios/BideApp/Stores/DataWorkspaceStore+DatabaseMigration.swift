@@ -25,9 +25,21 @@ extension DataWorkspaceStore {
         if datasets.isEmpty {
             do {
                 try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
+
+                // An empty registry is authoritative: there must not be queryable tables left
+                // behind from an older derived database. Remove SQLite plus any WAL sidecars
+                // before recording the current generation.
+                for staleURL in [
+                    databaseURL,
+                    URL(fileURLWithPath: databaseURL.path + "-wal"),
+                    URL(fileURLWithPath: databaseURL.path + "-shm"),
+                ] where manager.fileExists(atPath: staleURL.path) {
+                    try manager.removeItem(at: staleURL)
+                }
+
                 try Self.derivedDatabaseGeneration.write(to: markerURL, atomically: true, encoding: .utf8)
             } catch {
-                dataError = "Could not record the local SQL engine version: \(error.localizedDescription)"
+                dataError = "Could not reset the empty project's local SQL database: \(error.localizedDescription)"
             }
             return
         }
