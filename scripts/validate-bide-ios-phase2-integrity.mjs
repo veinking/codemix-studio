@@ -9,6 +9,7 @@ const required = [
   "ios/BideApp/Stores/DataWorkspaceStore.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift",
+  "ios/BideApp/Stores/DataWorkspaceStore+SavedResultRecovery.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift",
   "ios/BideApp/Views/ProjectsView.swift",
   "ios/BideApp/Views/DatasetsView.swift",
@@ -19,6 +20,7 @@ const required = [
   "ios/BideTests/ProjectImportFormatTests.swift",
   "ios/BideTests/DatasetDeletionIntegrityTests.swift",
   "ios/BideTests/InterruptedDeletionRecoveryTests.swift",
+  "ios/BideTests/SavedResultRecoveryTests.swift",
   "ios/BideTests/DataOperationSerializationTests.swift",
   "ios/BideTests/SQLExportIntegrityTests.swift",
 ];
@@ -92,6 +94,25 @@ for (const capability of [
   assert.ok(recovery.includes(capability), `Interrupted-delete recovery safeguard missing: ${capability}`);
 }
 
+const savedResultRecovery = read("ios/BideApp/Stores/DataWorkspaceStore+SavedResultRecovery.swift");
+for (const capability of [
+  "pendingSavedResultMarkerPrefix",
+  "savedResultFilePrefix",
+  "beginSavedResultVerification",
+  'try "pending".write',
+  "commitSavedResultVerification",
+  'try "verified".write',
+  "recoverInterruptedSavedResults",
+  "hasActiveDataOperation(projectID: projectID)",
+  "hasActiveSQLOperation(projectID: projectID)",
+  "Unknown/unreadable state is treated as pending",
+  "updatedAssets.removeAll",
+  "manager.removeItem(at: file)",
+  ".bide-sqlite-generation",
+]) {
+  assert.ok(savedResultRecovery.includes(capability), `Saved-result recovery safeguard missing: ${capability}`);
+}
+
 const exportStore = read("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift");
 for (const capability of [
   "prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID)",
@@ -102,6 +123,9 @@ for (const capability of [
   "exportSummary.columns == result.columns",
   "exportSummary.sampleRows == expectedSample",
   "!result.isTruncated, exportSummary.rowCount != result.rowCount",
+  "beginSavedResultVerification(projectID: projectID, token: token)",
+  "commitSavedResultVerification(markerURL: verificationMarkerURL)",
+  "clearSavedResultVerificationMarker(verificationMarkerURL)",
   "Saved-result verification could not run because the local SQL database was not ready",
   "removeFailedSavedResult",
 ]) {
@@ -143,14 +167,19 @@ for (const capability of [
 }
 
 const app = read("ios/BideApp/BideApp.swift");
+for (const startupCapability of [
+  "recoverInterruptedDatasetDeletions(projectID: projectID)",
+  "recoverInterruptedSavedResults(projectID: projectID)",
+  "reconcileProjectFiles(projectID: projectID)",
+  "migrateDerivedDatabaseIfNeeded(projectID: projectID)",
+]) {
+  assert.ok(app.includes(startupCapability), `Project startup recovery capability missing: ${startupCapability}`);
+}
 assert.ok(
-  app.includes("recoverInterruptedDatasetDeletions(projectID: projectID)"),
-  "Project startup must recover interrupted dataset deletions."
-);
-assert.ok(
-  app.indexOf("recoverInterruptedDatasetDeletions") < app.indexOf("reconcileProjectFiles") &&
+  app.indexOf("recoverInterruptedDatasetDeletions") < app.indexOf("recoverInterruptedSavedResults") &&
+    app.indexOf("recoverInterruptedSavedResults") < app.indexOf("reconcileProjectFiles") &&
     app.indexOf("reconcileProjectFiles") < app.indexOf("migrateDerivedDatabaseIfNeeded"),
-  "Deletion recovery must run before source reconciliation, which must run before SQLite migration."
+  "Startup must recover deletion, then unverified saved results, then reconcile sources, then migrate SQLite."
 );
 
 const migrationTest = read("ios/BideTests/DatabaseMigrationEdgeCaseTests.swift");
@@ -213,6 +242,19 @@ for (const regression of [
   assert.ok(recoveryTest.includes(regression), `Interrupted-delete recovery regression missing: ${regression}`);
 }
 
+const savedRecoveryTest = read("ios/BideTests/SavedResultRecoveryTests.swift");
+for (const regression of [
+  "testPendingSavedResultIsRemovedAndDerivedDatabaseIsRebuiltFromRemainingRegistry",
+  "testVerifiedSavedResultSurvivesRecoveryAndOnlyMarkerIsRemoved",
+  "testSavedResultRecoveryDoesNotTouchMarkerOwnedByLiveDataOperation",
+  "testVerificationMarkerTransitionsPendingToVerified",
+  "recoverInterruptedSavedResults",
+  "XCTAssertFalse(manager.fileExists(atPath: fixture.verificationMarkerURL.path))",
+  "XCTAssertTrue(manager.fileExists(atPath: fixture.sourceURL.path))",
+]) {
+  assert.ok(savedRecoveryTest.includes(regression), `Saved-result recovery regression missing: ${regression}`);
+}
+
 const serializationTest = read("ios/BideTests/DataOperationSerializationTests.swift");
 for (const regression of [
   "testImportRefusesToStartWhileSQLIsRunning",
@@ -231,10 +273,11 @@ for (const regression of [
   "testNonTruncatedExportRefusesStaleRowCountEvenWhenOriginalSampleStillMatches",
   "testNonTruncatedExportVerifiesValuesBeyondFirstHundredRows",
   "testExportRefusesWhileDatasetMutationOwnsProject",
+  "testSaveResultAsDatasetCommitsVerificationAndLeavesNoPendingMarker",
   "changed_tail",
   "CSV row count no longer matches the SQL result",
   "CSV values no longer match the SQL result",
-  "Finish the current dataset or SQL operation before exporting this result",
+  "pendingSavedResultMarkerPrefix",
 ]) {
   assert.ok(exportTest.includes(regression), `SQL-export integrity regression missing: ${regression}`);
 }
