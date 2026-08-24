@@ -251,6 +251,12 @@ enum DatasetParser {
         let medianWidth = dataWidths[dataWidths.count / 2]
         let headerWidth = header.count
 
+        if let widestDataRow = dataWidths.last, widestDataRow > headerWidth {
+            throw DatasetParserError.malformedDelimited(
+                "\(displayName) is structurally inconsistent: a data row contains \(widestDataRow) fields while the header declares \(headerWidth). bIDE refused to guess whether another table or damaged row was appended."
+            )
+        }
+
         // A common damaged-CSV failure mode is losing most row separators. The parser then
         // interprets hundreds of ordinary cell values as one giant header and uniqueHeaders()
         // visibly mutates repeated values into names such as C001_2 or 49.0_2. Fail closed
