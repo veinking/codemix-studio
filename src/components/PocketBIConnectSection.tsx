@@ -61,7 +61,7 @@ export const PocketBIConnectSection = ({
         )}
       </Button>
       <p className="text-xs text-center leading-5 text-muted-foreground">
-        Recommended. Sign in or create your PocketBI ID on PocketBI, approve bIDE once, then return here securely.
+        Recommended. Sign in or create your PocketBI ID on PocketBI, approve bIDE once, then return here securely. PKCE keeps access and refresh tokens out of the URL.
       </p>
       <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground">
         <span className="h-px flex-1 bg-border" />
