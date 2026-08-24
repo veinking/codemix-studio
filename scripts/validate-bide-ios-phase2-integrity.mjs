@@ -5,6 +5,8 @@ const read = (filePath) => fs.readFileSync(filePath, "utf8");
 const exists = (filePath) => fs.existsSync(filePath);
 
 const required = [
+  "ios/BideApp/Models/DatasetModels.swift",
+  "ios/BideApp/Data/SQLiteProjectEngine.swift",
   "ios/BideApp/Stores/WorkspaceStore.swift",
   "ios/BideApp/Stores/DataWorkspaceStore.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift",
@@ -23,10 +25,31 @@ const required = [
   "ios/BideTests/SavedResultRecoveryTests.swift",
   "ios/BideTests/DataOperationSerializationTests.swift",
   "ios/BideTests/SQLExportIntegrityTests.swift",
+  "ios/BideTests/LargeSavedResultIntegrityTests.swift",
 ];
 
 for (const filePath of required) {
   assert.ok(exists(filePath), `Phase 2 integrity file is missing: ${filePath}`);
+}
+
+const models = read("ios/BideApp/Models/DatasetModels.swift");
+for (const capability of [
+  "SQLQueryIntegritySummary",
+  "SQLCSVExportSummary",
+  "valueFingerprint: UInt64",
+]) {
+  assert.ok(models.includes(capability), `SQL integrity model missing: ${capability}`);
+}
+
+const sqlite = read("ios/BideApp/Data/SQLiteProjectEngine.swift");
+for (const capability of [
+  "StableRowFingerprint",
+  "fingerprint.append(row: row)",
+  "integritySummaryForReadOnlyQuery",
+  "valueFingerprint: fingerprint.value",
+  "rowCount: rowCount",
+]) {
+  assert.ok(sqlite.includes(capability), `Streaming SQL fingerprint safeguard missing: ${capability}`);
 }
 
 const workspaceStore = read("ios/BideApp/Stores/WorkspaceStore.swift");
@@ -102,6 +125,8 @@ for (const capability of [
   'try "pending".write',
   "commitSavedResultVerification",
   'try "verified".write',
+  "savedResultFileName",
+  "matchesToken",
   "recoverInterruptedSavedResults",
   "hasActiveDataOperation(projectID: projectID)",
   "hasActiveSQLOperation(projectID: projectID)",
@@ -124,9 +149,12 @@ for (const capability of [
   "exportSummary.sampleRows == expectedSample",
   "!result.isTruncated, exportSummary.rowCount != result.rowCount",
   "beginSavedResultVerification(projectID: projectID, token: token)",
+  "integritySummaryForReadOnlyQuery",
+  "integritySummary.valueFingerprint == exportSummary.valueFingerprint",
+  "ORDER BY rowid",
   "commitSavedResultVerification(markerURL: verificationMarkerURL)",
   "clearSavedResultVerificationMarker(verificationMarkerURL)",
-  "Saved-result verification could not run because the local SQL database was not ready",
+  "Saved-result full verification failed",
   "removeFailedSavedResult",
 ]) {
   assert.ok(exportStore.includes(capability), `Serialized SQL export safeguard missing: ${capability}`);
@@ -247,10 +275,11 @@ for (const regression of [
   "testPendingSavedResultIsRemovedAndDerivedDatabaseIsRebuiltFromRemainingRegistry",
   "testVerifiedSavedResultSurvivesRecoveryAndOnlyMarkerIsRemoved",
   "testSavedResultRecoveryDoesNotTouchMarkerOwnedByLiveDataOperation",
+  "testRecoveryDoesNotDeleteManualFileThatOnlySharesTokenPrefix",
+  "testSavedResultTokenMatcherAcceptsOnlyGeneratedCollisionShape",
   "testVerificationMarkerTransitionsPendingToVerified",
   "recoverInterruptedSavedResults",
-  "XCTAssertFalse(manager.fileExists(atPath: fixture.verificationMarkerURL.path))",
-  "XCTAssertTrue(manager.fileExists(atPath: fixture.sourceURL.path))",
+  "bide_query_result_facecafe_backup.csv",
 ]) {
   assert.ok(savedRecoveryTest.includes(regression), `Saved-result recovery regression missing: ${regression}`);
 }
@@ -280,6 +309,19 @@ for (const regression of [
   "pendingSavedResultMarkerPrefix",
 ]) {
   assert.ok(exportTest.includes(regression), `SQL-export integrity regression missing: ${regression}`);
+}
+
+const largeResultTest = read("ios/BideTests/LargeSavedResultIntegrityTests.swift");
+for (const regression of [
+  "testTruncatedPreviewSaveVerifiesAndPersistsAllSixHundredFiftyRows",
+  "testStreamingFingerprintDetectsTailMutationBeyondPreviewLimit",
+  "XCTAssertEqual(visible.rows.count, 500)",
+  "XCTAssertEqual(saved.totalRows, 650)",
+  "XCTAssertEqual(parsed.rows[649], [\"650\", \"value_650\"])",
+  "mutated_tail",
+  "XCTAssertNotEqual(mutated.valueFingerprint, exported.valueFingerprint)",
+]) {
+  assert.ok(largeResultTest.includes(regression), `Large saved-result integrity regression missing: ${regression}`);
 }
 
 console.log("bIDE iOS Phase 2 integrity cleanup validation passed.");
