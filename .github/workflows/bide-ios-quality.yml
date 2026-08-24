@@ -24,6 +24,9 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
+      - name: Validate Actions budget policy
+        run: node scripts/validate-bide-actions-budget.mjs
+
       - name: Validate Phase 1 baseline
         run: node scripts/validate-bide-ios-phase1.mjs
 
