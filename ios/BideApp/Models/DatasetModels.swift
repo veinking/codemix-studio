@@ -1,24 +1,6 @@
 import Foundation
 import UniformTypeIdentifiers
 
-struct DatasetColumn: Identifiable, Hashable, Codable, Sendable {
-    let id: UUID
-    let name: String
-    let type: DatasetColumnType
-
-    init(id: UUID = UUID(), name: String, type: DatasetColumnType) {
-        self.id = id
-        self.name = name
-        self.type = type
-    }
-}
-
-enum DatasetColumnType: String, Codable, Sendable {
-    case integer = "INTEGER"
-    case real = "REAL"
-    case text = "TEXT"
-}
-
 enum DatasetFormat: String, Codable, CaseIterable, Sendable {
     case csv
     case tsv
@@ -38,17 +20,11 @@ enum DatasetFormat: String, Codable, CaseIterable, Sendable {
 
     var systemImage: String {
         switch self {
-        case .csv, .tsv: return "tablecells"
+        case .xlsx: return "tablecells.badge.ellipsis"
         case .json: return "curlybraces"
         case .text: return "doc.plaintext"
-        case .xlsx: return "tablecells.badge.ellipsis"
+        case .csv, .tsv: return "tablecells"
         }
-    }
-
-    static var importableTypes: [UTType] {
-        var result: [UTType] = [.commaSeparatedText, .tabSeparatedText, .json, .plainText]
-        if let xlsx = UTType(filenameExtension: "xlsx") { result.append(xlsx) }
-        return result
     }
 
     static func infer(from url: URL) -> DatasetFormat? {
@@ -56,14 +32,31 @@ enum DatasetFormat: String, Codable, CaseIterable, Sendable {
         case "csv": return .csv
         case "tsv": return .tsv
         case "json": return .json
-        case "txt", "text", "dat": return .text
+        case "txt": return .text
         case "xlsx": return .xlsx
         default: return nil
         }
     }
+
+    static var importableTypes: [UTType] {
+        ["csv", "tsv", "json", "txt", "xlsx"].compactMap { UTType(filenameExtension: $0) }
+    }
 }
 
-struct DatasetTableDescriptor: Identifiable, Hashable, Codable, Sendable {
+enum DatasetColumnType: String, Codable, Sendable {
+    case integer = "INTEGER"
+    case real = "REAL"
+    case text = "TEXT"
+}
+
+struct DatasetColumn: Codable, Hashable, Identifiable, Sendable {
+    let name: String
+    let type: DatasetColumnType
+
+    var id: String { name }
+}
+
+struct DatasetTableDescriptor: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     let displayName: String
     let sqliteName: String
@@ -88,14 +81,14 @@ struct DatasetTableDescriptor: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
-struct DatasetAsset: Identifiable, Hashable, Codable, Sendable {
+struct DatasetAsset: Codable, Hashable, Identifiable, Sendable {
     let id: UUID
     let fileName: String
     let relativePath: String
     let format: DatasetFormat
     let sizeBytes: Int64
     let importedAt: Date
-    let tables: [DatasetTableDescriptor]
+    var tables: [DatasetTableDescriptor]
 
     init(
         id: UUID = UUID(),
@@ -120,7 +113,7 @@ struct DatasetAsset: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
-struct ParsedDatasetTable: Hashable, Sendable {
+struct ParsedDatasetTable: Sendable {
     let displayName: String
     let sourceSheetName: String?
     let columns: [DatasetColumn]
