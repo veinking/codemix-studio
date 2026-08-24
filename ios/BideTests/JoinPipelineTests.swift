@@ -162,4 +162,29 @@ final class JoinPipelineTests: XCTestCase {
             XCTAssertTrue(message.contains("damaged row separators"))
         }
     }
+
+    func testPhoneExportConcatenationShapeFailsClosed() throws {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("bide-phone-export-regression-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let damaged = """
+        order_id,customer_id,order_date,product,quantity,order_total,status
+        O1001,C001,2026-05-03,Starter Plan,1,49.0,Paid
+        O1027,C012,2026-08-16,Data Export,2,30.00,Paid,customer_id,customer_name,state,segment,signup_date
+        C001,Avery Brooks,VA,Small Business,2026-01-08
+        """
+        let damagedURL = root.appendingPathComponent("bide_query_result_phone_corrupt.csv")
+        try damaged.write(to: damagedURL, atomically: true, encoding: .utf8)
+
+        XCTAssertThrowsError(try DatasetParser.parse(url: damagedURL, format: .csv)) { error in
+            guard case DatasetParserError.malformedDelimited(let message) = error else {
+                return XCTFail("Expected malformedDelimited, got \(error)")
+            }
+            XCTAssertTrue(message.contains("structurally inconsistent"))
+            XCTAssertTrue(message.contains("12 fields"))
+            XCTAssertTrue(message.contains("header declares 7"))
+        }
+    }
 }
