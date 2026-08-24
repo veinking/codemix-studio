@@ -43,8 +43,8 @@ for (const expected of [
   "public.json",
   "public.plain-text",
   "org.openxmlformats.spreadsheetml.sheet",
-  "MARKETING_VERSION: 0.2.2",
-  "CURRENT_PROJECT_VERSION: 4",
+  "MARKETING_VERSION: 0.2.3",
+  "CURRENT_PROJECT_VERSION: 5",
 ]) {
   assert.ok(project.includes(expected), `Phase 2 project wiring missing: ${expected}`);
 }
@@ -129,12 +129,19 @@ for (const uiCapability of [
   "Export This Dataset",
   "joinResultReport",
   "Join Results",
+  "openWorkspaceAfterJoinDismiss",
+  "handleJoinBuilderDismissal",
+  "await Task.yield()",
 ]) {
   assert.ok(datasetsView.includes(uiCapability), `Datasets UI capability missing: ${uiCapability}`);
 }
 assert.ok(
   datasetsView.includes("dataWorkspace.lastSQLRun = nil"),
   "Starting a guided join must clear stale SQL results before presenting the builder."
+);
+assert.ok(
+  datasetsView.includes("session.selectedSection = .workspace"),
+  "Editable join query navigation must occur after the Join Builder dismisses."
 );
 
 const resultsView = read("ios/BideApp/Views/SQLResultsView.swift");
@@ -162,9 +169,16 @@ for (const joinCapability of [
   "suggestJoinColumns",
   "hasSuffix(\"_id\")",
   "SELECT l.*, r.*",
+  "onEditableQueryCreated",
+  "previousFileID",
+  "The Join Builder will stay open so nothing is lost",
 ]) {
   assert.ok(joinBuilder.includes(joinCapability), `Guided join capability missing: ${joinCapability}`);
 }
+assert.ok(
+  !joinBuilder.includes("session.selectedSection = .workspace"),
+  "The Join Builder must not switch tabs while its modal sheet is still dismissing."
+);
 
 const completion = read("ios/BideApp/Editor/CompletionProvider.swift");
 assert.ok(completion.includes("datasets: [DatasetAsset]"), "Autocomplete must receive project datasets.");
