@@ -53,6 +53,7 @@ struct BideApp: App {
         dataWorkspace.openProject(projectID)
         guard let projectID else { return }
         Task {
+            guard dataWorkspace.recoverInterruptedDatasetDeletions(projectID: projectID) else { return }
             await dataWorkspace.reconcileProjectFiles(projectID: projectID)
             await dataWorkspace.migrateDerivedDatabaseIfNeeded(projectID: projectID)
         }
