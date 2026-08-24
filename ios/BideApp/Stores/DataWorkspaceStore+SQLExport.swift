@@ -18,6 +18,15 @@ extension DataWorkspaceStore {
             dataError = SQLiteProjectEngineError.exportRequiresReadOnlyQuery.localizedDescription
             return nil
         }
+        guard !hasActiveDataOperation(projectID: projectID),
+              !hasActiveSQLOperation(projectID: projectID) else {
+            dataError = "Finish the current dataset or SQL operation before exporting this result."
+            return nil
+        }
+        guard await prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID) else {
+            dataError = dataError ?? "bIDE could not prepare the local SQL database for export. The result was not shared or saved."
+            return nil
+        }
         guard beginSQLOperation(projectID: projectID) else {
             dataError = "Finish the current dataset or SQL operation before exporting this result."
             return nil
@@ -98,9 +107,10 @@ extension DataWorkspaceStore {
 
         let sampleCount = min(result.rows.count, 100)
         if sampleCount > 0 {
-            guard beginSQLOperation(projectID: projectID) else {
+            guard await prepareDerivedDatabaseForSQLIfNeeded(projectID: projectID),
+                  beginSQLOperation(projectID: projectID) else {
                 await removeFailedSavedResult(imported, projectID: projectID)
-                dataError = "Saved-result verification could not run because another project data operation started. bIDE removed the unverified derived dataset."
+                dataError = "Saved-result verification could not run because the local SQL database was not ready. bIDE removed the unverified derived dataset."
                 return nil
             }
 
