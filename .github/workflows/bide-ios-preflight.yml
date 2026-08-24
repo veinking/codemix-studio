@@ -29,6 +29,9 @@ jobs:
       - name: Validate Phase 2 data + SQL
         run: node scripts/validate-bide-ios-phase2.mjs
 
+      - name: Validate Phase 2 integrity cleanup
+        run: node scripts/validate-bide-ios-phase2-integrity.mjs
+
       - name: Verify paid lane stays manual-only
         shell: bash
         run: |
