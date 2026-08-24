@@ -209,14 +209,18 @@ final class DataWorkspaceStore: ObservableObject {
                 if rollbackProblems.isEmpty {
                     endDataOperation(projectID: projectID)
                     ownsDataOperation = false
-                    openProject(projectID)
-                    await rebuildDatabase(projectID: projectID)
-                    if let rebuildError = dataError {
-                        dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)). The source and registry were restored, but rebuilding SQL during rollback also failed: \(rebuildError)"
-                    } else {
-                        dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)). bIDE restored the source file, registry, and derived SQL state."
+                    if activeProjectID == projectID {
+                        openProject(projectID)
                     }
-                } else {
+                    await rebuildDatabase(projectID: projectID)
+                    if activeProjectID == projectID {
+                        if let rebuildError = dataError {
+                            dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)). The source and registry were restored, but rebuilding SQL during rollback also failed: \(rebuildError)"
+                        } else {
+                            dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)). bIDE restored the source file, registry, and derived SQL state."
+                        }
+                    }
+                } else if activeProjectID == projectID {
                     dataError = "Could not delete \(asset.fileName) because SQL cleanup failed (\(dropError.localizedDescription)), and rollback was incomplete: \(rollbackProblems.joined(separator: "; "))."
                 }
                 return
@@ -226,30 +230,40 @@ final class DataWorkspaceStore: ObservableObject {
                 do {
                     try fileManager.removeItem(at: stagedURL)
                 } catch {
-                    datasets = updatedAssets
-                    dataError = "\(asset.fileName) was removed from the project and its SQL tables were deleted, but bIDE could not clean up a hidden staged source copy: \(error.localizedDescription)"
+                    if activeProjectID == projectID {
+                        datasets = updatedAssets
+                        dataError = "\(asset.fileName) was removed from the project and its SQL tables were deleted, but bIDE could not clean up a hidden staged source copy: \(error.localizedDescription)"
+                    }
                     return
                 }
             }
 
-            datasets = updatedAssets
+            if activeProjectID == projectID {
+                datasets = updatedAssets
+            }
         } catch {
             if sourceWasStaged,
                fileManager.fileExists(atPath: stagedURL.path),
                !fileManager.fileExists(atPath: sourceURL.path) {
                 try? fileManager.moveItem(at: stagedURL, to: sourceURL)
             }
-            dataError = "Could not delete \(asset.fileName): \(error.localizedDescription)"
+            if activeProjectID == projectID {
+                dataError = "Could not delete \(asset.fileName): \(error.localizedDescription)"
+            }
         }
     }
 
     func rebuildDatabase(projectID: UUID) async {
         guard !dataOperationProjects.contains(projectID) else {
-            dataError = "Finish the current dataset operation before rebuilding SQL."
+            if activeProjectID == projectID {
+                dataError = "Finish the current dataset operation before rebuilding SQL."
+            }
             return
         }
         guard !sqlOperationProjects.contains(projectID) else {
-            dataError = "Finish the current SQL run before rebuilding the database."
+            if activeProjectID == projectID {
+                dataError = "Finish the current SQL run before rebuilding the database."
+            }
             return
         }
         let assets = loadRegistry(projectID: projectID)
@@ -260,6 +274,12 @@ final class DataWorkspaceStore: ObservableObject {
             dataError = nil
         }
         defer { endDataOperation(projectID: projectID) }
+        await rebuildDatabaseWithinDataOperation(projectID: projectID, assets: assets)
+    }
+
+    func rebuildDatabaseWithinDataOperation(projectID: UUID, assets: [DatasetAsset]? = nil) async {
+        let assetsToRebuild = assets ?? loadRegistry(projectID: projectID)
+        guard !assetsToRebuild.isEmpty else { return }
 
         let dbURL = databaseURL(projectID: projectID)
         do {
@@ -272,7 +292,7 @@ final class DataWorkspaceStore: ObservableObject {
         }
 
         do {
-            for asset in assets {
+            for asset in assetsToRebuild {
                 let sourceURL = projectDirectory(projectID).appendingPathComponent(asset.relativePath)
                 let parsedTables = try await Task.detached(priority: .userInitiated) {
                     try DatasetParser.parse(url: sourceURL, format: asset.format)
@@ -342,13 +362,17 @@ final class DataWorkspaceStore: ObservableObject {
     }
 
     func preview(_ table: DatasetTableDescriptor, projectID: UUID) async -> SQLRunReport? {
+        guard activeProjectID == projectID else { return nil }
         guard !dataOperationProjects.contains(projectID),
               !sqlOperationProjects.contains(projectID) else {
-            if activeProjectID == projectID {
-                dataError = "Finish the current dataset or SQL operation before loading a preview."
-            }
+            dataError = "Finish the current dataset or SQL operation before loading a preview."
             return nil
         }
+        guard beginSQLOperation(projectID: projectID) else {
+            dataError = "Finish the current dataset or SQL operation before loading a preview."
+            return nil
+        }
+        defer { endSQLOperation(projectID: projectID) }
 
         let dbURL = databaseURL(projectID: projectID)
         do {
@@ -489,7 +513,7 @@ final class DataWorkspaceStore: ObservableObject {
         return unregistered
     }
 
-    private func beginDataOperation(projectID: UUID, status: String) -> Bool {
+    func beginDataOperation(projectID: UUID, status: String) -> Bool {
         guard !dataOperationProjects.contains(projectID),
               !sqlOperationProjects.contains(projectID) else { return false }
         dataOperationProjects.insert(projectID)
@@ -500,7 +524,7 @@ final class DataWorkspaceStore: ObservableObject {
         return true
     }
 
-    private func endDataOperation(projectID: UUID) {
+    func endDataOperation(projectID: UUID) {
         dataOperationProjects.remove(projectID)
         if activeProjectID == projectID {
             isImporting = false
@@ -508,7 +532,7 @@ final class DataWorkspaceStore: ObservableObject {
         }
     }
 
-    private func beginSQLOperation(projectID: UUID) -> Bool {
+    func beginSQLOperation(projectID: UUID) -> Bool {
         guard !dataOperationProjects.contains(projectID),
               !sqlOperationProjects.contains(projectID) else { return false }
         sqlOperationProjects.insert(projectID)
@@ -518,11 +542,19 @@ final class DataWorkspaceStore: ObservableObject {
         return true
     }
 
-    private func endSQLOperation(projectID: UUID) {
+    func endSQLOperation(projectID: UUID) {
         sqlOperationProjects.remove(projectID)
         if activeProjectID == projectID {
             isRunningSQL = false
         }
+    }
+
+    func hasActiveDataOperation(projectID: UUID) -> Bool {
+        dataOperationProjects.contains(projectID)
+    }
+
+    func hasActiveSQLOperation(projectID: UUID) -> Bool {
+        sqlOperationProjects.contains(projectID)
     }
 
     private func projectDirectory(_ projectID: UUID) -> URL {
