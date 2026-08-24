@@ -49,13 +49,12 @@ final class LargeSavedResultIntegrityTests: XCTestCase {
 
         let store = DataWorkspaceStore()
         store.openProject(projectID)
-        let savedURL = try XCTUnwrap(
-            await store.exportSQLResult(
-                report,
-                projectID: projectID,
-                registerAsDataset: true
-            )
+        let savedCandidate = await store.exportSQLResult(
+            report,
+            projectID: projectID,
+            registerAsDataset: true
         )
+        let savedURL = try XCTUnwrap(savedCandidate)
 
         XCTAssertNil(store.dataError)
         let saved = try XCTUnwrap(store.datasets.first)
