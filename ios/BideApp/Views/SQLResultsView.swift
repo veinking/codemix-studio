@@ -78,6 +78,16 @@ struct SQLResultsView: View {
                                 systemImage: "checkmark.circle"
                             )
                             .foregroundStyle(.secondary)
+
+                            if !result.isReadOnly {
+                                Label {
+                                    Text("This change applies to bIDE's local derived SQLite database. Imported CSV/XLSX/JSON source files are unchanged. Rebuilding or migrating the derived database can replace SQL-only edits from those source files.")
+                                        .font(.caption)
+                                } icon: {
+                                    Image(systemName: "externaldrive.badge.exclamationmark")
+                                }
+                                .foregroundStyle(.secondary)
+                            }
                         } else if result.rows.isEmpty {
                             ContentUnavailableView(
                                 "No Rows Returned",
