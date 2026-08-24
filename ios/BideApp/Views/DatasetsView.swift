@@ -1,12 +1,14 @@
 import SwiftUI
 
 struct DatasetsView: View {
+    @EnvironmentObject private var session: AppSession
     @EnvironmentObject private var workspace: WorkspaceStore
     @EnvironmentObject private var dataWorkspace: DataWorkspaceStore
 
     @State private var importerPresented = false
     @State private var joinBuilderPresented = false
     @State private var joinResultReport: SQLRunReport?
+    @State private var openWorkspaceAfterJoinDismiss = false
     @State private var shareURLs: [URL] = []
     @State private var deleteTarget: DatasetAsset?
 
@@ -44,6 +46,7 @@ struct DatasetsView: View {
                     Button {
                         dataWorkspace.lastSQLRun = nil
                         joinResultReport = nil
+                        openWorkspaceAfterJoinDismiss = false
                         joinBuilderPresented = true
                     } label: {
                         Label("Join Two Tables", systemImage: "arrow.triangle.merge")
@@ -151,13 +154,13 @@ struct DatasetsView: View {
                 await dataWorkspace.importDatasets(urls, projectID: projectID)
             }
         }
-        .sheet(isPresented: $joinBuilderPresented, onDismiss: {
-            if let report = dataWorkspace.lastSQLRun {
-                joinResultReport = report
-                dataWorkspace.lastSQLRun = nil
-            }
-        }) {
-            SQLJoinBuilderView(tables: dataWorkspace.tables)
+        .sheet(isPresented: $joinBuilderPresented, onDismiss: handleJoinBuilderDismissal) {
+            SQLJoinBuilderView(
+                tables: dataWorkspace.tables,
+                onEditableQueryCreated: {
+                    openWorkspaceAfterJoinDismiss = true
+                }
+            )
         }
         .sheet(item: $joinResultReport) { report in
             SQLResultsView(report: report, title: "Join Results")
@@ -204,6 +207,25 @@ struct DatasetsView: View {
         let count = dataWorkspace.datasets.count
         let tableCount = dataWorkspace.tables.count
         return "\(count) dataset\(count == 1 ? "" : "s") · \(tableCount) SQL table\(tableCount == 1 ? "" : "s")"
+    }
+
+    private func handleJoinBuilderDismissal() {
+        if openWorkspaceAfterJoinDismiss {
+            openWorkspaceAfterJoinDismiss = false
+            dataWorkspace.lastSQLRun = nil
+            Task { @MainActor in
+                await Task.yield()
+                session.selectedSection = .workspace
+            }
+            return
+        }
+
+        guard let report = dataWorkspace.lastSQLRun else { return }
+        dataWorkspace.lastSQLRun = nil
+        Task { @MainActor in
+            await Task.yield()
+            joinResultReport = report
+        }
     }
 
     private func share(_ asset: DatasetAsset) {
