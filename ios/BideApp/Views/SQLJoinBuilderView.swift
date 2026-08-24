@@ -3,10 +3,10 @@ import SwiftUI
 struct SQLJoinBuilderView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var workspace: WorkspaceStore
-    @EnvironmentObject private var session: AppSession
     @EnvironmentObject private var dataWorkspace: DataWorkspaceStore
 
     let tables: [DatasetTableDescriptor]
+    let onEditableQueryCreated: () -> Void
 
     @State private var leftTableID: UUID?
     @State private var rightTableID: UUID?
@@ -131,13 +131,13 @@ struct SQLJoinBuilderView: View {
                     Button("Cancel") { dismiss() }
                 }
             }
-            .alert("SQL Error", isPresented: Binding(
+            .alert("Join Error", isPresented: Binding(
                 get: { dataWorkspace.sqlError != nil },
                 set: { if !$0 { dataWorkspace.sqlError = nil } }
             )) {
                 Button("OK", role: .cancel) { dataWorkspace.sqlError = nil }
             } message: {
-                Text(dataWorkspace.sqlError ?? "Could not run the join.")
+                Text(dataWorkspace.sqlError ?? "Could not complete the join action.")
             }
             .onAppear(perform: configureDefaults)
         }
@@ -213,8 +213,12 @@ struct SQLJoinBuilderView: View {
     }
 
     private func runJoin(_ sql: String) {
-        guard let projectID = workspace.activeProjectID,
-              !dataWorkspace.isRunningSQL else { return }
+        guard let projectID = workspace.activeProjectID else {
+            dataWorkspace.sqlError = "Open or create a project before running a join."
+            return
+        }
+        guard !dataWorkspace.isRunningSQL else { return }
+
         Task {
             await dataWorkspace.executeSQL(sql, projectID: projectID)
             if dataWorkspace.lastSQLRun != nil {
@@ -224,12 +228,26 @@ struct SQLJoinBuilderView: View {
     }
 
     private func createQuery(_ sql: String) {
+        guard workspace.activeProjectID != nil else {
+            dataWorkspace.sqlError = "Open or create a project before creating a join query."
+            return
+        }
+
+        let previousFileID = workspace.activeFileID
         let left = leftTable?.sqliteName ?? "left"
         let right = rightTable?.sqliteName ?? "right"
         workspace.createFile(named: "join_\(left)_\(right)", language: .sql)
+
+        guard let createdFileID = workspace.activeFileID,
+              createdFileID != previousFileID,
+              workspace.activeFile?.language == .sql else {
+            dataWorkspace.sqlError = "bIDE could not create the editable SQL file. The Join Builder will stay open so nothing is lost."
+            return
+        }
+
         workspace.updateDocumentText(sql + "\n")
         workspace.saveActiveDocumentNow()
-        session.selectedSection = .workspace
+        onEditableQueryCreated()
         dismiss()
     }
 }
