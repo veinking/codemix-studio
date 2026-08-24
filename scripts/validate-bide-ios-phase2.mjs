@@ -255,6 +255,7 @@ for (const regression of [
   "testOrdersLeftJoinExportRoundTripPreservesRowsAndValues",
   "testFlattenedCSVShapeFailsClosedInsteadOfTurningValuesIntoHeaders",
   "testPhoneExportConcatenationShapeFailsClosed",
+  "testDerivedDatabaseMigrationRepairsStaleZeroBy234MetadataFromSource",
   "XCTAssertEqual(orders.rows.count, 27)",
   "C999",
   "C888",
@@ -265,6 +266,9 @@ for (const regression of [
   "XCTAssertEqual(roundTrip.rows.count, 27)",
   "12 fields",
   "header declares 7",
+  "XCTAssertEqual(repaired.rowCount, 27)",
+  "XCTAssertEqual(repaired.columns.count, 7)",
+  "XCTAssertEqual(generation, \"2\")",
 ]) {
   assert.ok(joinTests.includes(regression), `Phone join regression coverage missing: ${regression}`);
 }
