@@ -5,21 +5,56 @@ import UIKit
 struct BideApp: App {
     @StateObject private var session = AppSession()
     @StateObject private var workspace = WorkspaceStore()
+    @StateObject private var dataWorkspace = DataWorkspaceStore()
 
     var body: some Scene {
         WindowGroup {
             RootView()
                 .environmentObject(session)
                 .environmentObject(workspace)
+                .environmentObject(dataWorkspace)
+                .onAppear {
+                    synchronizeDataProject(workspace.activeProjectID)
+                }
+                .onChange(of: workspace.activeProjectID) { _, projectID in
+                    synchronizeDataProject(projectID)
+                }
                 .onOpenURL { url in
                     guard url.isFileURL else { return }
-                    if workspace.importCodeFilesAsProject([url]) != nil {
-                        session.selectedSection = .workspace
+
+                    if CodeLanguage.infer(from: url.lastPathComponent) != nil {
+                        if workspace.importCodeFilesAsProject([url]) != nil {
+                            session.selectedSection = .workspace
+                        }
+                        return
+                    }
+
+                    if DatasetFormat.infer(from: url) != nil,
+                       let projectID = workspace.activeProjectID {
+                        guard !dataWorkspace.isRunningSQL else {
+                            dataWorkspace.dataError = "Finish the current SQL run before importing another dataset."
+                            session.selectedSection = .datasets
+                            return
+                        }
+                        Task {
+                            await dataWorkspace.importDatasets([url], projectID: projectID)
+                            session.selectedSection = .datasets
+                        }
                     }
                 }
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
                     workspace.saveActiveDocumentNow()
                 }
+        }
+    }
+
+    @MainActor
+    private func synchronizeDataProject(_ projectID: UUID?) {
+        dataWorkspace.openProject(projectID)
+        guard let projectID else { return }
+        Task {
+            await dataWorkspace.reconcileProjectFiles(projectID: projectID)
+            await dataWorkspace.migrateDerivedDatabaseIfNeeded(projectID: projectID)
         }
     }
 }

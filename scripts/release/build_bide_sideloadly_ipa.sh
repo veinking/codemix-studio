@@ -74,7 +74,8 @@ echo "${ARCHITECTURES}" | grep -qw arm64
   echo "Architectures: ${ARCHITECTURES}"
   echo "Device families: iPhone + iPad"
   echo "Code signing: disabled for Sideloadly packaging"
-  echo "Runtime execution: intentionally not included in Phase 1"
+  echo "SQL execution: native SQLite enabled in Phase 2"
+  echo "Python/R execution: intentionally deferred beyond Phase 2"
 } | tee "${LOG_DIR}/app-bundle-verification.txt"
 
 rm -rf "${APP_PATH}/_CodeSignature" "${APP_PATH}/embedded.mobileprovision"

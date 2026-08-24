@@ -1,25 +1,18 @@
 name: bIDE iOS Quality
 
-# The macOS/Xcode lane is intentionally checkpoint-only because GitHub-hosted
-# macOS minutes are expensive. During active device QA we batch fixes, then run
-# this workflow manually when we need a new installable IPA. The PR receives one
-# automatic final gate when it is explicitly marked ready for review.
+# EXPENSIVE CHECKPOINT LANE.
+# This workflow is manual-only by design. Do not attach push, pull_request,
+# ready_for_review, or schedule triggers here. During active development we batch
+# fixes, run the cheap source preflight once, and dispatch this macOS/Xcode lane
+# only when the resulting IPA is worth installing on a physical device.
 on:
   workflow_dispatch:
-  pull_request:
-    types: [ready_for_review]
-    branches: [main]
-    paths:
-      - "ios/**"
-      - "scripts/validate-bide-ios-phase1.mjs"
-      - "scripts/release/build_bide_sideloadly_ipa.sh"
-      - ".github/workflows/bide-ios-quality.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: bide-ios-${{ github.event.pull_request.number || github.ref }}
+  group: bide-ios-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -31,8 +24,14 @@ jobs:
       - name: Check out source
         uses: actions/checkout@v4
 
-      - name: Validate Phase 1 scope
+      - name: Validate Actions budget policy
+        run: node scripts/validate-bide-actions-budget.mjs
+
+      - name: Validate Phase 1 baseline
         run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Validate Phase 2 data + SQL
+        run: node scripts/validate-bide-ios-phase2.mjs
 
       - name: Select Xcode 16.4
         shell: bash
@@ -69,6 +68,22 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build | tee /tmp/bide-ios-build.log
 
+      - name: Run native join/export regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; data=json.load(sys.stdin); ids=[d["udid"] for runtime in data["devices"].values() for d in runtime if d.get("isAvailable") and d.get("name","").startswith("iPhone")]; print(ids[0] if ids else "")')"
+          test -n "${DEVICE_ID}"
+          set -o pipefail
+          xcodebuild \
+            -project ios/bIDE.xcodeproj \
+            -scheme bIDE \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=${DEVICE_ID}" \
+            CODE_SIGNING_ALLOWED=NO \
+            test | tee /tmp/bide-ios-tests.log
+
       - name: Build unsigned physical-device IPA
         shell: bash
         run: bash scripts/release/build_bide_sideloadly_ipa.sh
@@ -76,7 +91,7 @@ jobs:
       - name: Upload bIDE physical-device package
         uses: actions/upload-artifact@v4
         with:
-          name: bIDE-Phase1-Sideloadly-${{ github.run_attempt }}
+          name: bIDE-Phase2-Audited-${{ github.run_attempt }}
           path: |
             build/bIDE-Sideloadly.ipa
             build/BideSideloadlyLogs/
@@ -87,9 +102,10 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bide-ios-build-diagnostics
+          name: bide-ios-phase2-build-diagnostics
           path: |
             /tmp/bide-ios-build.log
+            /tmp/bide-ios-tests.log
             build/BideSideloadlyLogs/
           retention-days: 7
           if-no-files-found: warn

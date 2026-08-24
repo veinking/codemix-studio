@@ -1,0 +1,45 @@
+name: bIDE Phase 2 Scope Diagnostic
+
+# Manual diagnostic only. This workflow must never wake up from a push or write
+# commits back into the branch. Use it only when the scope scan is worth a run.
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Branch, tag, or commit to inspect
+        required: true
+        default: agent/bide-ios-phase2-data-sql
+        type: string
+      confirm:
+        description: Type SCAN to run the diagnostic
+        required: true
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-phase2-scope-${{ inputs.source_ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    if: ${{ inputs.confirm == 'SCAN' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
+
+      - name: Scan native Swift scope literals
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "WKWebView matches:"
+          grep -RIn --include='*.swift' 'WKWebView' ios/BideApp || true
+          echo
+          echo "Other deferred-runtime matches:"
+          grep -RIn --include='*.swift' -E 'Pyodide|webR|import StoreKit|import Supabase' ios/BideApp || true

@@ -1,0 +1,50 @@
+name: bIDE iOS Source Preflight
+
+# CHEAP BATCH GATE.
+# Run this manually after a group of source changes is ready. It intentionally
+# avoids Xcode/macOS and exists to catch deterministic source/configuration
+# regressions before we spend a paid native checkpoint.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-ios-preflight-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Validate Actions budget policy
+        run: node scripts/validate-bide-actions-budget.mjs
+
+      - name: Validate Phase 1 baseline
+        run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Validate Phase 2 data + SQL
+        run: node scripts/validate-bide-ios-phase2.mjs
+
+      - name: Verify paid lane stays manual-only
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+
+          const workflow = fs.readFileSync('.github/workflows/bide-ios-quality.yml', 'utf8');
+          assert.match(workflow, /workflow_dispatch:/, 'Paid macOS lane must keep workflow_dispatch.');
+          for (const forbidden of ['pull_request:', 'push:', 'schedule:']) {
+            assert.ok(!workflow.includes(forbidden), `Paid macOS lane must not contain ${forbidden}`);
+          }
+          assert.ok(workflow.includes('runs-on: macos-15'), 'Paid lane must remain the explicit macOS/Xcode checkpoint.');
+          console.log('Paid bIDE macOS lane is manual-only.');
+          NODE

@@ -70,17 +70,6 @@ struct RootView: View {
     }
 }
 
-private struct DatasetsView: View {
-    var body: some View {
-        ContentUnavailableView(
-            "Datasets",
-            systemImage: "tablecells",
-            description: Text("CSV/dataframe import and inspection starts after the editor/project core passes Phase 1.")
-        )
-        .navigationTitle("Datasets")
-    }
-}
-
 private struct AccountView: View {
     @EnvironmentObject private var session: AppSession
 
