@@ -23,6 +23,7 @@ const required = [
   "ios/BideApp/Data/SQLiteProjectEngine.swift",
   "ios/BideApp/Stores/DataWorkspaceStore.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift",
+  "ios/BideApp/Stores/DataWorkspaceStore+SavedResultRecovery.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift",
   "ios/BideApp/Views/DatasetsView.swift",
   "ios/BideApp/Views/SQLResultsView.swift",
@@ -80,8 +81,10 @@ for (const resultCapability of [
   "isReadOnly",
   "isTruncated",
   "SQLRunReport",
+  "SQLQueryIntegritySummary",
   "SQLCSVExportSummary",
   "sampleRows",
+  "valueFingerprint",
 ]) {
   assert.ok(models.includes(resultCapability), `Structured SQL result capability missing: ${resultCapability}`);
 }
@@ -115,9 +118,12 @@ for (const sqlCapability of [
   "rowLimit: Int = 500",
   "isTruncated",
   "exportReadOnlyQueryToCSV",
+  "integritySummaryForReadOnlyQuery",
+  "StableRowFingerprint",
   "SQLCSVExportSummary",
   "sampleLimit: Int = 100",
   "sampleRows.append(row)",
+  "fingerprint.append(row: row)",
   "BEGIN IMMEDIATE TRANSACTION",
 ]) {
   assert.ok(sqlite.includes(sqlCapability), `Native SQLite capability missing: ${sqlCapability}`);
@@ -163,6 +169,16 @@ for (const migrationCapability of [
   assert.ok(migration.includes(migrationCapability), `Derived SQLite migration capability missing: ${migrationCapability}`);
 }
 
+const savedResultRecovery = read("ios/BideApp/Stores/DataWorkspaceStore+SavedResultRecovery.swift");
+for (const recoveryCapability of [
+  "recoverInterruptedSavedResults",
+  "pendingSavedResultMarkerPrefix",
+  'try "pending".write',
+  'try "verified".write',
+]) {
+  assert.ok(savedResultRecovery.includes(recoveryCapability), `Saved-result recovery capability missing: ${recoveryCapability}`);
+}
+
 const exportStore = read("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift");
 for (const exportCapability of [
   "exportSQLResult",
@@ -173,8 +189,9 @@ for (const exportCapability of [
   "exportSummary.columns == result.columns",
   "exportSummary.sampleRows == expectedSample",
   "exportSummary.rowCount",
-  "verification.primaryResult?.rows == expectedRows",
-  "removeFailedSavedResult",
+  "integritySummaryForReadOnlyQuery",
+  "integritySummary.valueFingerprint == exportSummary.valueFingerprint",
+  "rejectUnverifiedSavedResult",
 ]) {
   assert.ok(exportStore.includes(exportCapability), `SQL export/integrity capability missing: ${exportCapability}`);
 }
@@ -293,11 +310,13 @@ assert.ok(
 
 const app = read("ios/BideApp/BideApp.swift");
 assert.ok(app.includes("DatasetFormat.infer"), "Open in bIDE must route dataset file types.");
+assert.ok(app.includes("recoverInterruptedSavedResults"), "Project open must recover unfinished saved-result verification.");
 assert.ok(app.includes("reconcileProjectFiles"), "Project open must discover existing local datasets.");
 assert.ok(app.includes("migrateDerivedDatabaseIfNeeded"), "Project open must migrate stale derived SQLite state.");
 assert.ok(
-  app.indexOf("reconcileProjectFiles") < app.indexOf("migrateDerivedDatabaseIfNeeded"),
-  "Source reconciliation must finish before the derived SQLite migration runs."
+  app.indexOf("recoverInterruptedSavedResults") < app.indexOf("reconcileProjectFiles") &&
+    app.indexOf("reconcileProjectFiles") < app.indexOf("migrateDerivedDatabaseIfNeeded"),
+  "Saved-result recovery must precede source reconciliation, which must precede derived SQLite migration."
 );
 
 const nativeSource = walk("ios/BideApp")
