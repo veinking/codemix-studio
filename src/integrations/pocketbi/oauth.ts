@@ -10,6 +10,7 @@ const SESSION_KEY = 'bide.pocketbi.oauth.session.v1';
 const MAX_TRANSACTION_AGE_MS = 15 * 60 * 1000;
 const REFRESH_SKEW_SECONDS = 120;
 let refreshTimer: number | null = null;
+let callbackCompletion: { key: string; promise: Promise<string> } | null = null;
 
 type OAuthTransaction = {
   state: string;
@@ -47,10 +48,10 @@ function decodeJwtPayload(token: string) {
   return JSON.parse(atob(normalized)) as { client_id?: string; exp?: number; aud?: string | string[]; iss?: string };
 }
 
-function verifyOAuthAccessToken(token: string) {
+function verifyOAuthAccessToken(token: string, { allowExpired = false }: { allowExpired?: boolean } = {}) {
   const payload = decodeJwtPayload(token);
   if (payload.client_id !== CLIENT_ID) throw new Error('PocketBI returned a token for a different OAuth client.');
-  if (payload.exp && payload.exp <= Math.floor(Date.now() / 1000)) throw new Error('PocketBI returned an expired OAuth token.');
+  if (!allowExpired && payload.exp && payload.exp <= Math.floor(Date.now() / 1000)) throw new Error('PocketBI returned an expired OAuth token.');
   const expectedIssuer = `${SUPABASE_URL}/auth/v1`;
   if (payload.iss && payload.iss !== expectedIssuer) throw new Error('PocketBI returned a token from an unexpected issuer.');
   const audience = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
@@ -84,7 +85,9 @@ function loadStoredSession(): StoredOAuthSession | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredOAuthSession;
     if (!parsed.accessToken || !parsed.refreshToken || parsed.clientId !== CLIENT_ID) return null;
-    verifyOAuthAccessToken(parsed.accessToken);
+    // An expired access token is still useful when its refresh token is valid.
+    // Validate binding/issuer/audience here and let ensurePocketBIOAuthSession refresh based on expiresAt.
+    verifyOAuthAccessToken(parsed.accessToken, { allowExpired: true });
     return parsed;
   } catch {
     localStorage.removeItem(SESSION_KEY);
@@ -196,7 +199,7 @@ export async function beginPocketBIOAuth(returnTo = '/ide') {
   window.location.assign(authorize.toString());
 }
 
-export async function completePocketBIOAuth(search = window.location.search) {
+async function completePocketBIOAuthOnce(search: string) {
   if (!isPocketBIOAuthConfigured()) throw new Error('PocketBI ID connection is not configured for this bIDE deployment.');
   const params = new URLSearchParams(search);
   const oauthError = params.get('error');
@@ -227,6 +230,18 @@ export async function completePocketBIOAuth(search = window.location.search) {
   return safeReturnTo(transaction.returnTo);
 }
 
+export function completePocketBIOAuth(search = window.location.search) {
+  const key = search;
+  if (callbackCompletion?.key === key) return callbackCompletion.promise;
+
+  const promise = completePocketBIOAuthOnce(search);
+  callbackCompletion = { key, promise };
+  void promise.catch(() => {
+    if (callbackCompletion?.promise === promise) callbackCompletion = null;
+  });
+  return promise;
+}
+
 export async function ensurePocketBIOAuthSession() {
   if (!isPocketBIOAuthConfigured()) return false;
   const stored = loadStoredSession();
@@ -245,6 +260,7 @@ export async function clearPocketBIOAuthSession() {
   cancelScheduledRefresh();
   localStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(TRANSACTION_KEY);
+  callbackCompletion = null;
   await supabase.auth.startAutoRefresh();
 }
 
@@ -252,5 +268,6 @@ export async function markDirectPocketBISession() {
   cancelScheduledRefresh();
   localStorage.removeItem(SESSION_KEY);
   sessionStorage.removeItem(TRANSACTION_KEY);
+  callbackCompletion = null;
   await supabase.auth.startAutoRefresh();
 }
