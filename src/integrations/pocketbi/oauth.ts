@@ -38,6 +38,23 @@ function base64Url(bytes: Uint8Array) {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
 }
 
+function decodeJwtPayload(token: string) {
+  const parts = token.split('.');
+  if (parts.length !== 3) throw new Error('PocketBI returned a malformed access token.');
+  const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(parts[1].length / 4) * 4, '=');
+  return JSON.parse(atob(normalized)) as { client_id?: string; exp?: number; aud?: string | string[]; iss?: string };
+}
+
+function verifyOAuthAccessToken(token: string) {
+  const payload = decodeJwtPayload(token);
+  if (payload.client_id !== CLIENT_ID) throw new Error('PocketBI returned a token for a different OAuth client.');
+  if (payload.exp && payload.exp <= Math.floor(Date.now() / 1000)) throw new Error('PocketBI returned an expired OAuth token.');
+  const expectedIssuer = `${SUPABASE_URL}/auth/v1`;
+  if (payload.iss && payload.iss !== expectedIssuer) throw new Error('PocketBI returned a token from an unexpected issuer.');
+  const audience = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+  if (payload.aud && !audience.includes('authenticated')) throw new Error('PocketBI returned a token with an unexpected audience.');
+}
+
 function randomUrlSafe(bytes = 32) {
   const value = new Uint8Array(bytes);
   crypto.getRandomValues(value);
@@ -65,6 +82,7 @@ function loadStoredSession(): StoredOAuthSession | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredOAuthSession;
     if (!parsed.accessToken || !parsed.refreshToken || parsed.clientId !== CLIENT_ID) return null;
+    verifyOAuthAccessToken(parsed.accessToken);
     return parsed;
   } catch {
     localStorage.removeItem(SESSION_KEY);
@@ -73,6 +91,7 @@ function loadStoredSession(): StoredOAuthSession | null {
 }
 
 function saveStoredSession(tokens: OAuthTokenResponse) {
+  verifyOAuthAccessToken(tokens.access_token);
   const stored: StoredOAuthSession = {
     accessToken: tokens.access_token,
     refreshToken: tokens.refresh_token,
@@ -112,6 +131,7 @@ async function tokenRequest(params: Record<string, string>) {
   if (!response.ok || !payload.access_token || !payload.refresh_token) {
     throw new Error(payload.error_description || payload.error || 'PocketBI could not complete the secure connection.');
   }
+  verifyOAuthAccessToken(payload.access_token);
   return payload as OAuthTokenResponse;
 }
 
@@ -207,7 +227,7 @@ export async function completePocketBIOAuth(search = window.location.search) {
 
 export async function ensurePocketBIOAuthSession() {
   if (!isPocketBIOAuthConfigured()) return false;
-  let stored = loadStoredSession();
+  const stored = loadStoredSession();
   if (!stored) return false;
   await supabase.auth.stopAutoRefresh();
   const now = Math.floor(Date.now() / 1000);
