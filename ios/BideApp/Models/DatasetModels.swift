@@ -142,3 +142,9 @@ struct SQLRunReport: Identifiable, Hashable, Sendable {
         resultSets.last(where: { !$0.columns.isEmpty }) ?? resultSets.last
     }
 }
+
+struct SQLCSVExportSummary: Sendable {
+    let rowCount: Int
+    let columns: [String]
+    let sampleRows: [[String?]]
+}
