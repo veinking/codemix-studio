@@ -23,7 +23,7 @@ final class WorkspaceStore: ObservableObject {
 
     private let importableProjectExtensions: Set<String> = [
         "py", "sql", "r",
-        "csv", "tsv", "json", "xlsx", "xls", "parquet",
+        "csv", "tsv", "json", "xlsx",
         "txt", "md"
     ]
 
