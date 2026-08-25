@@ -55,6 +55,7 @@ interface ToolbarProps {
   initializedRuntimes?: Set<string>;
   loadingRuntimes?: Set<string>;
   isMobile?: boolean;
+  showScratchLanguageSelector?: boolean;
 }
 
 export const Toolbar = ({
@@ -77,11 +78,14 @@ export const Toolbar = ({
   initializedRuntimes = new Set(),
   loadingRuntimes = new Set(),
   isMobile = false,
+  showScratchLanguageSelector = false,
 }: ToolbarProps) => {
   const navigate = useNavigate();
   const { user, isGuest, signOut } = useAuth();
 
   const openPocketBIAccount = () => window.open("https://pocketbi.app/account", "_blank", "noopener,noreferrer");
+
+  const shouldShowLanguageSelector = !currentFile || showScratchLanguageSelector;
 
   const accountControl = isGuest ? (
     <Button
@@ -117,7 +121,7 @@ export const Toolbar = ({
     return (
       <div className="flex w-full items-center justify-between gap-2">
         <div className="min-w-0 flex-1">
-          {!currentFile && (
+          {shouldShowLanguageSelector && (
             <LanguageSelector
               currentLanguage={scratchLanguage}
               onLanguageChange={onScratchLanguageChange}
@@ -143,7 +147,7 @@ export const Toolbar = ({
   return (
     <div className="flex w-full items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2">
-        {!currentFile && (
+        {shouldShowLanguageSelector && (
           <LanguageSelector
             currentLanguage={scratchLanguage}
             onLanguageChange={onScratchLanguageChange}

@@ -1388,6 +1388,7 @@ Jack,30,Miami,86`,
       initializedRuntimes={initializedRuntimes}
       loadingRuntimes={loadingRuntimes}
       isMobile={isMobile}
+      showScratchLanguageSelector={currentFile?.language === 'csv' && csvViewMode === 'code'}
     />
   );
 
