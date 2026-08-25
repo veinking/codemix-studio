@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { execFileSync } from "node:child_process";
 
 const read = (path) => fs.readFileSync(path, "utf8");
 const exists = (path) => fs.existsSync(path);
@@ -8,7 +9,11 @@ const projectPath = "ios/project.yml";
 const privacyPath = "ios/BideApp/PrivacyInfo.xcprivacy";
 const iconContentsPath = "ios/BideApp/Assets.xcassets/AppIcon.appiconset/Contents.json";
 const iconPath = "ios/BideApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png";
+const iconGeneratorPath = "scripts/generate-bide-appicon.mjs";
 const uploadWorkflowPath = ".github/workflows/bide-ios-testflight.yml";
+
+assert.ok(exists(iconGeneratorPath), `TestFlight release file missing: ${iconGeneratorPath}`);
+execFileSync(process.execPath, [iconGeneratorPath], { stdio: "inherit" });
 
 for (const path of [projectPath, privacyPath, iconContentsPath, iconPath, uploadWorkflowPath]) {
   assert.ok(exists(path), `TestFlight release file missing: ${path}`);
