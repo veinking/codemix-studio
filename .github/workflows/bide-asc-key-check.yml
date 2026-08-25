@@ -1,0 +1,57 @@
+name: bIDE App Store Key Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-key:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+    steps:
+      - name: Validate App Store Connect credentials format
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${APP_STORE_CONNECT_KEY_ID:-}"
+          test -n "${APP_STORE_CONNECT_ISSUER_ID:-}"
+          test -n "${APP_STORE_CONNECT_PRIVATE_KEY:-}"
+          export KEY_PATH="${RUNNER_TEMP}/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          python3 - <<'PY'
+          import base64
+          import os
+          from pathlib import Path
+
+          raw = os.environ['APP_STORE_CONNECT_PRIVATE_KEY'].strip()
+          if '\\n' in raw and '\n' not in raw:
+              raw = raw.replace('\\n', '\n')
+          raw = raw.strip().strip('"').strip("'").strip()
+
+          fmt = 'raw-pem'
+          value = raw
+          if '-----BEGIN PRIVATE KEY-----' not in value:
+              try:
+                  decoded = base64.b64decode(''.join(raw.split()), validate=True).decode('utf-8').strip()
+              except Exception:
+                  decoded = ''
+              if '-----BEGIN PRIVATE KEY-----' in decoded:
+                  value = decoded
+                  fmt = 'base64-pem'
+
+          if '-----BEGIN PRIVATE KEY-----' not in value or '-----END PRIVATE KEY-----' not in value:
+              raise SystemExit('APP_STORE_CONNECT_PRIVATE_KEY is not a valid .p8 PEM value. Paste the complete AuthKey_*.p8 file contents into the GitHub secret.')
+
+          Path(os.environ['KEY_PATH']).write_text(value + '\n', encoding='utf-8')
+          print(f'Private-key structure recognized: {fmt}')
+          if fmt != 'raw-pem':
+              raise SystemExit('The key is valid PEM after base64 decoding, but the paid workflow expects the GitHub secret to contain the raw .p8 text. Replace the secret with the raw file contents.')
+          PY
+          chmod 600 "${KEY_PATH}"
+          openssl pkey -in "${KEY_PATH}" -noout -check >/dev/null
+          echo "App Store Connect .p8 key format is valid."
