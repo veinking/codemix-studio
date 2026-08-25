@@ -832,15 +832,10 @@ Jack,30,Miami,86`,
     let language: 'python' | 'r' | 'javascript' | 'sql';
 
     if (currentFile && currentFile.language === 'csv') {
-      // When a CSV is active, allow running the scratch editor when in "Write Code" mode
-      if (csvViewMode === 'code') {
-        code = scratchCode;
-        language = scratchLanguage;
-      } else {
-        addToConsole("✗ This is a CSV preview. Switch to 'Write Code' to run code against the workspace.");
-        setIsRunning(false);
-        return;
-      }
+      // Preview vs Write Code is only a display choice. The global Run action
+      // always executes the current scratch buffer against the workspace.
+      code = scratchCode;
+      language = scratchLanguage;
     } else {
       code = activeFile ? (currentFile?.content || '') : scratchCode;
       language = activeFile ? ((currentFile?.language as any) || 'python') : scratchLanguage;
@@ -1316,6 +1311,17 @@ Jack,30,Miami,86`,
     };
   };
 
+  const handleExportSourceCSV = (file: FileItem) => {
+    // Export persisted source bytes exactly as imported/saved. Re-serializing a
+    // parsed CSV can alter quoting, line endings, and formatting even when the
+    // cell values are unchanged.
+    saveAs(
+      new Blob([file.content], { type: 'text/csv;charset=utf-8' }),
+      file.name,
+    );
+    toast.success(`Exported ${file.name}`);
+  };
+
   const handleExportDataset = (datasetName: string) => {
     const dataset = datasets.get(datasetName);
     if (!dataset) return;
@@ -1548,6 +1554,7 @@ Jack,30,Miami,86`,
                   title={currentFile.name}
                   headers={currentFileDataset.headers}
                   data={currentFileDataset.data}
+                  onExportCSV={() => handleExportSourceCSV(currentFile)}
                   onVisualize={() => setPlotBuilderOpen(true)}
                 />
               )}

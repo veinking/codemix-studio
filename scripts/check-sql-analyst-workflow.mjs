@@ -22,6 +22,10 @@ assert.match(ide, /const latestResultName = result\.datasets\[result\.datasets\.
 assert.match(ide, /onExportCSV=\{\(\) => handleExportDataset\(showDataset\)\}/, 'Result datasets must export as CSV');
 assert.match(ide, /onSaveAsFile=\{\(\) => handleSaveDatasetAsFile\(showDataset\)\}/, 'Result datasets must save back to Files');
 assert.match(ide, /if \(validLang\)/, 'Language-only documentation deep links must be honored');
+assert.doesNotMatch(ide, /This is a CSV preview\. Switch to 'Write Code'/, 'Global Run must not fail just because the CSV preview is visible');
+assert.match(ide, /if \(currentFile && currentFile\.language === 'csv'\) \{[\s\S]*code = scratchCode;[\s\S]*language = scratchLanguage;/, 'CSV Preview and Write Code must share the same global Run behavior');
+assert.match(ide, /const handleExportSourceCSV = \(file: FileItem\)[\s\S]*new Blob\(\[file\.content\]/, 'Source CSV export must preserve the exact persisted bytes');
+assert.match(ide, /onExportCSV=\{\(\) => handleExportSourceCSV\(currentFile\)\}/, 'CSV source preview must expose an export action');
 assert.match(ide, /showScratchLanguageSelector=\{currentFile\?\.language === 'csv' && csvViewMode === 'code'\}/, 'CSV Write Code mode must request the scratch language selector');
 assert.match(toolbar, /const shouldShowLanguageSelector = !currentFile \|\| showScratchLanguageSelector;/, 'Toolbar must show language switching for CSV Write Code mode');
 
