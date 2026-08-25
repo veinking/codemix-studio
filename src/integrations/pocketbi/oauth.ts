@@ -84,7 +84,8 @@ function loadStoredSession(): StoredOAuthSession | null {
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredOAuthSession;
     if (!parsed.accessToken || !parsed.refreshToken || parsed.clientId !== CLIENT_ID) return null;
-    // Preserve a structurally valid expired access token so its refresh token can renew the session.\n    verifyOAuthAccessToken(parsed.accessToken, true);
+    // Preserve a structurally valid expired access token so its refresh token can renew the session.
+    verifyOAuthAccessToken(parsed.accessToken, true);
     return parsed;
   } catch {
     localStorage.removeItem(SESSION_KEY);
