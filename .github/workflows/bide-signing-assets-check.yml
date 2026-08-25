@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
       IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
       BIDE_IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.BIDE_IOS_PROVISIONING_PROFILE_BASE64 }}
@@ -19,7 +20,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for variable in IOS_DISTRIBUTION_CERTIFICATE_BASE64 IOS_DISTRIBUTION_CERTIFICATE_PASSWORD BIDE_IOS_PROVISIONING_PROFILE_BASE64; do
+          for variable in APPLE_TEAM_ID IOS_DISTRIBUTION_CERTIFICATE_BASE64 IOS_DISTRIBUTION_CERTIFICATE_PASSWORD BIDE_IOS_PROVISIONING_PROFILE_BASE64; do
             if [[ -z "${!variable:-}" ]]; then
               echo "Missing required Actions secret: ${variable}" >&2
               exit 1
@@ -80,14 +81,48 @@ jobs:
           fi
 
           openssl x509 -in "${OUT}" -noout -subject -issuer -dates
+          openssl x509 -in "${OUT}" -outform DER -out "${RUNNER_TEMP}/distribution-cert.der"
           echo "Distribution certificate/password: valid (${MODE} PKCS#12 mode)"
 
-      - name: Validate provisioning profile container
+      - name: Validate provisioning profile and certificate binding
         shell: bash
         run: |
           set -euo pipefail
-          openssl asn1parse -inform DER -in "${RUNNER_TEMP}/bIDE_App_Store.mobileprovision" -noout
-          echo "Provisioning profile: valid DER/CMS container"
+          PROFILE="${RUNNER_TEMP}/bIDE_App_Store.mobileprovision"
+          PROFILE_PLIST="${RUNNER_TEMP}/bIDE_App_Store.plist"
+          openssl asn1parse -inform DER -in "${PROFILE}" -noout
+          openssl smime -inform DER -verify -noverify -in "${PROFILE}" -out "${PROFILE_PLIST}" >/dev/null 2>&1
+          export PROFILE_PLIST
+          export CERT_DER="${RUNNER_TEMP}/distribution-cert.der"
+          python3 - <<'PY'
+          import hashlib
+          import os
+          import plistlib
+          from pathlib import Path
+
+          profile = plistlib.loads(Path(os.environ['PROFILE_PLIST']).read_bytes())
+          team_ids = profile.get('TeamIdentifier') or []
+          if team_ids != [os.environ['APPLE_TEAM_ID']]:
+              raise SystemExit('Provisioning profile TeamIdentifier does not match APPLE_TEAM_ID.')
+
+          app_id = (profile.get('Entitlements') or {}).get('application-identifier')
+          expected_app_id = f"{os.environ['APPLE_TEAM_ID']}.com.bideide.ios"
+          if app_id != expected_app_id:
+              raise SystemExit('Provisioning profile application-identifier does not match com.bideide.ios.')
+
+          cert = Path(os.environ['CERT_DER']).read_bytes()
+          embedded = [bytes(item) for item in profile.get('DeveloperCertificates', [])]
+          if cert not in embedded:
+              fingerprint = hashlib.sha256(cert).hexdigest().upper()
+              raise SystemExit(
+                  'The distribution certificate in IOS_DISTRIBUTION_CERTIFICATE_BASE64 is not embedded in '
+                  'the bIDE provisioning profile. Regenerate/download the bIDE App Store profile with this '
+                  f'certificate selected. Certificate SHA-256: {fingerprint}'
+              )
+
+          print('Provisioning profile: Team ID and bundle ID match.')
+          print('Provisioning profile: exact distribution certificate is included.')
+          PY
 
       - name: Signing assets preflight passed
-        run: echo "bIDE signing assets are structurally valid before paid macOS use."
+        run: echo "bIDE signing assets, profile identity, and certificate binding are valid before paid macOS use."
