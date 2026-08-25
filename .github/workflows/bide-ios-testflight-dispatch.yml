@@ -1,0 +1,308 @@
+name: bIDE TestFlight Checkpoint
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact bIDE release-candidate branch, tag, or commit
+        required: true
+        default: agent/bide-ios-testflight-rc2
+        type: string
+      confirm:
+        description: Type UPLOAD to run the paid native/sign/upload checkpoint
+        required: true
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-testflight-checkpoint-${{ inputs.source_ref }}
+  cancel-in-progress: false
+
+jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact release candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
+
+      - name: Verify exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Source ref: ${{ inputs.source_ref }}"
+          echo "Source SHA: $(git rev-parse HEAD)"
+          test -z "$(git status --porcelain)"
+
+      - name: Generate deterministic App Store icon
+        run: node scripts/generate-bide-appicon.mjs
+
+      - name: Validate Phase 1 baseline
+        run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Validate Phase 2 data + SQL
+        run: node scripts/validate-bide-ios-phase2.mjs
+
+      - name: Validate Phase 2 integrity cleanup
+        run: node scripts/validate-bide-ios-phase2-integrity.mjs
+
+      - name: Validate TestFlight release configuration
+        run: node scripts/validate-bide-ios-testflight.mjs
+
+  testflight:
+    needs: source-preflight
+    if: ${{ inputs.confirm == 'UPLOAD' }}
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      BIDE_IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.BIDE_IOS_PROVISIONING_PROFILE_BASE64 }}
+      KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      ARCHIVE_PATH: ${{ github.workspace }}/build/TestFlight/bIDE.xcarchive
+      EXPORT_PATH: ${{ github.workspace }}/build/TestFlight/export
+      LOG_PATH: ${{ github.workspace }}/build/TestFlight/logs
+
+    steps:
+      - name: Check out exact release candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
+
+      - name: Verify exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Source ref: ${{ inputs.source_ref }}"
+          echo "Source SHA: $(git rev-parse HEAD)"
+          test -z "$(git status --porcelain)"
+
+      - name: Generate deterministic App Store icon
+        run: node scripts/generate-bide-appicon.mjs
+
+      - name: Select App Store compatible Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          XCODE_PATH="/Applications/Xcode.app/Contents/Developer"
+          test -d "${XCODE_PATH}"
+          sudo xcode-select --switch "${XCODE_PATH}"
+          XCODE_VERSION="$(xcodebuild -version | awk 'NR == 1 { print $2}')"
+          XCODE_MAJOR="${XCODE_VERSION%%.*}"
+          if (( XCODE_MAJOR < 26 )); then
+            echo "Xcode 26 or later is required; found ${XCODE_VERSION}." >&2
+            exit 1
+          fi
+          xcodebuild -version
+          echo "iOS SDK: $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Validate Apple automation secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in \
+            APP_STORE_CONNECT_KEY_ID \
+            APP_STORE_CONNECT_ISSUER_ID \
+            APP_STORE_CONNECT_PRIVATE_KEY \
+            APPLE_TEAM_ID \
+            IOS_DISTRIBUTION_CERTIFICATE_BASE64 \
+            IOS_DISTRIBUTION_CERTIFICATE_PASSWORD \
+            BIDE_IOS_PROVISIONING_PROFILE_BASE64 \
+            KEYCHAIN_PASSWORD; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Missing required Actions secret: ${variable}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Read release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(awk '/MARKETING_VERSION:/ {print $2; exit}' ios/project.yml)"
+          BUILD="$(awk '/CURRENT_PROJECT_VERSION:/ {print $2; exit}' ios/project.yml)"
+          [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          [[ "${BUILD}" =~ ^[0-9]+$ ]]
+          echo "BIDE_VERSION=${VERSION}" >> "${GITHUB_ENV}"
+          echo "BIDE_BUILD=${BUILD}" >> "${GITHUB_ENV}"
+          echo "Candidate: ${VERSION} (${BUILD})"
+
+      - name: Install App Store Connect API key
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEY_PATH="${RUNNER_TEMP}/AuthKey_${APP_STORE_CONNECT_KEY_ID}.p8"
+          export KEY_PATH
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          value = os.environ['APP_STORE_CONNECT_PRIVATE_KEY']
+          if '\\n' in value and '\n' not in value:
+              value = value.replace('\\n', '\n')
+          if not value.endswith('\n'):
+              value += '\n'
+          Path(os.environ['KEY_PATH']).write_text(value, encoding='utf-8')
+          PY
+          chmod 600 "${KEY_PATH}"
+          grep -q -- "-----BEGIN PRIVATE KEY-----" "${KEY_PATH}"
+          grep -q -- "-----END PRIVATE KEY-----" "${KEY_PATH}"
+          echo "ASC_KEY_PATH=${KEY_PATH}" >> "${GITHUB_ENV}"
+
+      - name: Install signing certificate and bIDE profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          CERTIFICATE_PATH="${RUNNER_TEMP}/bIDE_Distribution.p12"
+          PROFILE_PATH="${RUNNER_TEMP}/bIDE_App_Store.mobileprovision"
+          PROFILE_PLIST="${RUNNER_TEMP}/bIDE_App_Store.plist"
+          KEYCHAIN_PATH="${RUNNER_TEMP}/bide-signing.keychain-db"
+          export CERTIFICATE_PATH PROFILE_PATH
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+          Path(os.environ['CERTIFICATE_PATH']).write_bytes(base64.b64decode(os.environ['IOS_DISTRIBUTION_CERTIFICATE_BASE64'], validate=True))
+          Path(os.environ['PROFILE_PATH']).write_bytes(base64.b64decode(os.environ['BIDE_IOS_PROVISIONING_PROFILE_BASE64'], validate=True))
+          PY
+
+          security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security set-keychain-settings -lut 21600 "${KEYCHAIN_PATH}"
+          security unlock-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security import "${CERTIFICATE_PATH}" -P "${IOS_DISTRIBUTION_CERTIFICATE_PASSWORD}" -A -t cert -f pkcs12 -k "${KEYCHAIN_PATH}"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
+          security list-keychains -d user -s "${KEYCHAIN_PATH}"
+          security find-identity -v -p codesigning "${KEYCHAIN_PATH}" | grep -q "Apple Distribution"
+
+          security cms -D -i "${PROFILE_PATH}" > "${PROFILE_PLIST}"
+          PROFILE_UUID="$(/usr/libexec/PlistBuddy -c 'Print :UUID' "${PROFILE_PLIST}")"
+          PROFILE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :Name' "${PROFILE_PLIST}")"
+          PROFILE_TEAM_ID="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "${PROFILE_PLIST}")"
+          PROFILE_APP_ID="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "${PROFILE_PLIST}")"
+          [[ "${PROFILE_TEAM_ID}" == "${APPLE_TEAM_ID}" ]]
+          [[ "${PROFILE_APP_ID}" == "${APPLE_TEAM_ID}.com.bideide.ios" ]]
+
+          mkdir -p "${HOME}/Library/MobileDevice/Provisioning Profiles"
+          cp "${PROFILE_PATH}" "${HOME}/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+          echo "KEYCHAIN_PATH=${KEYCHAIN_PATH}" >> "${GITHUB_ENV}"
+          echo "PROFILE_UUID=${PROFILE_UUID}" >> "${GITHUB_ENV}"
+          echo "PROFILE_NAME=${PROFILE_NAME}" >> "${GITHUB_ENV}"
+          echo "Installed profile: ${PROFILE_NAME} (${PROFILE_UUID})"
+
+      - name: Install XcodeGen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then brew install xcodegen; fi
+          xcodegen --version
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Run native XCTest suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${LOG_PATH}"
+          DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[x["udid"] for xs in d["devices"].values() for x in xs if x.get("isAvailable") and x.get("name","").startswith("iPhone")]; print(ids[0] if ids else "")')"
+          test -n "${DEVICE_ID}"
+          set -o pipefail
+          xcodebuild -project ios/bIDE.xcodeproj -scheme bIDE -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,id=${DEVICE_ID}" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "${LOG_PATH}/native-tests.log"
+
+      - name: Create App Store export options
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${EXPORT_PATH}" "${LOG_PATH}"
+          cat > build/TestFlight/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>destination</key><string>upload</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>method</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>manual</string>
+            <key>signingCertificate</key><string>Apple Distribution</string>
+            <key>provisioningProfiles</key><dict><key>com.bideide.ios</key><string>${PROFILE_UUID}</string></dict>
+            <key>stripSwiftSymbols</key><true/>
+            <key>teamID</key><string>${APPLE_TEAM_ID}</string>
+            <key>uploadSymbols</key><true/>
+          </dict></plist>
+          EOF
+          plutil -lint build/TestFlight/ExportOptions.plist
+
+      - name: Archive signed bIDE candidate
+        id: archive
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          rm -rf "${ARCHIVE_PATH}"
+          xcodebuild -project ios/bIDE.xcodeproj -scheme bIDE -configuration Release -destination 'generic/platform=iOS' -archivePath "${ARCHIVE_PATH}" DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="${PROFILE_UUID}" OTHER_CODE_SIGN_FLAGS="--keychain ${KEYCHAIN_PATH}" clean archive 2>&1 | tee "${LOG_PATH}/archive.log"
+
+      - name: Verify archived app
+        if: ${{ steps.archive.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="${ARCHIVE_PATH}/Products/Applications/bIDE.app"
+          INFO_PLIST="${APP_PATH}/Info.plist"
+          test -f "${INFO_PLIST}"
+          test -f "${APP_PATH}/PrivacyInfo.xcprivacy"
+          test -f "${APP_PATH}/Assets.car"
+          test -f "${APP_PATH}/embedded.mobileprovision"
+          BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${INFO_PLIST}")"
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST}")"
+          BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${INFO_PLIST}")"
+          [[ "${BUNDLE_ID}" == "com.bideide.ios" ]]
+          [[ "${VERSION}" == "${BIDE_VERSION}" ]]
+          [[ "${BUILD}" == "${BIDE_BUILD}" ]]
+          echo "Archive verified: ${BUNDLE_ID} ${VERSION} (${BUILD})" | tee "${LOG_PATH}/archive-verification.txt"
+
+      - name: Upload archive to App Store Connect
+        id: upload
+        if: ${{ steps.archive.outcome == 'success' }}
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -exportArchive -archivePath "${ARCHIVE_PATH}" -exportPath "${EXPORT_PATH}" -exportOptionsPlist build/TestFlight/ExportOptions.plist -authenticationKeyPath "${ASC_KEY_PATH}" -authenticationKeyID "${APP_STORE_CONNECT_KEY_ID}" -authenticationKeyIssuerID "${APP_STORE_CONNECT_ISSUER_ID}" 2>&1 | tee "${LOG_PATH}/export-upload.log"
+
+      - name: Remove temporary signing assets
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [[ -n "${PROFILE_UUID:-}" ]]; then rm -f "${HOME}/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"; fi
+          if [[ -n "${KEYCHAIN_PATH:-}" ]]; then security delete-keychain "${KEYCHAIN_PATH}" || true; fi
+
+      - name: Upload diagnostic logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bIDE-TestFlight-${{ github.run_id }}-${{ github.run_attempt }}
+          path: build/TestFlight/logs
+          if-no-files-found: ignore
+
+      - name: Enforce checkpoint result
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          if [[ "${{ steps.archive.outcome }}" != "success" ]]; then
+            echo "Signed archive failed." >&2
+            exit 1
+          fi
+          if [[ "${{ steps.upload.outcome }}" != "success" ]]; then
+            echo "App Store Connect upload failed." >&2
+            exit 1
+          fi
+          echo "bIDE archive and App Store Connect upload succeeded."
