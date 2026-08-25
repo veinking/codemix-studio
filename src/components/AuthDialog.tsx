@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PocketBIConnectSection } from "@/components/PocketBIConnectSection";
 import { supabase } from "@/integrations/supabase/client";
-import { beginPocketBIOAuth, isPocketBIOAuthConfigured, markDirectPocketBISession } from "@/integrations/pocketbi/oauth";
+import { markDirectPocketBISession } from "@/integrations/pocketbi/oauth";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AuthDialogProps {
@@ -29,27 +30,6 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const clearPasswords = () => {
     setPassword("");
     setConfirmPassword("");
-  };
-
-  const handlePocketBIConnect = async () => {
-    if (!isPocketBIOAuthConfigured()) {
-      toast({
-        title: "PocketBI connection is not enabled yet",
-        description: "Use the email/password fallback on this browser until this deployment receives its PocketBI OAuth client ID.",
-      });
-      return;
-    }
-    setOauthLoading(true);
-    try {
-      await beginPocketBIOAuth('/ide');
-    } catch (error: any) {
-      setOauthLoading(false);
-      toast({
-        variant: "destructive",
-        title: "PocketBI connection could not start",
-        description: error?.message || "Try again or use the email/password fallback.",
-      });
-    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -180,23 +160,15 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
     clearPasswords();
   };
 
-  const pocketBIConnect = activeTab !== "reset" && (
-    <div className="space-y-3 mb-5">
-      <Button type="button" className="w-full" onClick={handlePocketBIConnect} disabled={oauthLoading || isLoading}>
-        {oauthLoading ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Opening PocketBI…</> : <><ShieldCheck className="mr-2 h-4 w-4" />Continue with PocketBI ID</>}
-      </Button>
-      <p className="text-xs text-muted-foreground text-center leading-5">Recommended. PocketBI authorizes this bIDE browser with a one-time PKCE code; your access and refresh tokens are never placed in the URL.</p>
-      <div className="flex items-center gap-3 text-[11px] uppercase tracking-wider text-muted-foreground"><span className="h-px flex-1 bg-border" /><span>or use password here</span><span className="h-px flex-1 bg-border" /></div>
-    </div>
-  );
-
   const authForm = (
     <>
-      {pocketBIConnect}
+      {activeTab !== "reset" && (
+        <PocketBIConnectSection disabled={isLoading} onBusyChange={setOauthLoading} />
+      )}
       <Tabs value={activeTab} onValueChange={changeTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="login">Sign In</TabsTrigger>
-          <TabsTrigger value="signup">Sign Up</TabsTrigger>
+          <TabsTrigger value="login" disabled={isLoading || oauthLoading}>Sign In</TabsTrigger>
+          <TabsTrigger value="signup" disabled={isLoading || oauthLoading}>Sign Up</TabsTrigger>
         </TabsList>
 
         <TabsContent value="login" className="space-y-4">
@@ -267,7 +239,7 @@ export const AuthDialog = ({ open, onOpenChange }: AuthDialogProps) => {
   const title = activeTab === "reset" ? "Reset Password" : "PocketBI ID for bIDE";
   const description = activeTab === "reset"
     ? "Enter your email to receive a password reset link"
-    : "Connect your existing PocketBI session, use the password fallback, or keep coding as a guest.";
+    : "Use one PocketBI ID across bIDE and PocketBI, use the password fallback, or keep coding as a guest.";
 
   if (isMobile) {
     return (
