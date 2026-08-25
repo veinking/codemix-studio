@@ -97,9 +97,9 @@ const Account = () => {
 
               <Alert>
                 <ShieldCheck className="h-4 w-4" />
-                <AlertTitle>One PocketBI ID, separate browser sessions</AlertTitle>
+                <AlertTitle>One PocketBI ID, securely connected</AlertTitle>
                 <AlertDescription>
-                  Your PocketBI ID is the same account across the ecosystem. Because bIDE runs on bideide.com, being signed in here does not automatically create a browser session on pocketbi.app yet.
+                  Your PocketBI ID is the same account across the ecosystem. bIDE keeps its own local browser session, while PocketBI securely authorizes it with a one-time PKCE code. You should not need to type your password again when PocketBI is already signed in.
                 </AlertDescription>
               </Alert>
 

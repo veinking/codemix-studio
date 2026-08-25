@@ -57,7 +57,7 @@ const COMPLETIONS: Record<string, CompletionSpec[]> = {
   php: [
     { label: "echo", insertText: "echo ${1:value};", snippet: true },
     { label: "function", insertText: "function ${1:name}(${2:args}) {\n    ${3}\n}", snippet: true },
-    { label: "foreach", insertText: "foreach (${1:\$items} as ${2:\$item}) {\n    ${3}\n}", snippet: true },
+    { label: "foreach", insertText: "foreach (${1:$items} as ${2:$item}) {\n    ${3}\n}", snippet: true },
     { label: "class", insertText: "class ${1:Name} {\n    ${2}\n}", snippet: true },
   ],
   ruby: [
