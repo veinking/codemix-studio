@@ -53,6 +53,10 @@ struct BideApp: App {
         dataWorkspace.openProject(projectID)
         guard let projectID else { return }
         Task {
+            // Registry identity is the source-of-truth boundary for every crash-recovery
+            // decision. Never interpret staged delete/save files against an unreadable or
+            // ambiguously missing registry.
+            guard dataWorkspace.validateDatasetRegistryBeforeRecovery(projectID: projectID) else { return }
             guard dataWorkspace.recoverInterruptedDatasetDeletions(projectID: projectID) else { return }
             guard dataWorkspace.recoverInterruptedSavedResults(projectID: projectID) else { return }
             await dataWorkspace.reconcileProjectFiles(projectID: projectID)
