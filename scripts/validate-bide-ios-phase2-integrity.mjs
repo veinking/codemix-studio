@@ -63,6 +63,10 @@ requireTokens("ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift", [
   "recoverInterruptedDatasetDeletions",
   ".bide-delete-",
   ".bide-sqlite-generation",
+  "sawDeleteArtifact",
+  "expectedLength = 36 + 1 + 36",
+  "duplicateAssetIDs",
+  "local SQL state remains invalidated",
 ]);
 
 requireTokens("ios/BideApp/Stores/DataWorkspaceStore+SavedResultRecovery.swift", [
@@ -136,6 +140,9 @@ const regressions = [
   ["ios/BideTests/ProjectImportFormatTests.swift", "testProjectImportSkipsUnsupportedXLSAndParquetFiles"],
   ["ios/BideTests/DatasetDeletionIntegrityTests.swift", "testDeleteDatasetRollsBackWhenSQLCleanupFails"],
   ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testRecoveryDoesNotTouchStagedFileOwnedByLiveDataOperation"],
+  ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testMalformedDeleteArtifactInvalidatesDerivedDatabaseBeforeFailing"],
+  ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testDuplicateDeleteArtifactsStopBeforeMovingFilesAndInvalidateSQL"],
+  ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testSourceAndStagedConflictStopsBeforeMutationAndInvalidatesSQL"],
   ["ios/BideTests/SavedResultRecoveryTests.swift", "testPendingSavedResultIsRemovedAndDerivedDatabaseIsRebuiltFromRemainingRegistry"],
   ["ios/BideTests/SavedResultRecoveryTests.swift", "testVerifiedSavedResultSurvivesRecoveryAndOnlyMarkerIsRemoved"],
   ["ios/BideTests/SavedResultRecoveryTests.swift", "testRecoveryDoesNotDeleteManualFileThatOnlySharesTokenPrefix"],
