@@ -1,0 +1,113 @@
+name: Apply CSV Run and Export UX
+
+on:
+  push:
+    branches:
+      - agent/bide-csv-run-export
+    paths:
+      - .github/workflows/apply-csv-run-export.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/bide-csv-run-export
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply CSV preview run/export fix
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path('src/pages/IDE.tsx')
+          s = path.read_text()
+
+          old = '''    if (currentFile && currentFile.language === 'csv') {
+      // When a CSV is active, allow running the scratch editor when in "Write Code" mode
+      if (csvViewMode === 'code') {
+        code = scratchCode;
+        language = scratchLanguage;
+      } else {
+        addToConsole("✗ This is a CSV preview. Switch to 'Write Code' to run code against the workspace.");
+        setIsRunning(false);
+        return;
+      }
+    } else {'''
+          new = '''    if (currentFile && currentFile.language === 'csv') {
+      // Preview vs Write Code is only a display choice. The global Run action
+      // always executes the current scratch buffer against the workspace.
+      code = scratchCode;
+      language = scratchLanguage;
+    } else {'''
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          marker = '''  const handleExportDataset = (datasetName: string) => {
+'''
+          addition = '''  const handleExportSourceCSV = (file: FileItem) => {
+    // Export persisted source bytes exactly as imported/saved. Re-serializing a
+    // parsed CSV can alter quoting, line endings, and formatting even when the
+    // cell values are unchanged.
+    saveAs(
+      new Blob([file.content], { type: 'text/csv;charset=utf-8' }),
+      file.name,
+    );
+    toast.success(`Exported ${file.name}`);
+  };
+
+'''
+          assert marker in s
+          s = s.replace(marker, addition + marker, 1)
+
+          old = '''                    <DatasetViewer
+                      title={currentFile.name}
+                      headers={currentFileDataset.headers}
+                      data={currentFileDataset.data}
+                      onVisualize={() => setPlotBuilderOpen(true)}
+                    />'''
+          new = '''                    <DatasetViewer
+                      title={currentFile.name}
+                      headers={currentFileDataset.headers}
+                      data={currentFileDataset.data}
+                      onExportCSV={() => handleExportSourceCSV(currentFile)}
+                      onVisualize={() => setPlotBuilderOpen(true)}
+                    />'''
+          assert old in s
+          s = s.replace(old, new, 1)
+          path.write_text(s)
+
+          guard = Path('scripts/check-sql-analyst-workflow.mjs')
+          g = guard.read_text()
+          marker = "assert.match(ide, /showScratchLanguageSelector=\\{currentFile\\?\\.language === 'csv' && csvViewMode === 'code'\\}/, 'CSV Write Code mode must request the scratch language selector');"
+          assert marker in g
+          additions = r'''assert.doesNotMatch(ide, /This is a CSV preview\. Switch to 'Write Code'/, 'Global Run must not fail just because the CSV preview is visible');
+assert.match(ide, /if \(currentFile && currentFile\.language === 'csv'\) \{[\s\S]*code = scratchCode;[\s\S]*language = scratchLanguage;/, 'CSV Preview and Write Code must share the same global Run behavior');
+assert.match(ide, /const handleExportSourceCSV = \(file: FileItem\)[\s\S]*new Blob\(\[file\.content\]/, 'Source CSV export must preserve the exact persisted bytes');
+assert.match(ide, /onExportCSV=\{\(\) => handleExportSourceCSV\(currentFile\)\}/, 'CSV source preview must expose an export action');
+'''
+          g = g.replace(marker, additions + marker, 1)
+          guard.write_text(g)
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: SQL workflow regression guard
+        run: npm run test:sql-analyst
+      - name: Production build
+        run: npm run build
+      - name: Commit fix and remove helper
+        run: |
+          rm .github/workflows/apply-csv-run-export.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/IDE.tsx scripts/check-sql-analyst-workflow.mjs .github/workflows/apply-csv-run-export.yml
+          git commit -m "Make CSV preview run and export consistent"
+          git push origin HEAD:agent/bide-csv-run-export
