@@ -25,7 +25,7 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
 
     // Check for error messages in plot data
     if (plotData.includes('⚠️') || plotData.includes('Plot created but couldn\'t capture')) {
-      setError('📱 Plot rendering is limited on this device. The code executed successfully but couldn\'t display the visualization.');
+      setError('Plot rendering failed inside bIDE. Close the viewer and run the code again.');
       setIsLoading(false);
       return;
     }
@@ -46,7 +46,7 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
         }
       };
       img.onerror = () => {
-        setError('📱 Failed to render plot on this device. Try viewing on desktop or download the code to run locally.');
+        setError('Failed to render the plot image in bIDE. Close the viewer and run the code again.');
         setIsLoading(false);
       };
       img.src = plotData;
@@ -159,12 +159,12 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
                 <AlertDescription>
                   <p className="font-semibold mb-2">{error}</p>
                   <p className="text-sm mb-3">
-                    💡 Your plot code is valid and ready to use. You can:
+                    bIDE is expected to render supported Python plots in-browser. You can:
                   </p>
                   <ul className="text-sm space-y-1 mb-3 list-disc list-inside">
-                    <li>Try simpler chart types (bar/line charts work best on mobile)</li>
-                    <li>View this plot on a desktop device</li>
-                    <li>Download the code and run it in Jupyter or a local Python IDE</li>
+                    <li>Close the Plot Viewer and run the code again</li>
+                    <li>Try a simpler chart if the figure is unusually large or complex</li>
+                    <li>Download the code as a backup or to share it</li>
                   </ul>
                   <div className="flex gap-2 flex-wrap mt-3">
                     {plotCode && (
