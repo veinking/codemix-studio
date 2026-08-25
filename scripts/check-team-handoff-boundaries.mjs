@@ -32,11 +32,12 @@ assert.doesNotMatch(features, /collaboration permanent toolbar clutter/, 'Featur
 assert.match(docs, /V1_RUNTIME_LANGUAGES = new Set\(\['python', 'r', 'javascript', 'sql'\]\)/, 'Docs hub must expose only shipped V1 runtimes as executable');
 for (const path of ['php', 'ruby', 'lua', 'java', 'typescript', 'cpp', 'c', 'rust', 'go', 'swift', 'kotlin', 'csharp']) {
   assert.match(app, new RegExp(`<Route path="/docs/${path}" element=\\{<Navigate to="/docs" replace />\\} />`), `Legacy /docs/${path} must redirect to current docs`);
-  assert.ok(!sitemap.includes(`/docs/${path}`), `Sitemap must not advertise unsupported runtime route /docs/${path}`);
+  const exactLoc = `<loc>https://bideide.com/docs/${path}</loc>`;
+  assert.ok(!sitemap.includes(exactLoc), `Sitemap must not advertise unsupported runtime route /docs/${path}`);
 }
 assert.match(app, /<Route path="\/tutorials" element=\{<Navigate to="\/docs" replace \/>\} \/>/, 'Stale tutorials route must redirect to the current docs hub');
-assert.ok(!sitemap.includes('/upgrade'), 'Sitemap must not advertise the retired bIDE upgrade page');
-assert.ok(!sitemap.includes('/share</loc>'), 'Sitemap must not advertise a non-existent bare share route');
+assert.ok(!sitemap.includes('<loc>https://bideide.com/upgrade</loc>'), 'Sitemap must not advertise the retired bIDE upgrade page');
+assert.ok(!sitemap.includes('<loc>https://bideide.com/share</loc>'), 'Sitemap must not advertise a non-existent bare share route');
 assert.doesNotMatch(sitemap, /16 Programming Languages|12 more languages/i, 'Crawler metadata must not restore the old 16-runtime claim');
 
 assert.match(focusedSeo, /unlisted bIDE code link/, 'Shared-code metadata must describe unlisted handoff truthfully');
