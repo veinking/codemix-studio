@@ -71,6 +71,14 @@ extension DataWorkspaceStore {
         }
         endSQLOperation(projectID: projectID)
 
+        // A result action belongs to the project that produced it. If the user navigated to
+        // another project while the detached export was running, cancel rather than sharing
+        // stale UI state or letting Save Result force-open the old project again.
+        guard activeProjectID == projectID else {
+            try? manager.removeItem(at: outputURL)
+            return nil
+        }
+
         guard exportSummary.columns == result.columns else {
             try? manager.removeItem(at: outputURL)
             dataError = "Export verification failed because the CSV columns no longer match the SQL result. bIDE did not share or save the file."
@@ -95,7 +103,8 @@ extension DataWorkspaceStore {
 
         // Create a durable pending marker before project registration. Verification is only
         // committed after the re-imported dataset passes every row/schema/value check. If the
-        // app is killed in between, startup recovery removes the unverified derived result.
+        // app is killed or the user switches projects in between, the marker remains pending
+        // so startup recovery removes the unverified derived result from this project.
         let verificationMarkerURL: URL
         do {
             verificationMarkerURL = try beginSavedResultVerification(projectID: projectID, token: token)
@@ -109,10 +118,14 @@ extension DataWorkspaceStore {
         await importDatasets([outputURL], projectID: projectID)
         try? manager.removeItem(at: outputURL)
 
-        guard activeProjectID == projectID,
-              let imported = datasets.first(where: { !existingIDs.contains($0.id) }) else {
-            // No project dataset was committed, so the pending marker can be discarded.
-            // If marker cleanup itself fails, startup recovery safely handles the orphan.
+        // Never clear a pending marker merely because the user changed projects while import
+        // was suspended. Registration may already have committed in the old project even
+        // though `datasets` now represents the new one. Leave the marker for safe recovery.
+        guard activeProjectID == projectID else { return nil }
+
+        guard let imported = datasets.first(where: { !existingIDs.contains($0.id) }) else {
+            // We are still in the originating project and no new registry asset exists, so
+            // there is no committed result left for recovery to remove.
             try? clearSavedResultVerificationMarker(verificationMarkerURL)
             dataError = "The exported CSV was created, but bIDE could not register it as a project dataset."
             return nil
@@ -167,6 +180,11 @@ extension DataWorkspaceStore {
         }
         endSQLOperation(projectID: projectID)
 
+        // If the user left during full verification, do not decide the old project's commit
+        // state from the new project's UI/store snapshot. Pending recovery will remove it on
+        // the next safe open of the originating project.
+        guard activeProjectID == projectID else { return nil }
+
         guard integritySummary.rowCount == exportSummary.rowCount,
               integritySummary.columns.count == exportSummary.columns.count,
               integritySummary.valueFingerprint == exportSummary.valueFingerprint else {
@@ -205,9 +223,19 @@ extension DataWorkspaceStore {
         verificationMarkerURL: URL,
         reason: String
     ) async {
-        await deleteDataset(asset, projectID: projectID)
-        let removed = !datasets.contains(where: { $0.id == asset.id })
+        // If the user has moved to another project, do not call deleteDataset (which is
+        // intentionally active-project scoped) and do not inspect the new project's dataset
+        // array to infer whether the old asset was removed. Leaving the marker pending is the
+        // safe rollback contract; startup recovery will clean the originating project later.
+        guard activeProjectID == projectID else { return }
 
+        await deleteDataset(asset, projectID: projectID)
+
+        // Project navigation can occur while deleteDataset is suspended. In that case leave
+        // the pending marker in place; recovery can safely determine the old registry state.
+        guard activeProjectID == projectID else { return }
+
+        let removed = !datasets.contains(where: { $0.id == asset.id })
         if removed {
             // The failed result no longer exists, so there is nothing left for startup
             // recovery to roll back. Marker cleanup can be retried harmlessly if it fails.
