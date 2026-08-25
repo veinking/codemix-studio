@@ -18,12 +18,17 @@ assert.match(runtime, /db\.prepare\(/, 'SQL dataset import must use prepared ins
 assert.match(runtime, /name: queryResults\.length === 1 \? 'SQL Result'/, 'SELECT results must become structured datasets');
 
 assert.match(ide, /runtime\.syncDatasets\(collectSQLDatasets\(\)\)/, 'IDE must load workspace data before SQL execution');
-assert.match(ide, /setShowDataset\(result\.datasets\[result\.datasets\.length - 1\]\.name\)/, 'Latest SQL result must open automatically');
+assert.match(ide, /const latestResultName = result\.datasets\[result\.datasets\.length - 1\]\.name;[\s\S]*setShowDataset\(latestResultName\);[\s\S]*setActiveFile\(null\)/, 'Latest SQL result must open separately from an active CSV');
 assert.match(ide, /onExportCSV=\{\(\) => handleExportDataset\(showDataset\)\}/, 'Result datasets must export as CSV');
 assert.match(ide, /onSaveAsFile=\{\(\) => handleSaveDatasetAsFile\(showDataset\)\}/, 'Result datasets must save back to Files');
 assert.match(ide, /if \(validLang\)/, 'Language-only documentation deep links must be honored');
 assert.match(ide, /showScratchLanguageSelector=\{currentFile\?\.language === 'csv' && csvViewMode === 'code'\}/, 'CSV Write Code mode must request the scratch language selector');
 assert.match(toolbar, /const shouldShowLanguageSelector = !currentFile \|\| showScratchLanguageSelector;/, 'Toolbar must show language switching for CSV Write Code mode');
+
+assert.match(ide, /const currentFileDataset = currentFile\?\.language === 'csv'/, 'CSV source preview must resolve from the active file');
+assert.match(ide, /View Result/, 'CSV workflow must keep a path back to the latest query result');
+assert.doesNotMatch(ide, /title=\{currentFile\.name\}\s+headers=\{currentDataset\.headers\}/, 'A query result must never masquerade as the active CSV preview');
+assert.match(ide, /preloadedFromCSV[\s\S]*currentFileDataset/, 'Data Lab must preload the active CSV source rather than a query result');
 
 assert.match(viewer, /Back to Code/, 'Result viewer needs an obvious path back to the editor');
 assert.match(viewer, /Export CSV/, 'Result viewer needs CSV export');
