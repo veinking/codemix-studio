@@ -1627,7 +1627,7 @@ Jack,30,Miami,86`,
               <div>
                 <h3 className="text-lg font-semibold mb-2">Cloud Workspaces</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Save and sync your coding sessions across devices
+                  Save workspace snapshots and restore them across devices
                 </p>
                 <Button 
                   onClick={() => {
