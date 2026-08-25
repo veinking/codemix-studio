@@ -110,7 +110,7 @@ requireTokens("ios/BideApp/Data/SQLiteProjectEngine.swift", [
   "fingerprint.append(row: row)",
 ]);
 
-requireTokens("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift", [
+const exportStore = requireTokens("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift", [
   "verificationSampleCount",
   "exportSummary.columns == result.columns",
   "exportSummary.sampleRows == expectedSample",
@@ -121,7 +121,15 @@ requireTokens("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift", [
   "commitSavedResultVerification",
   "rejectUnverifiedSavedResult",
   "remains marked pending",
+  "A result action belongs to the project that produced it",
+  "Never clear a pending marker merely because the user changed projects",
+  "Project navigation can occur while deleteDataset is suspended",
 ]);
+const activeProjectGuardCount = (exportStore.match(/guard activeProjectID == projectID else/g) ?? []).length;
+assert.ok(
+  activeProjectGuardCount >= 4,
+  `Saved-result export must keep active-project guards across async boundaries; found ${activeProjectGuardCount}.`
+);
 
 const app = requireTokens("ios/BideApp/BideApp.swift", [
   "validateDatasetRegistryBeforeRecovery",
