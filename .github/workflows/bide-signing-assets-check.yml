@@ -56,13 +56,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          openssl pkcs12 \
-            -in "${RUNNER_TEMP}/bIDE_Distribution.p12" \
+          CERT="${RUNNER_TEMP}/bIDE_Distribution.p12"
+          OUT="${RUNNER_TEMP}/distribution-cert.pem"
+          ERR="${RUNNER_TEMP}/pkcs12-error.txt"
+
+          if openssl pkcs12 \
+            -in "${CERT}" \
             -passin env:IOS_DISTRIBUTION_CERTIFICATE_PASSWORD \
             -clcerts -nokeys \
-            -out "${RUNNER_TEMP}/distribution-cert.pem" >/dev/null 2>&1
-          openssl x509 -in "${RUNNER_TEMP}/distribution-cert.pem" -noout -subject -dates
-          echo "Distribution certificate/password: valid"
+            -out "${OUT}" 2>"${ERR}"; then
+            MODE="modern"
+          elif openssl pkcs12 -legacy \
+            -in "${CERT}" \
+            -passin env:IOS_DISTRIBUTION_CERTIFICATE_PASSWORD \
+            -clcerts -nokeys \
+            -out "${OUT}" 2>"${ERR}"; then
+            MODE="legacy"
+          else
+            echo "Distribution certificate could not be opened with the configured password." >&2
+            echo "OpenSSL diagnostic:" >&2
+            sed -E 's/(pass(word)?|secret|key)[^ ]*/[redacted]/Ig' "${ERR}" >&2 || true
+            exit 1
+          fi
+
+          openssl x509 -in "${OUT}" -noout -subject -issuer -dates
+          echo "Distribution certificate/password: valid (${MODE} PKCS#12 mode)"
 
       - name: Validate provisioning profile container
         shell: bash
