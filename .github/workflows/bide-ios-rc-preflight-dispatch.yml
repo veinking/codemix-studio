@@ -35,6 +35,9 @@ jobs:
           echo "Source SHA: $(git rev-parse HEAD)"
           test -z "$(git status --porcelain)"
 
+      - name: Generate deterministic App Store icon
+        run: node scripts/generate-bide-appicon.mjs
+
       - name: Validate Phase 1 baseline
         run: node scripts/validate-bide-ios-phase1.mjs
 
