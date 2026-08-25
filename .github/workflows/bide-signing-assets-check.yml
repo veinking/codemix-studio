@@ -102,10 +102,13 @@ jobs:
 
           profile = plistlib.loads(Path(os.environ['PROFILE_PLIST']).read_bytes())
           team_ids = profile.get('TeamIdentifier') or []
+          app_id = (profile.get('Entitlements') or {}).get('application-identifier')
+          print('Provisioning profile TeamIdentifier:', ', '.join(team_ids) if team_ids else '<missing>')
+          print('Provisioning profile application-identifier:', app_id or '<missing>')
+
           if team_ids != [os.environ['APPLE_TEAM_ID']]:
               raise SystemExit('Provisioning profile TeamIdentifier does not match APPLE_TEAM_ID.')
 
-          app_id = (profile.get('Entitlements') or {}).get('application-identifier')
           expected_app_id = f"{os.environ['APPLE_TEAM_ID']}.com.bideide.ios"
           if app_id != expected_app_id:
               raise SystemExit('Provisioning profile application-identifier does not match com.bideide.ios.')
