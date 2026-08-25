@@ -6,6 +6,9 @@ extension DataWorkspaceStore {
 
     func isDerivedDatabaseReadyForSQL(projectID: UUID) -> Bool {
         guard activeProjectID == projectID else { return false }
+        guard datasetRegistryIntegrityStatus(projectID: projectID) != .unreadable else {
+            return false
+        }
 
         let manager = FileManager.default
         let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -20,14 +23,22 @@ extension DataWorkspaceStore {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard storedGeneration == Self.derivedDatabaseGeneration else { return false }
 
-        // Projects with registered datasets must have a database to query. An empty project
-        // may legitimately have no SQLite file yet; a simple SELECT can create the empty DB
-        // after the generation marker has already established that stale tables were cleared.
+        // Projects with registered datasets must have a database to query. An empty or
+        // SQL-only project may legitimately have no dataset registry and no SQLite file yet;
+        // a simple SQL statement can create the empty DB after the generation marker has
+        // already established that stale tables were cleared.
         return datasets.isEmpty || manager.fileExists(atPath: databaseURL.path)
     }
 
     func prepareDerivedDatabaseForSQLIfNeeded(projectID: UUID) async -> Bool {
         guard activeProjectID == projectID else { return false }
+
+        // SQL may be requested before the asynchronous project-open recovery task finishes.
+        // Recheck the registry boundary here so a fast user action can never outrun recovery
+        // and query derived state whose source-of-truth metadata is unreadable/ambiguous.
+        guard validateDatasetRegistryBeforeRecovery(projectID: projectID) else {
+            return false
+        }
         if isDerivedDatabaseReadyForSQL(projectID: projectID) { return true }
 
         guard !hasActiveDataOperation(projectID: projectID),
@@ -41,6 +52,7 @@ extension DataWorkspaceStore {
 
     func migrateDerivedDatabaseIfNeeded(projectID: UUID) async {
         guard activeProjectID == projectID else { return }
+        guard validateDatasetRegistryBeforeRecovery(projectID: projectID) else { return }
 
         let manager = FileManager.default
         let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
@@ -59,6 +71,10 @@ extension DataWorkspaceStore {
         guard migrationNeeded else { return }
         guard beginDataOperation(projectID: projectID, status: "Refreshing local SQL state…") else {
             return
+        }
+        if activeProjectID == projectID {
+            // Only failures from this migration attempt should prevent the generation commit.
+            dataError = nil
         }
         defer { endDataOperation(projectID: projectID) }
 
