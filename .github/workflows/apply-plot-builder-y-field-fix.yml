@@ -1,0 +1,32 @@
+name: Apply Plot Builder Y-field fix
+
+on:
+  push:
+    branches:
+      - agent/bide-plot-builder-runtime-audit
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/bide-plot-builder-runtime-audit
+          fetch-depth: 0
+      - name: Apply guarded patch
+        run: python scripts/apply-plot-builder-y-field-fix.py
+      - name: Remove temporary patch machinery
+        run: |
+          git rm scripts/apply-plot-builder-y-field-fix.py
+          git rm .github/workflows/apply-plot-builder-y-field-fix.yml
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/PlotBuilder.tsx
+          git commit -m "Require Y only for charts that use it"
+          git push origin HEAD:agent/bide-plot-builder-runtime-audit
