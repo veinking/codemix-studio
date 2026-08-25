@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { X, AlertCircle, Download, ZoomIn, ZoomOut, ExternalLink } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, AlertCircle, Download, ZoomIn, ZoomOut, ExternalLink, ImageDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -12,47 +12,25 @@ interface PlotViewerProps {
 }
 
 export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     if (!plotData) return;
-    
-    setIsLoading(true);
-    setError(null);
 
-    // Check for error messages in plot data
+    setError(null);
+    setZoom(1);
+
     if (plotData.includes('⚠️') || plotData.includes('Plot created but couldn\'t capture')) {
       setError('Plot rendering failed inside bIDE. Close the viewer and run the code again.');
       setIsLoading(false);
       return;
     }
 
-    // If it's a data URL (matplotlib), draw it
-    if (plotData.startsWith('data:image')) {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            ctx.drawImage(img, 0, 0);
-            setIsLoading(false);
-          }
-        }
-      };
-      img.onerror = () => {
-        setError('Failed to render the plot image in bIDE. Close the viewer and run the code again.');
-        setIsLoading(false);
-      };
-      img.src = plotData;
-    } else {
-      setIsLoading(false);
-    }
+    // Raster plot images handle their own loading state via <img onLoad/onError>.
+    // Non-image plot payloads render immediately as HTML.
+    setIsLoading(plotData.startsWith('data:image'));
   }, [plotData]);
 
   const handleDownloadCode = () => {
@@ -69,23 +47,24 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
 
   const handleDownloadImage = () => {
     if (!plotData || !plotData.startsWith('data:image')) return;
-    
+
     try {
-      // Convert base64 to blob
-      const base64Data = plotData.split(',')[1];
+      const [header, base64Data] = plotData.split(',');
+      const mimeMatch = header.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64$/);
+      const mimeType = mimeMatch?.[1] || 'image/png';
+      const extension = mimeType === 'image/jpeg' ? 'jpg' : 'png';
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
         byteNumbers[i] = byteCharacters.charCodeAt(i);
       }
       const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'image/png' });
-      
-      // Trigger download
+      const blob = new Blob([byteArray], { type: mimeType });
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `plot_${Date.now()}.png`;
+      a.download = `plot_${Date.now()}.${extension}`;
       a.click();
       URL.revokeObjectURL(url);
       toast.success('Plot image downloaded!');
@@ -106,29 +85,35 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
 
   if (!plotData) return null;
 
+  const isImagePlot = plotData.startsWith('data:image');
+
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-background/90 backdrop-blur-sm z-[100] flex items-center justify-center p-2 md:p-4"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-card border border-border rounded-lg shadow-2xl w-full max-w-5xl max-h-[95vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-3 md:p-4 border-b border-border shrink-0">
-          <h3 className="font-semibold text-foreground">Plot Output</h3>
-          <div className="flex gap-2">
-            {plotData?.startsWith('data:image') && !error && (
+        <div className="flex flex-col gap-3 p-3 md:p-4 border-b border-border shrink-0 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="font-semibold text-foreground shrink-0">Plot Output</h3>
+          <div className="flex flex-wrap gap-2">
+            {isImagePlot && !error && (
               <>
-                <Button variant="outline" size="sm" onClick={() => setZoom(z => Math.max(0.5, z - 0.25))}>
+                <Button variant="outline" size="sm" onClick={() => setZoom(z => Math.max(0.5, z - 0.25))} aria-label="Zoom out">
                   <ZoomOut className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setZoom(z => Math.min(3, z + 0.25))}>
+                <Button variant="outline" size="sm" onClick={() => setZoom(z => Math.min(3, z + 0.25))} aria-label="Zoom in">
                   <ZoomIn className="w-4 h-4" />
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleOpenInNewTab}>
                   <ExternalLink className="w-4 h-4 mr-2" />
                   Open in Tab
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDownloadImage}>
+                  <ImageDown className="w-4 h-4 mr-2" />
+                  Download Plot
                 </Button>
               </>
             )}
@@ -138,21 +123,14 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
                 Download Code
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close plot viewer">
               <X className="w-4 h-4" />
             </Button>
           </div>
         </div>
-        
+
         <ScrollArea className="flex-1">
           <div className="p-3 md:p-6">
-            {isLoading && !error && (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
-                <p>Rendering plot...</p>
-              </div>
-            )}
-            
             {error ? (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -178,19 +156,31 @@ export const PlotViewer = ({ plotData, onClose, plotCode }: PlotViewerProps) => 
               </Alert>
             ) : (
               <>
-                {plotData?.startsWith('data:image') && !isLoading && (
-                  <div className="flex justify-center overflow-auto">
-                    <canvas 
-                      ref={canvasRef} 
-                      className="max-w-full h-auto rounded border border-border" 
+                {isImagePlot && (
+                  <div className="relative flex min-h-48 justify-center overflow-auto">
+                    {isLoading && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center py-12 text-muted-foreground">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
+                        <p>Rendering plot...</p>
+                      </div>
+                    )}
+                    <img
+                      src={plotData}
+                      alt="Python plot output"
+                      onLoad={() => setIsLoading(false)}
+                      onError={() => {
+                        setError('Failed to render the plot image in bIDE. Close the viewer and run the code again.');
+                        setIsLoading(false);
+                      }}
+                      className={`max-w-full h-auto rounded border border-border transition-opacity ${isLoading ? 'opacity-0' : 'opacity-100'}`}
                       style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
                     />
                   </div>
                 )}
-                {plotData && !plotData.startsWith('data:image') && !isLoading && (
-                  <div 
+                {!isImagePlot && !isLoading && (
+                  <div
                     className="prose dark:prose-invert max-w-none"
-                    dangerouslySetInnerHTML={{ __html: plotData }} 
+                    dangerouslySetInnerHTML={{ __html: plotData }}
                   />
                 )}
               </>
