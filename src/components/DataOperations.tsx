@@ -107,6 +107,19 @@ const DATA_OPERATIONS = [
 
 export const DataOperations = ({ onInsertCode, datasetName, currentLanguage = 'python' }: DataOperationsProps) => {
   const operations = currentLanguage === 'r' ? R_DATA_OPERATIONS : DATA_OPERATIONS;
+  const activeCsvName = datasetName?.toLowerCase().endsWith('.csv') ? datasetName : undefined;
+
+  const resolveOperationCode = (operation: { name: string; code: string }) => {
+    if (operation.name !== 'Load CSV' || !activeCsvName) return operation.code;
+
+    const quotedFileName = JSON.stringify(activeCsvName);
+    if (currentLanguage === 'r') {
+      return operation.code.replace(/read_csv\((['"])data\.csv\1\)/, `read_csv(${quotedFileName})`);
+    }
+
+    return operation.code.replace(/pd\.read_csv\((['"])data\.csv\1\)/, `pd.read_csv(${quotedFileName})`);
+  };
+
   const handleInsert = (code: string, name: string) => {
     onInsertCode(code);
     toast.success(`Inserted: ${name}`);
@@ -134,7 +147,7 @@ export const DataOperations = ({ onInsertCode, datasetName, currentLanguage = 'p
           <SheetTitle>Data Operations</SheetTitle>
           <SheetDescription>
             Quick {currentLanguage === 'r' ? 'R/dplyr' : 'pandas'} operations for data analysis
-            {datasetName && ` • Dataset: ${datasetName}`}
+            {activeCsvName && ` • Dataset: ${activeCsvName}`}
           </SheetDescription>
         </SheetHeader>
         
@@ -148,37 +161,44 @@ export const DataOperations = ({ onInsertCode, datasetName, currentLanguage = 'p
                 </div>
                 
                 <div className="space-y-2">
-                  {category.operations.map((op) => (
-                    <div
-                      key={op.name}
-                      className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 transition-all group"
-                    >
-                      <div className="flex items-start justify-between mb-1">
-                        <h4 className="text-sm font-medium text-foreground">{op.name}</h4>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2"
-                            onClick={() => handleInsert(op.code, op.name)}
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            Insert
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2"
-                            onClick={() => handleCopy(op.code, op.name)}
-                          >
-                            <Copy className="w-3 h-3 mr-1" />
-                            Copy
-                          </Button>
+                  {category.operations.map((op: { name: string; code: string; description: string }) => {
+                    const operationCode = resolveOperationCode(op);
+                    return (
+                      <div
+                        key={op.name}
+                        className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 transition-all group"
+                      >
+                        <div className="flex items-start justify-between mb-1">
+                          <h4 className="text-sm font-medium text-foreground">{op.name}</h4>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() => handleInsert(operationCode, op.name)}
+                            >
+                              <Plus className="w-3 h-3 mr-1" />
+                              Insert
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() => handleCopy(operationCode, op.name)}
+                            >
+                              <Copy className="w-3 h-3 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
                         </div>
+                        <p className="text-xs text-muted-foreground">
+                          {op.name === 'Load CSV' && activeCsvName
+                            ? `Load and preview ${activeCsvName}`
+                            : op.description}
+                        </p>
                       </div>
-                      <p className="text-xs text-muted-foreground">{op.description}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))}
