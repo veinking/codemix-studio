@@ -1,0 +1,75 @@
+name: bIDE Signing Assets Check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-signing-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
+      IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+      BIDE_IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.BIDE_IOS_PROVISIONING_PROFILE_BASE64 }}
+    steps:
+      - name: Validate required signing secrets exist
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in IOS_DISTRIBUTION_CERTIFICATE_BASE64 IOS_DISTRIBUTION_CERTIFICATE_PASSWORD BIDE_IOS_PROVISIONING_PROFILE_BASE64; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Missing required Actions secret: ${variable}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Decode signing assets strictly
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CERT_PATH="${RUNNER_TEMP}/bIDE_Distribution.p12"
+          export PROFILE_PATH="${RUNNER_TEMP}/bIDE_App_Store.mobileprovision"
+          python3 - <<'PY'
+          import base64, os
+          from pathlib import Path
+
+          def decode_secret(name, path):
+              raw = os.environ[name]
+              compact = ''.join(raw.split())
+              try:
+                  data = base64.b64decode(compact, validate=True)
+              except Exception as exc:
+                  raise SystemExit(f"{name} is not valid base64: {exc}")
+              if len(data) < 100:
+                  raise SystemExit(f"{name} decoded to an unexpectedly small file ({len(data)} bytes)")
+              Path(path).write_bytes(data)
+              print(f"{name}: decoded {len(data)} bytes")
+
+          decode_secret('IOS_DISTRIBUTION_CERTIFICATE_BASE64', os.environ['CERT_PATH'])
+          decode_secret('BIDE_IOS_PROVISIONING_PROFILE_BASE64', os.environ['PROFILE_PATH'])
+          PY
+
+      - name: Validate distribution certificate and password
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl pkcs12 \
+            -in "${RUNNER_TEMP}/bIDE_Distribution.p12" \
+            -passin env:IOS_DISTRIBUTION_CERTIFICATE_PASSWORD \
+            -clcerts -nokeys \
+            -out "${RUNNER_TEMP}/distribution-cert.pem" >/dev/null 2>&1
+          openssl x509 -in "${RUNNER_TEMP}/distribution-cert.pem" -noout -subject -dates
+          echo "Distribution certificate/password: valid"
+
+      - name: Validate provisioning profile container
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl asn1parse -inform DER -in "${RUNNER_TEMP}/bIDE_App_Store.mobileprovision" -noout
+          echo "Provisioning profile: valid DER/CMS container"
+
+      - name: Signing assets preflight passed
+        run: echo "bIDE signing assets are structurally valid before paid macOS use."
