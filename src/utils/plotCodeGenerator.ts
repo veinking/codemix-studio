@@ -8,194 +8,207 @@ export interface PlotConfig {
   xLabel: string;
   yLabel: string;
   theme: 'default' | 'dark' | 'colorblind';
-  // Optional: inline CSV content to avoid filesystem reads in Pyodide
+  // Reserved for future fully-inline dataset execution.
   datasetContent?: string;
 }
 
+const stringLiteral = (value: string): string => JSON.stringify(value);
+
+/**
+ * Generate Python plotting code for bIDE's Pyodide worker runtime.
+ *
+ * IMPORTANT: backend selection and PNG capture belong to PythonRuntime/pyWorker.
+ * Generated user code must not switch Matplotlib back to a DOM-backed Pyodide
+ * backend or manually close/capture the figure before the worker can collect it.
+ */
 export function generatePythonPlot(config: PlotConfig, isMobile: boolean = false): string {
-  const { dataset, datasetContent, chartType, xColumn, yColumn, colorColumn, title, xLabel, yLabel } = config;
+  const { dataset, chartType, xColumn, yColumn, colorColumn, title, xLabel, yLabel } = config;
 
-  // Mobile optimization: smaller figures, lower DPI, simpler styling
   const figSize = isMobile ? '(6, 4)' : '(12, 8)';
-  const dpi = isMobile ? 50 : 150;
-  const tightLayout = isMobile ? '' : '\nplt.tight_layout()';
+  const x = stringLiteral(xColumn);
+  const y = stringLiteral(yColumn || xColumn);
+  const color = colorColumn ? stringLiteral(colorColumn) : null;
+  const plotTitle = stringLiteral(title);
+  const plotXLabel = stringLiteral(xLabel);
+  const plotYLabel = stringLiteral(yLabel);
+  const datasetLiteral = stringLiteral(dataset);
 
-  const loadPackages = isMobile 
-    ? `# Imports only — packages are auto-loaded by the runtime
+  const imports = isMobile
+    ? `# Packages are auto-loaded by the bIDE browser runtime
 import pandas as pd
-import matplotlib
-matplotlib.use('module://matplotlib_pyodide.wasm_backend')
 import matplotlib.pyplot as plt
 
-# Use basic matplotlib style for mobile (less memory intensive)
+# Use a lightweight Matplotlib style on mobile
 plt.style.use('default')`
-    : `# Imports only — packages are auto-loaded by the runtime
+    : `# Packages are auto-loaded by the bIDE browser runtime
 import pandas as pd
-import matplotlib
-matplotlib.use('module://matplotlib_pyodide.wasm_backend')
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-# Set plot style
 sns.set_theme(style="whitegrid")`;
 
   const loadData = `
-# Load the dataset
-df = pd.read_csv("${dataset}")`;
+# Load the selected bIDE dataset
+df = pd.read_csv(${datasetLiteral})`;
 
   let plotCode = '';
-  
+
   switch (chartType) {
     case 'bar':
       plotCode = isMobile ? `
-# Create bar chart (mobile optimized)
-plt.figure(figsize=${figSize})
-plt.bar(df['${xColumn}'], df['${yColumn}'], color='#a855f7')
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('${yLabel}')
-plt.xticks(rotation=45)${tightLayout}` : `
 # Create bar chart
 plt.figure(figsize=${figSize})
-sns.barplot(data=df, x='${xColumn}', y='${yColumn}')
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('${yLabel}')
+plt.bar(df[${x}], df[${y}], color='#a855f7')
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel(${plotYLabel})
+plt.xticks(rotation=45)
+plt.tight_layout()` : `
+# Create bar chart
+plt.figure(figsize=${figSize})
+sns.barplot(data=df, x=${x}, y=${y})
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel(${plotYLabel})
 plt.xticks(rotation=45)
 plt.tight_layout()`;
       break;
 
     case 'line':
       plotCode = isMobile ? `
-# Create line chart (mobile optimized)
-plt.figure(figsize=${figSize})
-plt.plot(df['${xColumn}'], df['${yColumn}'], color='#a855f7', linewidth=2)
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('${yLabel}')${tightLayout}` : `
 # Create line chart
 plt.figure(figsize=${figSize})
-sns.lineplot(data=df, x='${xColumn}', y='${yColumn}')
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('${yLabel}')
+plt.plot(df[${x}], df[${y}], color='#a855f7', linewidth=2)
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel(${plotYLabel})
+plt.tight_layout()` : `
+# Create line chart
+plt.figure(figsize=${figSize})
+sns.lineplot(data=df, x=${x}, y=${y})
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel(${plotYLabel})
 plt.tight_layout()`;
       break;
 
     case 'scatter':
       if (isMobile) {
         plotCode = `
-# Create scatter plot (mobile optimized)
+# Create scatter plot
 plt.figure(figsize=${figSize})
-plt.scatter(df['${xColumn}'], df['${yColumn}'], color='#a855f7', alpha=0.6)
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('${yLabel}')${tightLayout}`;
+plt.scatter(df[${x}], df[${y}], color='#a855f7', alpha=0.65)
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel(${plotYLabel})
+plt.tight_layout()`;
       } else {
-        plotCode = colorColumn ? `
-# Create scatter plot with color
+        plotCode = color ? `
+# Create scatter plot with grouping
 plt.figure(figsize=${figSize})
-sns.scatterplot(data=df, x='${xColumn}', y='${yColumn}', hue='${colorColumn}')
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('${yLabel}')
-plt.legend(title='${colorColumn}')
+sns.scatterplot(data=df, x=${x}, y=${y}, hue=${color})
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel(${plotYLabel})
+plt.legend(title=${color})
 plt.tight_layout()` : `
 # Create scatter plot
 plt.figure(figsize=${figSize})
-sns.scatterplot(data=df, x='${xColumn}', y='${yColumn}')
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('${yLabel}')
+sns.scatterplot(data=df, x=${x}, y=${y})
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel(${plotYLabel})
 plt.tight_layout()`;
       }
       break;
 
     case 'histogram':
       plotCode = isMobile ? `
-# Create histogram (mobile optimized)
-plt.figure(figsize=${figSize})
-plt.hist(df['${xColumn}'], bins=20, color='#a855f7', alpha=0.7)
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('Frequency')${tightLayout}` : `
 # Create histogram
 plt.figure(figsize=${figSize})
-sns.histplot(data=df, x='${xColumn}', bins=30)
-plt.title('${title}')
-plt.xlabel('${xLabel}')
+plt.hist(df[${x}].dropna(), bins=20, color='#a855f7', alpha=0.7)
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel('Frequency')
+plt.tight_layout()` : `
+# Create histogram
+plt.figure(figsize=${figSize})
+sns.histplot(data=df, x=${x}, bins=30)
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
 plt.ylabel('Frequency')
 plt.tight_layout()`;
       break;
 
     case 'box':
       plotCode = isMobile ? `
-# Create box plot (mobile optimized)
+# Create box plot for the selected numeric column
 plt.figure(figsize=${figSize})
-plt.boxplot(df['${yColumn}'], vert=True)
-plt.title('${title}')
-plt.ylabel('${yLabel}')${tightLayout}` : `
-# Create box plot
+plt.boxplot(df[${x}].dropna(), vert=True)
+plt.title(${plotTitle})
+plt.ylabel(${plotYLabel})
+plt.tight_layout()` : `
+# Create box plot for the selected numeric column
 plt.figure(figsize=${figSize})
-sns.boxplot(data=df, y='${yColumn}')
-plt.title('${title}')
-plt.ylabel('${yLabel}')
+sns.boxplot(data=df, y=${x})
+plt.title(${plotTitle})
+plt.ylabel(${plotYLabel})
 plt.tight_layout()`;
       break;
 
     case 'heatmap':
       plotCode = isMobile ? `
-# Heatmap - Warning: Complex chart type not optimized for mobile
+# Create a lightweight correlation heatmap
 plt.figure(figsize=${figSize})
 numeric_cols = df.select_dtypes(include=['number'])
 corr = numeric_cols.corr()
-plt.imshow(corr, cmap='coolwarm', aspect='auto')
-plt.colorbar()
-plt.title('${title}')${tightLayout}` : `
-# Create heatmap (requires numeric data)
+image = plt.imshow(corr, cmap='coolwarm', aspect='auto', vmin=-1, vmax=1)
+plt.colorbar(image)
+plt.xticks(range(len(corr.columns)), corr.columns, rotation=45, ha='right')
+plt.yticks(range(len(corr.index)), corr.index)
+plt.title(${plotTitle})
+plt.tight_layout()` : `
+# Create correlation heatmap
 plt.figure(figsize=${figSize})
 numeric_cols = df.select_dtypes(include=['number'])
 sns.heatmap(numeric_cols.corr(), annot=True, cmap='coolwarm', center=0)
-plt.title('${title}')
+plt.title(${plotTitle})
 plt.tight_layout()`;
       break;
 
     default:
       plotCode = `
-# Create scatter plot (default)
+# Create scatter plot
 plt.figure(figsize=${figSize})
-plt.scatter(df['${xColumn}'], df['${yColumn}'])
-plt.title('${title}')
-plt.xlabel('${xLabel}')
-plt.ylabel('${yLabel}')
+plt.scatter(df[${x}], df[${y}])
+plt.title(${plotTitle})
+plt.xlabel(${plotXLabel})
+plt.ylabel(${plotYLabel})
 plt.tight_layout()`;
   }
 
-  const captureCode = `
-# Capture the plot with enhanced error handling
-try:
-    import io
-    import base64
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=${dpi}, bbox_inches='tight')
-    buf.seek(0)
-    img_str = base64.b64encode(buf.read()).decode()
-    print(f"data:image/png;base64,{img_str}")
-    plt.close()
-except FileNotFoundError as e:
-    plt.close()
-    print(f"❌ Error: Dataset file not found. Make sure '{dataset}' is loaded first.")
-    print(f"   {str(e)}")
-except Exception as e:
-    plt.close()
-    print(f"⚠️ Plot created but couldn't capture image: {str(e)}")
-    print("📊 Plot code executed successfully. You can save and run this code in a local IDE to see the visualization.")`;
+  const showPlot = `
 
-  return loadPackages + loadData + plotCode + captureCode;
+# bIDE's worker-safe runtime captures the open figure as PNG after execution.
+plt.show()`;
+
+  return imports + loadData + plotCode + showPlot;
 }
 
+/**
+ * Generate R/ggplot2 plotting code with data-pronoun column access so headers
+ * containing spaces, punctuation, or other non-syntactic characters still work.
+ */
 export function generateRPlot(config: PlotConfig): string {
   const { dataset, chartType, xColumn, yColumn, colorColumn, title, xLabel, yLabel } = config;
+
+  const datasetLiteral = stringLiteral(dataset);
+  const x = stringLiteral(xColumn);
+  const y = stringLiteral(yColumn || xColumn);
+  const color = colorColumn ? stringLiteral(colorColumn) : null;
+  const plotTitle = stringLiteral(title);
+  const plotXLabel = stringLiteral(xLabel);
+  const plotYLabel = stringLiteral(yLabel);
 
   const loadPackages = `# Load required libraries
 library(readr)
@@ -204,42 +217,31 @@ library(ggplot2)
 
 `;
 
-  const loadData = `# Load dataset
-df <- read_csv("${dataset}")
+  const loadData = `# Load selected bIDE dataset
+df <- read_csv(${datasetLiteral})
 cat("Dataset loaded:", nrow(df), "rows,", ncol(df), "columns\\n")
 
 `;
 
-  let plotCode = "";
+  let plotCode = '';
 
   switch (chartType) {
     case 'bar':
       plotCode = `# Create bar chart
-ggplot(df, aes(x = ${xColumn}, y = ${yColumn}${colorColumn ? `, fill = ${colorColumn}` : ''})) +
-  geom_bar(stat = "identity", position = "dodge") +
-  labs(
-    title = "${title}",
-    x = "${xLabel}",
-    y = "${yLabel}"
-  ) +
+ggplot(df, aes(x = .data[[${x}]], y = .data[[${y}]]${color ? `, fill = .data[[${color}]]` : ''})) +
+  geom_col(position = "dodge") +
+  labs(title = ${plotTitle}, x = ${plotXLabel}, y = ${plotYLabel}) +
   theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    plot.title = element_text(size = 14, face = "bold")
-  )
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(size = 14, face = "bold"))
 `;
       break;
 
     case 'line':
       plotCode = `# Create line chart
-ggplot(df, aes(x = ${xColumn}, y = ${yColumn})) +
-  geom_line(color = "#a855f7", size = 1.2) +
+ggplot(df, aes(x = .data[[${x}]], y = .data[[${y}]])) +
+  geom_line(color = "#a855f7", linewidth = 1.2) +
   geom_point(color = "#a855f7", size = 2) +
-  labs(
-    title = "${title}",
-    x = "${xLabel}",
-    y = "${yLabel}"
-  ) +
+  labs(title = ${plotTitle}, x = ${plotXLabel}, y = ${plotYLabel}) +
   theme_minimal() +
   theme(plot.title = element_text(size = 14, face = "bold"))
 `;
@@ -247,13 +249,9 @@ ggplot(df, aes(x = ${xColumn}, y = ${yColumn})) +
 
     case 'scatter':
       plotCode = `# Create scatter plot
-ggplot(df, aes(x = ${xColumn}, y = ${yColumn}${colorColumn ? `, color = ${colorColumn}` : ''})) +
+ggplot(df, aes(x = .data[[${x}]], y = .data[[${y}]]${color ? `, color = .data[[${color}]]` : ''})) +
   geom_point(size = 3, alpha = 0.7) +
-  labs(
-    title = "${title}",
-    x = "${xLabel}",
-    y = "${yLabel}"
-  ) +
+  labs(title = ${plotTitle}, x = ${plotXLabel}, y = ${plotYLabel}) +
   theme_minimal() +
   theme(plot.title = element_text(size = 14, face = "bold"))
 `;
@@ -261,50 +259,38 @@ ggplot(df, aes(x = ${xColumn}, y = ${yColumn}${colorColumn ? `, color = ${colorC
 
     case 'histogram':
       plotCode = `# Create histogram
-ggplot(df, aes(x = ${xColumn})) +
+ggplot(df, aes(x = .data[[${x}]])) +
   geom_histogram(bins = 30, fill = "#a855f7", color = "black", alpha = 0.7) +
-  labs(
-    title = "${title}",
-    x = "${xLabel}",
-    y = "Frequency"
-  ) +
+  labs(title = ${plotTitle}, x = ${plotXLabel}, y = "Frequency") +
   theme_minimal() +
   theme(plot.title = element_text(size = 14, face = "bold"))
 `;
       break;
 
     case 'box':
-      plotCode = `# Create box plot
-ggplot(df, aes(${yColumn ? `x = ${yColumn}, ` : ''}y = ${xColumn})) +
+      plotCode = `# Create box plot for the selected numeric column
+ggplot(df, aes(y = .data[[${x}]])) +
   geom_boxplot(fill = "#a855f7", alpha = 0.7) +
-  labs(
-    title = "${title}",
-    ${yColumn ? `x = "${yLabel}",` : ''}
-    y = "${xLabel}"
-  ) +
+  labs(title = ${plotTitle}, x = NULL, y = ${plotYLabel}) +
   theme_minimal() +
   theme(plot.title = element_text(size = 14, face = "bold"))
 `;
       break;
 
     case 'heatmap':
-      plotCode = `# Create heatmap (correlation matrix)
+      plotCode = `# Create correlation heatmap
 library(reshape2)
 numeric_cols <- df %>% select(where(is.numeric))
 cor_matrix <- cor(numeric_cols, use = "complete.obs")
 cor_melted <- melt(cor_matrix)
 
-ggplot(cor_melted, aes(Var1, Var2, fill = value)) +
+ggplot(cor_melted, aes(x = Var1, y = Var2, fill = value)) +
   geom_tile() +
   geom_text(aes(label = round(value, 2)), size = 3) +
   scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0) +
-  labs(title = "${title}") +
+  labs(title = ${plotTitle}, x = NULL, y = NULL) +
   theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    axis.title = element_blank(),
-    plot.title = element_text(size = 14, face = "bold")
-  )
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(size = 14, face = "bold"))
 `;
       break;
   }

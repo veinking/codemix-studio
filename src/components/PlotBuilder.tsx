@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BarChart3, LineChart, ScatterChart, BarChart, Activity, Grid3x3 } from "lucide-react";
-import { BarChart as RechartsBar, Bar, LineChart as RechartsLine, Line, ScatterChart as RechartsScatter, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
+import { BarChart as RechartsBar, Bar, LineChart as RechartsLine, Line, ScatterChart as RechartsScatter, Scatter, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { generatePythonPlot, generateRPlot, PlotConfig } from "@/utils/plotCodeGenerator";
 import { toast } from "sonner";
 import { useDeviceType } from "@/hooks/useDeviceType";
@@ -50,15 +50,26 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
   const currentDataset = selectedDataset ? datasets.get(selectedDataset) : null;
   const columns = currentDataset?.headers || [];
 
-  // Detect column types for smart suggestions
+  // Detect column types for suggestions without coercing source values.
+  // Leading-zero IDs such as 00123 should remain categorical identifiers.
   const columnTypes = useMemo(() => {
     if (!currentDataset) return new Map<string, 'numeric' | 'categorical'>();
-    
+
+    const looksNumeric = (value: string) => {
+      const candidate = String(value ?? '').trim();
+      if (!candidate) return false;
+      return /^[-+]?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(candidate);
+    };
+
     const types = new Map<string, 'numeric' | 'categorical'>();
     currentDataset.headers.forEach((header, index) => {
-      const sampleValues = currentDataset.data.slice(0, 20).map(row => row[index]);
-      const numericCount = sampleValues.filter(v => !isNaN(Number(v))).length;
-      types.set(header, numericCount > sampleValues.length * 0.7 ? 'numeric' : 'categorical');
+      const sampleValues = currentDataset.data
+        .slice(0, 20)
+        .map(row => row[index])
+        .filter(value => String(value ?? '').trim() !== '');
+      const numericCount = sampleValues.filter(looksNumeric).length;
+      const numeric = sampleValues.length > 0 && numericCount > sampleValues.length * 0.7;
+      types.set(header, numeric ? 'numeric' : 'categorical');
     });
     return types;
   }, [currentDataset]);
@@ -104,6 +115,8 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
     { value: 'heatmap', label: 'Heatmap', icon: Grid3x3, tooltip: 'Show patterns in matrix data' },
   ];
 
+  const requiresYColumn = (type: ChartType) => ['bar', 'line', 'scatter'].includes(type);
+
   const handleNext = () => {
     if (step === 1 && !selectedDataset) {
       toast.error("Please select a dataset");
@@ -116,13 +129,17 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
       toast.error("Please select at least an X-axis column");
       return;
     }
+    if (step === 3 && requiresYColumn(chartType) && !yColumn) {
+      toast.error("Please select a Y-axis column for this chart");
+      return;
+    }
     setStep(step + 1);
   };
 
   const handleBack = () => setStep(step - 1);
 
   const handleInsertCode = () => {
-    if (!selectedDataset || !xColumn) {
+    if (!selectedDataset || !xColumn || (requiresYColumn(chartType) && !yColumn)) {
       toast.error("Missing required fields");
       return;
     }
@@ -135,7 +152,7 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
       colorColumn: colorColumn || undefined,
       title: title || `${chartType.charAt(0).toUpperCase() + chartType.slice(1)} Chart`,
       xLabel: xLabel || xColumn,
-      yLabel: yLabel || (yColumn || "Value"),
+      yLabel: yLabel || (chartType === 'box' ? xColumn : (yColumn || "Value")),
       theme: 'default',
     };
 
@@ -218,38 +235,25 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
                 <div>
                   <Label>Chart Type</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-2">
-                    {chartTypeOptions.map((option) => {
-                      const isComplexForMobile = isMobile && ['heatmap', 'box'].includes(option.value);
-                      return (
-                        <button
-                          key={option.value}
-                          onClick={() => setChartType(option.value as ChartType)}
-                          className={`p-4 border rounded-lg flex flex-col items-center gap-2 transition-all ${
-                            chartType === option.value
-                              ? "border-primary bg-primary/10"
-                              : "hover:border-primary/50"
-                          } ${isComplexForMobile ? 'opacity-60' : ''}`}
-                        >
-                          <option.icon className="w-6 h-6" />
-                          <span className="text-sm font-medium">{option.label}</span>
-                          <span className="text-xs text-muted-foreground text-center">
-                            {option.tooltip}
-                          </span>
-                          {isComplexForMobile && (
-                            <span className="text-xs text-amber-600 dark:text-amber-400 text-center mt-1">
-                              ⚠️ May not render on mobile
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
+                    {chartTypeOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        onClick={() => setChartType(option.value as ChartType)}
+                        className={`p-4 border rounded-lg flex flex-col items-center gap-2 transition-all ${
+                          chartType === option.value
+                            ? "border-primary bg-primary/10"
+                            : "hover:border-primary/50"
+                        }`}
+                      >
+                        <option.icon className="w-6 h-6" />
+                        <span className="text-sm font-medium">{option.label}</span>
+                        <span className="text-xs text-muted-foreground text-center">
+                          {option.tooltip}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
-                {isMobile && (chartType === 'heatmap' || chartType === 'box') && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-sm text-amber-800 dark:text-amber-200">
-                    📱 <strong>Mobile Warning:</strong> This chart type may not render properly on mobile devices. Consider using bar or line charts for better mobile compatibility.
-                  </div>
-                )}
               </div>
             )}
 
@@ -273,9 +277,9 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
                     </Select>
                   </div>
 
-                  {chartType !== 'histogram' && chartType !== 'box' && (
+                  {requiresYColumn(chartType) && (
                     <div>
-                      <Label>Y-Axis Column {chartType === 'bar' ? '*' : ''}</Label>
+                      <Label>Y-Axis Column *</Label>
                       <Select value={yColumn} onValueChange={setYColumn}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select column" />
@@ -294,12 +298,15 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
                   {chartType === 'scatter' && (
                     <div>
                       <Label>Color/Group Column (optional)</Label>
-                      <Select value={colorColumn} onValueChange={setColorColumn}>
+                      <Select
+                        value={colorColumn || '__none__'}
+                        onValueChange={(value) => setColorColumn(value === '__none__' ? '' : value)}
+                      >
                         <SelectTrigger>
                           <SelectValue placeholder="None" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="__none__">None</SelectItem>
                           {columns.map((col) => (
                             <SelectItem key={col} value={col}>
                               {col}
@@ -363,40 +370,55 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
 
                   <TabsContent value="preview">
                     <div>
-                      <div className="border rounded-lg p-4 bg-background">
-                        <ResponsiveContainer width="100%" height={300}>
-                          <>
-                            {chartType === 'bar' && (
-                              <RechartsBar data={previewData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="x" />
-                                <YAxis />
-                                <Tooltip />
-                                <Bar dataKey="y" fill="hsl(var(--primary))" />
-                              </RechartsBar>
-                            )}
-                            {chartType === 'line' && (
-                              <RechartsLine data={previewData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="x" />
-                                <YAxis />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="y" stroke="hsl(var(--primary))" />
-                              </RechartsLine>
-                            )}
-                            {(chartType === 'scatter' || chartType === 'histogram' || chartType === 'box' || chartType === 'heatmap') && (
-                              <RechartsScatter data={previewData}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="x" />
-                                <YAxis dataKey="y" />
-                                <Tooltip />
-                                <Scatter fill="hsl(var(--primary))" />
-                              </RechartsScatter>
-                            )}
-                          </>
-                        </ResponsiveContainer>
+                      <div className="border rounded-lg p-4 bg-background min-h-[330px]">
+                        {chartType === 'bar' && (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <RechartsBar data={previewData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="x" />
+                              <YAxis />
+                              <Tooltip />
+                              <Bar dataKey="y" fill="hsl(var(--primary))" />
+                            </RechartsBar>
+                          </ResponsiveContainer>
+                        )}
+                        {chartType === 'line' && (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <RechartsLine data={previewData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="x" />
+                              <YAxis />
+                              <Tooltip />
+                              <Line type="monotone" dataKey="y" stroke="hsl(var(--primary))" />
+                            </RechartsLine>
+                          </ResponsiveContainer>
+                        )}
+                        {chartType === 'scatter' && (
+                          <ResponsiveContainer width="100%" height={300}>
+                            <RechartsScatter data={previewData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="x" />
+                              <YAxis dataKey="y" />
+                              <Tooltip />
+                              <Scatter fill="hsl(var(--primary))" />
+                            </RechartsScatter>
+                          </ResponsiveContainer>
+                        )}
+                        {(chartType === 'histogram' || chartType === 'box' || chartType === 'heatmap') && (
+                          <div className="h-[300px] flex items-center justify-center text-center px-6">
+                            <div className="space-y-2">
+                              <BarChart3 className="w-8 h-8 mx-auto text-muted-foreground" />
+                              <p className="font-medium">Exact preview appears when you run the generated code</p>
+                              <p className="text-sm text-muted-foreground">
+                                bIDE will render this {chartType} with the browser runtime using the full dataset.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         <p className="text-xs text-muted-foreground text-center mt-2">
-                          Preview (first 20 rows)
+                          {chartType === 'bar' || chartType === 'line' || chartType === 'scatter'
+                            ? 'Preview (first 20 rows)'
+                            : 'Runtime-rendered chart'}
                         </p>
                       </div>
                     </div>
