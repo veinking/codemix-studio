@@ -94,6 +94,12 @@ export class PythonRuntime implements RuntimeExecutor {
         if (msg.type === 'stdout' || msg.type === 'stderr') {
           result.output += msg.text + '\n';
           onOutput(msg.text);
+        } else if (msg.type === 'plot') {
+          if (typeof msg.dataUrl === 'string' && msg.dataUrl.startsWith('data:image/')) {
+            // The existing IDE + PlotViewer path consumes ExecutionResult.plotUrl.
+            // Keep the most recently generated figure for the current single-plot viewer.
+            result.plotUrl = msg.dataUrl;
+          }
         } else if (msg.type === 'result') {
           if (msg.result !== undefined && msg.result !== null) {
             const outputStr = String(msg.result);

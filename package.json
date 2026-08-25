@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "test:default-demo": "node scripts/check-default-demo-plot.mjs",
+    "build": "npm run test:default-demo && vite build",
+    "build:dev": "npm run test:default-demo && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
   },
