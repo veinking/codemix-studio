@@ -181,6 +181,7 @@ jobs:
           security import "${CERTIFICATE_PATH}" -P "${IOS_DISTRIBUTION_CERTIFICATE_PASSWORD}" -A -t cert -f pkcs12 -k "${KEYCHAIN_PATH}"
           security set-key-partition-list -S apple-tool:,apple: -s -k "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
           security list-keychains -d user -s "${KEYCHAIN_PATH}"
+          security default-keychain -d user -s "${KEYCHAIN_PATH}"
           security find-identity -v -p codesigning "${KEYCHAIN_PATH}" | grep -q "Apple Distribution"
 
           security cms -D -i "${PROFILE_PATH}" > "${PROFILE_PLIST}"
@@ -204,6 +205,32 @@ jobs:
           set -euo pipefail
           if ! command -v xcodegen >/dev/null 2>&1; then brew install xcodegen; fi
           xcodegen --version
+
+      - name: Configure target-specific App Store signing
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PROJECT_YML="${GITHUB_WORKSPACE}/ios/project.yml"
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path(os.environ['PROJECT_YML'])
+          text = path.read_text(encoding='utf-8')
+          needle = '        PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios\n'
+          if text.count(needle) != 1:
+              raise SystemExit('Could not uniquely locate the bIDE application signing settings block.')
+          signing = (
+              needle
+              + f"        DEVELOPMENT_TEAM: {os.environ['APPLE_TEAM_ID']}\n"
+              + '        CODE_SIGN_STYLE: Manual\n'
+              + '        CODE_SIGN_IDENTITY: Apple Distribution\n'
+              + f"        PROVISIONING_PROFILE_SPECIFIER: {os.environ['PROFILE_UUID']}\n"
+              + f"        OTHER_CODE_SIGN_FLAGS: \"--keychain {os.environ['KEYCHAIN_PATH']}\"\n"
+          )
+          path.write_text(text.replace(needle, signing, 1), encoding='utf-8')
+          PY
+          echo "Configured manual signing only on the bIDE application target."
 
       - name: Generate Xcode project
         working-directory: ios
@@ -248,7 +275,7 @@ jobs:
         run: |
           set -o pipefail
           rm -rf "${ARCHIVE_PATH}"
-          xcodebuild -project ios/bIDE.xcodeproj -scheme bIDE -configuration Release -destination 'generic/platform=iOS' -archivePath "${ARCHIVE_PATH}" DEVELOPMENT_TEAM="${APPLE_TEAM_ID}" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="${PROFILE_UUID}" OTHER_CODE_SIGN_FLAGS="--keychain ${KEYCHAIN_PATH}" clean archive 2>&1 | tee "${LOG_PATH}/archive.log"
+          xcodebuild -project ios/bIDE.xcodeproj -scheme bIDE -configuration Release -destination 'generic/platform=iOS' -archivePath "${ARCHIVE_PATH}" clean archive 2>&1 | tee "${LOG_PATH}/archive.log"
 
       - name: Verify archived app
         if: ${{ steps.archive.outcome == 'success' }}
