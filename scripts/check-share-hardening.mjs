@@ -6,6 +6,7 @@ const sharedCode = readFileSync(new URL('../src/pages/SharedCode.tsx', import.me
 const ide = readFileSync(new URL('../src/pages/IDE.tsx', import.meta.url), 'utf8');
 const migration = readFileSync(new URL('../supabase/migrations/20260825144000_harden_bide_shared_code.sql', import.meta.url), 'utf8');
 const cleanupMigration = readFileSync(new URL('../supabase/migrations/20260825144600_remove_shared_code_update_policy.sql', import.meta.url), 'utf8');
+const tableAccessMigration = readFileSync(new URL('../supabase/migrations/20260825144900_revoke_shared_code_client_table_access.sql', import.meta.url), 'utf8');
 
 // Share creation must be authenticated and mediated by the validated server RPC.
 assert.match(shareDialog, /useAuth\(\)/, 'Share dialog must know whether the user is signed in');
@@ -24,11 +25,11 @@ assert.match(sharedCode, /bide_shared_fork_code/, 'Shared page must place fork s
 assert.match(ide, /bide_shared_fork_code/, 'IDE must consume the one-time shared-code handoff');
 assert.match(ide, /Shared code loaded into the editor/, 'IDE must visibly confirm the fork handoff');
 
-// Database contract: no anonymous table access, authenticated creation only,
-// exact-token public fetch, server-generated 96-bit token, and security-definer
-// functions with an empty search_path.
+// Database contract: the backing table is inaccessible to browser roles;
+// authenticated creation and exact-token public fetch happen only through RPCs.
 assert.match(migration, /REVOKE ALL ON TABLE public\.shared_code FROM anon;/, 'Anonymous clients must not access shared_code directly');
-assert.match(migration, /GRANT SELECT, DELETE ON TABLE public\.shared_code TO authenticated;/, 'Authenticated direct table privileges must remain least-privilege');
+assert.match(tableAccessMigration, /REVOKE ALL ON TABLE public\.shared_code FROM anon;/, 'Final migration must keep anonymous table access revoked');
+assert.match(tableAccessMigration, /REVOKE ALL ON TABLE public\.shared_code FROM authenticated;/, 'Final migration must remove direct authenticated table access too');
 assert.match(migration, /CREATE OR REPLACE FUNCTION public\.create_shared_code/, 'Create-share RPC must exist');
 assert.match(migration, /CREATE OR REPLACE FUNCTION public\.get_shared_code/, 'Get-share RPC must exist');
 assert.match(migration, /SECURITY DEFINER[\s\S]*?SET search_path = ''/, 'Share RPCs must pin an empty search_path');
