@@ -62,7 +62,7 @@ export default function SharedCode() {
       }
 
       try {
-        const { data, error } = await supabase.rpc('get_shared_code', {
+        const { data, error } = await (supabase.rpc as any)('get_shared_code', {
           p_short_id: shortId,
         });
 

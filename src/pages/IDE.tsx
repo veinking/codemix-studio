@@ -154,35 +154,63 @@ const IDE = () => {
     updatePageSEO(SEO_CONFIGS.ide);
   }, []);
   
-  // Handle URL parameters for "Open in IDE" from docs
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const codeParam = params.get('code');
-    const langParam = params.get('lang');
-    
-    if (codeParam && langParam) {
-      try {
-        const decodedCode = atob(codeParam);
-        const validLang = ['python', 'r', 'javascript', 'sql'].includes(langParam) 
-          ? langParam as 'python' | 'r' | 'javascript' | 'sql'
-          : 'python';
-        
-        setScratchCode(decodedCode);
-        setScratchLanguage(validLang);
-        setLanguageCode(prev => ({
-          ...prev,
-          [validLang]: decodedCode
-        }));
-        
-        // Clear URL params
-        window.history.replaceState({}, '', '/ide');
-        
-        toast.success('Code loaded from documentation!');
-      } catch (e) {
-        console.error('Failed to decode code from URL:', e);
-      }
+  // Handle one-time editor handoffs from shared links and documentation.
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+
+  if (params.get('shared') === 'fork') {
+    const sharedCode = sessionStorage.getItem('bide_shared_fork_code');
+    const sharedLanguage = sessionStorage.getItem('bide_shared_fork_language');
+    const validSharedLanguage = sharedLanguage && ['python', 'r', 'javascript', 'sql'].includes(sharedLanguage)
+      ? sharedLanguage as 'python' | 'r' | 'javascript' | 'sql'
+      : null;
+
+    if (sharedCode !== null && validSharedLanguage) {
+      setActiveFile(null);
+      setShowDataset(null);
+      setScratchCode(sharedCode);
+      setScratchLanguage(validSharedLanguage);
+      setLanguageCode(prev => ({
+        ...prev,
+        [validSharedLanguage]: sharedCode,
+      }));
+      sessionStorage.removeItem('bide_shared_fork_code');
+      sessionStorage.removeItem('bide_shared_fork_language');
+      window.history.replaceState({}, '', '/ide');
+      toast.success('Shared code loaded into the editor');
+      return;
     }
-  }, []);
+
+    sessionStorage.removeItem('bide_shared_fork_code');
+    sessionStorage.removeItem('bide_shared_fork_language');
+    window.history.replaceState({}, '', '/ide');
+    toast.error('Shared code handoff expired. Open the share link again.');
+    return;
+  }
+
+  const codeParam = params.get('code');
+  const langParam = params.get('lang');
+  
+  if (codeParam && langParam) {
+    try {
+      const decodedCode = atob(codeParam);
+      const validLang = ['python', 'r', 'javascript', 'sql'].includes(langParam) 
+        ? langParam as 'python' | 'r' | 'javascript' | 'sql'
+        : 'python';
+      
+      setScratchCode(decodedCode);
+      setScratchLanguage(validLang);
+      setLanguageCode(prev => ({
+        ...prev,
+        [validLang]: decodedCode
+      }));
+      window.history.replaceState({}, '', '/ide');
+      toast.success('Code loaded from documentation!');
+    } catch (e) {
+      console.error('Failed to decode code from URL:', e);
+    }
+  }
+}, []);
 
   // Persist language code to sessionStorage
   useEffect(() => {

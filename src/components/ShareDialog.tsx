@@ -85,7 +85,7 @@ export const ShareDialog = ({ open, onOpenChange, code, language, fileName }: Sh
         return;
       }
 
-      const { data: shortId, error } = await supabase.rpc('create_shared_code', {
+      const { data: shortId, error } = await (supabase.rpc as any)('create_shared_code', {
         p_code: code,
         p_language: language,
         p_file_name: fileName || null,
