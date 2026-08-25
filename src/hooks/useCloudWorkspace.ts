@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -162,7 +163,7 @@ export const useCloudWorkspace = () => {
       const payload = {
         name: name.trim(),
         description: description?.trim() || null,
-        files,
+        files: files as unknown as Json,
         active_file_id: normalizedActiveFileId,
         language: language as WorkspaceLanguage,
         scratch_code: scratchCode,
