@@ -169,6 +169,56 @@ final class SavedResultRecoveryTests: XCTestCase {
     }
 
     @MainActor
+    func testMalformedRecoveryMarkerInvalidatesSQLWithoutDeletingResult() throws {
+        let projectID = UUID()
+        let token = "feedface"
+        let manager = FileManager.default
+        let fixture = try makeFixture(projectID: projectID, token: token, markerState: "pending")
+        defer { try? manager.removeItem(at: fixture.projectDirectory) }
+
+        try manager.removeItem(at: fixture.verificationMarkerURL)
+        let malformedMarker = fixture.dataDirectory.appendingPathComponent(".bide-pending-result-not-a-token")
+        try "pending".write(to: malformedMarker, atomically: true, encoding: .utf8)
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertTrue(store.isDerivedDatabaseReadyForSQL(projectID: projectID))
+
+        XCTAssertFalse(store.recoverInterruptedSavedResults(projectID: projectID))
+        XCTAssertTrue(manager.fileExists(atPath: fixture.sourceURL.path))
+        XCTAssertTrue(manager.fileExists(atPath: malformedMarker.path))
+        XCTAssertFalse(manager.fileExists(atPath: fixture.generationURL.path))
+        XCTAssertFalse(store.isDerivedDatabaseReadyForSQL(projectID: projectID))
+        XCTAssertTrue(store.dataError?.contains("unrecognized saved-result recovery marker") == true)
+    }
+
+    @MainActor
+    func testPendingRecoveryWriteFailureLeavesMarkerAndInvalidatesSQL() throws {
+        let projectID = UUID()
+        let token = "abcddcba"
+        let manager = FileManager.default
+        let fixture = try makeFixture(projectID: projectID, token: token, markerState: "pending")
+        defer { try? manager.removeItem(at: fixture.projectDirectory) }
+
+        let registryURL = fixture.projectDirectory.appendingPathComponent("datasets.bide.json")
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertEqual(store.datasets.map(\.id), [fixture.asset.id])
+
+        // Force the atomic registry rollback write to fail after the store has already loaded
+        // the valid registry. Recovery must have invalidated SQLite generation before this.
+        try manager.removeItem(at: registryURL)
+        try manager.createDirectory(at: registryURL, withIntermediateDirectories: false)
+
+        XCTAssertFalse(store.recoverInterruptedSavedResults(projectID: projectID))
+        XCTAssertTrue(manager.fileExists(atPath: fixture.sourceURL.path))
+        XCTAssertTrue(manager.fileExists(atPath: fixture.verificationMarkerURL.path))
+        XCTAssertFalse(manager.fileExists(atPath: fixture.generationURL.path))
+        XCTAssertFalse(store.isDerivedDatabaseReadyForSQL(projectID: projectID))
+        XCTAssertTrue(store.dataError?.contains("local SQL state remains invalidated") == true)
+    }
+
+    @MainActor
     func testSavedResultTokenMatcherAcceptsOnlyGeneratedCollisionShape() {
         let store = DataWorkspaceStore()
         let token = "facecafe"
