@@ -44,12 +44,36 @@ assert.equal(universalIcon.size, "1024x1024", "App Store icon declaration must b
 assert.equal(universalIcon.platform, "ios", "App Store icon must target iOS.");
 
 const png = fs.readFileSync(iconPath);
-assert.ok(png.length >= 24, "AppIcon PNG is unexpectedly small.");
+assert.ok(png.length >= 33, "AppIcon PNG is unexpectedly small.");
 assert.deepEqual([...png.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10], "AppIcon must be a PNG.");
 const width = png.readUInt32BE(16);
 const height = png.readUInt32BE(20);
+const bitDepth = png.readUInt8(24);
+const colorType = png.readUInt8(25);
 assert.equal(width, 1024, `AppIcon width must be 1024, found ${width}.`);
 assert.equal(height, 1024, `AppIcon height must be 1024, found ${height}.`);
+assert.ok(bitDepth > 0, "AppIcon PNG has an invalid bit depth.");
+assert.ok(
+  colorType !== 4 && colorType !== 6,
+  `App Store icon must not contain an alpha channel; PNG color type is ${colorType}.`
+);
+
+// RGB/palette PNGs can still define transparency through a tRNS chunk even without an
+// explicit alpha channel. Walk the chunk table and reject that form as well.
+let offset = 8;
+let hasTransparencyChunk = false;
+while (offset + 12 <= png.length) {
+  const chunkLength = png.readUInt32BE(offset);
+  const typeStart = offset + 4;
+  const typeEnd = typeStart + 4;
+  const chunkEnd = typeEnd + chunkLength + 4; // payload + CRC
+  assert.ok(chunkEnd <= png.length, "AppIcon PNG contains a truncated chunk.");
+  const chunkType = png.toString("ascii", typeStart, typeEnd);
+  if (chunkType === "tRNS") hasTransparencyChunk = true;
+  offset = chunkEnd;
+  if (chunkType === "IEND") break;
+}
+assert.ok(!hasTransparencyChunk, "App Store icon must not contain PNG tRNS transparency.");
 
 const workflow = read(uploadWorkflowPath);
 assert.ok(workflow.includes("workflow_dispatch:"), "TestFlight workflow must remain manual-only.");
