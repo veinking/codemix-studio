@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCloudWorkspace, CloudWorkspace } from '@/hooks/useCloudWorkspace';
+import { useCloudWorkspace, CloudWorkspace, CloudWorkspaceFile } from '@/hooks/useCloudWorkspace';
 import { Cloud, CloudOff, Plus, Trash2, Download, Clock, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
@@ -14,10 +15,11 @@ import { formatDistanceToNow } from 'date-fns';
 interface WorkspaceManagerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  currentFiles: any[];
+  currentFiles: CloudWorkspaceFile[];
   currentActiveFileId: string | null;
   currentLanguage: string;
-  onLoadWorkspace: (workspace: CloudWorkspace) => void;
+  currentScratchCode: string;
+  onLoadWorkspace: (workspace: CloudWorkspace) => Promise<boolean>;
 }
 
 export const WorkspaceManager = ({
@@ -26,6 +28,7 @@ export const WorkspaceManager = ({
   currentFiles,
   currentActiveFileId,
   currentLanguage,
+  currentScratchCode,
   onLoadWorkspace
 }: WorkspaceManagerProps) => {
   const {
@@ -41,6 +44,7 @@ export const WorkspaceManager = ({
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [workspaceName, setWorkspaceName] = useState('');
   const [workspaceDescription, setWorkspaceDescription] = useState('');
+  const [loadingWorkspaceId, setLoadingWorkspaceId] = useState<string | null>(null);
 
   const handleSaveCurrentWorkspace = async () => {
     if (!workspaceName.trim()) {
@@ -53,6 +57,7 @@ export const WorkspaceManager = ({
       currentFiles,
       currentActiveFileId,
       currentLanguage,
+      currentScratchCode,
       workspaceDescription
     );
 
@@ -64,11 +69,18 @@ export const WorkspaceManager = ({
   };
 
   const handleLoadWorkspace = async (workspaceId: string) => {
-    const workspace = await loadWorkspace(workspaceId);
-    if (workspace) {
-      onLoadWorkspace(workspace);
+    setLoadingWorkspaceId(workspaceId);
+    try {
+      const workspace = await loadWorkspace(workspaceId);
+      if (!workspace) return;
+
+      const loaded = await onLoadWorkspace(workspace);
+      if (!loaded) return;
+
       onOpenChange(false);
-      toast.success(`Workspace "${workspace.name}" loaded`);
+      toast.success(`Workspace "${workspace.name}" restored locally`);
+    } finally {
+      setLoadingWorkspaceId(null);
     }
   };
 
@@ -88,20 +100,18 @@ export const WorkspaceManager = ({
               Cloud Workspaces
             </DialogTitle>
             <DialogDescription>
-              Sign in to save and sync your workspaces across devices
+              Sign in to save workspace snapshots and reopen them on another device
             </DialogDescription>
           </DialogHeader>
           <div className="text-center py-8">
             <CloudOff className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
             <p className="text-muted-foreground mb-4">
-              Cloud workspace sync requires a free account
+              Cloud workspace snapshots require a free account
             </p>
-            <Button onClick={() => {
-              onOpenChange(false);
-              // Trigger auth dialog
-              window.dispatchEvent(new CustomEvent('open-auth-dialog'));
-            }}>
-              Sign In to Enable Cloud Sync
+            <Button asChild>
+              <Link to="/auth" onClick={() => onOpenChange(false)}>
+                Sign In to Enable Cloud Workspaces
+              </Link>
             </Button>
           </div>
         </DialogContent>
@@ -119,7 +129,7 @@ export const WorkspaceManager = ({
               Cloud Workspaces
             </DialogTitle>
             <DialogDescription>
-              Save and sync your coding sessions across devices
+              Save a workspace snapshot, then restore that exact session on this or another device
             </DialogDescription>
           </DialogHeader>
 
@@ -152,6 +162,7 @@ export const WorkspaceManager = ({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteWorkspace(workspace.id, workspace.name)}
+                          aria-label={`Delete ${workspace.name}`}
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
@@ -164,10 +175,10 @@ export const WorkspaceManager = ({
                       <div className="flex flex-col gap-2 text-sm text-muted-foreground mb-3">
                         <div className="flex items-center gap-2">
                           <Clock className="h-3 w-3" />
-                          Last accessed {formatDistanceToNow(new Date(workspace.last_accessed_at), { addSuffix: true })}
+                          Last opened {formatDistanceToNow(new Date(workspace.last_accessed_at), { addSuffix: true })}
                         </div>
                         <div>
-                          Language: <span className="font-semibold">{workspace.language}</span>
+                          Scratch language: <span className="font-semibold">{workspace.language}</span>
                         </div>
                         <div>
                           Files: <span className="font-semibold">{workspace.files.length}</span>
@@ -177,9 +188,14 @@ export const WorkspaceManager = ({
                         onClick={() => handleLoadWorkspace(workspace.id)}
                         className="w-full"
                         variant="secondary"
+                        disabled={loadingWorkspaceId !== null}
                       >
-                        <Download className="h-4 w-4 mr-2" />
-                        Load Workspace
+                        {loadingWorkspaceId === workspace.id ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        Restore Workspace
                       </Button>
                     </CardContent>
                   </Card>
@@ -191,19 +207,18 @@ export const WorkspaceManager = ({
           {isSyncing && (
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Syncing with cloud...
+              Saving cloud snapshot...
             </div>
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Save Workspace Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save Workspace</DialogTitle>
+            <DialogTitle>Save Workspace Snapshot</DialogTitle>
             <DialogDescription>
-              Save your current session to the cloud
+              Save your files, active file, scratch editor and language to the cloud
             </DialogDescription>
           </DialogHeader>
 
@@ -215,6 +230,7 @@ export const WorkspaceManager = ({
                 placeholder="e.g., Data Analysis Project"
                 value={workspaceName}
                 onChange={(e) => setWorkspaceName(e.target.value)}
+                maxLength={100}
               />
             </div>
 
@@ -226,11 +242,12 @@ export const WorkspaceManager = ({
                 value={workspaceDescription}
                 onChange={(e) => setWorkspaceDescription(e.target.value)}
                 rows={3}
+                maxLength={500}
               />
             </div>
 
             <div className="text-sm text-muted-foreground">
-              This will save {currentFiles.length} file(s) and your current language ({currentLanguage}) to the cloud.
+              This snapshot includes {currentFiles.length} file(s), your scratch editor, and the current scratch language ({currentLanguage}). Cloud snapshots support up to 100 files / 5 MB of file JSON.
             </div>
 
             <div className="flex gap-2 justify-end">
@@ -246,7 +263,7 @@ export const WorkspaceManager = ({
                 ) : (
                   <>
                     <Cloud className="h-4 w-4 mr-2" />
-                    Save to Cloud
+                    Save Snapshot
                   </>
                 )}
               </Button>

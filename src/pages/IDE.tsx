@@ -144,7 +144,7 @@ const IDE = () => {
     return (sessionStorage.getItem('scratchLanguage') as any) || 'python';
   });
   
-  const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();
+  const { saveFile, loadFiles, deleteFile, replaceFiles, isReady: dbReady } = useIndexedDB();
   const { isMobile, deviceType } = useDeviceType();
   const { trackActivity } = useActivityTracking();
   const isOnline = useOnlineStatus();
@@ -1727,10 +1727,60 @@ Jack,30,Miami,86`,
         currentFiles={files}
         currentActiveFileId={activeFile}
         currentLanguage={scratchLanguage}
-        onLoadWorkspace={(workspace) => {
-          setFiles(Array.isArray(workspace.files) ? workspace.files : []);
-          if (workspace.active_file_id) setActiveFile(workspace.active_file_id);
-          toast.success('Workspace loaded from cloud');
+        currentScratchCode={scratchCode}
+        onLoadWorkspace={async (workspace) => {
+          if (!dbReady) {
+            toast.error('Local storage is still starting. Try restoring again in a moment.');
+            return false;
+          }
+
+          const restoredFiles = workspace.files as FileItem[];
+          try {
+            await replaceFiles(restoredFiles);
+          } catch (error: any) {
+            console.error('Failed to replace local workspace:', error);
+            toast.error(
+              error?.message === 'STORAGE_FULL'
+                ? 'Not enough local storage to restore this workspace safely.'
+                : 'Could not persist the restored workspace locally.'
+            );
+            return false;
+          }
+
+          localStorage.removeItem('bide_starter_seed_pending');
+          setFiles(restoredFiles);
+
+          const restoredActiveFile = workspace.active_file_id
+            && restoredFiles.some((file) => file.id === workspace.active_file_id)
+              ? workspace.active_file_id
+              : null;
+          setActiveFile(restoredActiveFile);
+
+          const restoredScratch = workspace.scratch_code || '';
+          setScratchLanguage(workspace.language);
+          setScratchCode(restoredScratch);
+          setLanguageCode(prev => ({
+            ...prev,
+            [workspace.language]: restoredScratch,
+          }));
+
+          setDatasets(new Map());
+          setShowDataset(null);
+          for (const file of restoredFiles) {
+            if (file.language === 'csv') {
+              await parseCSV(file.content, file.name);
+            }
+          }
+
+          const activeRestoredFile = restoredActiveFile
+            ? restoredFiles.find((file) => file.id === restoredActiveFile)
+            : null;
+          if (activeRestoredFile?.language === 'csv') {
+            setShowDataset(activeRestoredFile.name);
+            setCsvViewMode('data');
+          }
+
+          return true;
         }}
       />
 

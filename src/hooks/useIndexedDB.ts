@@ -207,5 +207,49 @@ export const useIndexedDB = () => {
     });
   };
 
-  return { saveFile, loadFiles, deleteFile, clearAll, isReady: !!db };
+  // Loading a cloud workspace is a workspace replacement, not a merge. Perform
+  // the clear + puts in one IndexedDB transaction so a reload can never resurrect
+  // stale local files or leave a half-replaced workspace behind.
+  const replaceFiles = async (files: StoredFile[]): Promise<void> => {
+    if (!db) throw new Error("DATABASE_NOT_READY");
+
+    for (const pending of pendingWrites.current.values()) {
+      if (pending.timer) clearTimeout(pending.timer);
+      pending.resolve.forEach((resolve) => resolve());
+    }
+    pendingWrites.current.clear();
+    lastWriteAt.current.clear();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORE_NAME], "readwrite");
+      const store = transaction.objectStore(STORE_NAME);
+      store.clear();
+
+      const timestamp = Date.now();
+      for (const file of files) {
+        store.put({ ...file, lastModified: timestamp });
+      }
+
+      transaction.oncomplete = () => {
+        files.forEach((file) => lastWriteAt.current.set(file.id, timestamp));
+        resolve();
+      };
+      transaction.onerror = () => {
+        if (transaction.error?.name === 'QuotaExceededError') {
+          reject(new Error("STORAGE_FULL"));
+        } else {
+          reject(transaction.error || new Error("WORKSPACE_REPLACE_FAILED"));
+        }
+      };
+      transaction.onabort = () => {
+        if (transaction.error?.name === 'QuotaExceededError') {
+          reject(new Error("STORAGE_FULL"));
+        } else {
+          reject(transaction.error || new Error("WORKSPACE_REPLACE_ABORTED"));
+        }
+      };
+    });
+  };
+
+  return { saveFile, loadFiles, deleteFile, clearAll, replaceFiles, isReady: !!db };
 };

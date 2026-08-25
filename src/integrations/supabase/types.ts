@@ -380,6 +380,7 @@ export type Database = {
           language: string
           last_accessed_at: string
           name: string
+          scratch_code: string
           updated_at: string
           user_id: string
         }
@@ -392,6 +393,7 @@ export type Database = {
           language?: string
           last_accessed_at?: string
           name: string
+          scratch_code?: string
           updated_at?: string
           user_id: string
         }
@@ -404,6 +406,7 @@ export type Database = {
           language?: string
           last_accessed_at?: string
           name?: string
+          scratch_code?: string
           updated_at?: string
           user_id?: string
         }
