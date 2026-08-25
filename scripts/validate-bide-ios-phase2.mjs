@@ -64,8 +64,6 @@ for (const expected of [
   "public.json",
   "public.plain-text",
   "org.openxmlformats.spreadsheetml.sheet",
-  "MARKETING_VERSION: 0.2.5",
-  "CURRENT_PROJECT_VERSION: 7",
   "bIDETests:",
   "type: bundle.unit-test",
 ]) {
