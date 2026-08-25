@@ -31,36 +31,17 @@ jobs:
 
           ide = Path('src/pages/IDE.tsx')
           text = ide.read_text()
-          old = '''  // Handle URL parameters for "Open in IDE" from docs
-          useEffect(() => {
-            const params = new URLSearchParams(window.location.search);
-            const codeParam = params.get('code');
-            const langParam = params.get('lang');
-            
-            if (codeParam && langParam) {
-              try {
-                const decodedCode = atob(codeParam);
-                const validLang = ['python', 'r', 'javascript', 'sql'].includes(langParam) 
-                  ? langParam as 'python' | 'r' | 'javascript' | 'sql'
-                  : 'python';
-                
-                setScratchCode(decodedCode);
-                setScratchLanguage(validLang);
-                setLanguageCode(prev => ({
-                  ...prev,
-                  [validLang]: decodedCode
-                }));
-                
-                // Clear URL params
-                window.history.replaceState({}, '', '/ide');
-                
-                toast.success('Code loaded from documentation!');
-              } catch (e) {
-                console.error('Failed to decode code from URL:', e);
-              }
-            }
-          }, []);'''
-          new = '''  // Handle one-time editor handoffs from shared links and documentation.
+          start_marker = '  // Handle URL parameters for "Open in IDE" from docs\n'
+          end_marker = '  // Persist language code to sessionStorage\n'
+          start = text.find(start_marker)
+          end = text.find(end_marker, start + len(start_marker)) if start >= 0 else -1
+          if start < 0 or end < 0:
+              if 'bide_shared_fork_code' in text:
+                  print('IDE share handoff already patched')
+              else:
+                  raise SystemExit('IDE handoff markers drifted; refusing partial patch')
+          else:
+              new = '''  // Handle one-time editor handoffs from shared links and documentation.
           useEffect(() => {
             const params = new URLSearchParams(window.location.search);
 
@@ -116,10 +97,10 @@ jobs:
                 console.error('Failed to decode code from URL:', e);
               }
             }
-          }, []);'''
-          if old not in text:
-              raise SystemExit('IDE handoff block drifted; refusing partial patch')
-          ide.write_text(text.replace(old, new, 1))
+          }, []);
+
+          '''
+              ide.write_text(text[:start] + new + text[end:])
           PY
       - name: Commit patch
         run: |
