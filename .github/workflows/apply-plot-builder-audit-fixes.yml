@@ -1,0 +1,32 @@
+name: Apply Plot Builder audit fixes
+
+on:
+  push:
+    branches:
+      - agent/bide-plot-builder-runtime-audit
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/bide-plot-builder-runtime-audit
+          fetch-depth: 0
+      - name: Apply guarded Plot Builder patch
+        run: python scripts/apply-plot-builder-audit-fixes.py
+      - name: Remove temporary patch machinery
+        run: |
+          git rm scripts/apply-plot-builder-audit-fixes.py
+          git rm .github/workflows/apply-plot-builder-audit-fixes.yml
+      - name: Commit patched Plot Builder
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/PlotBuilder.tsx
+          git commit -m "Harden Plot Builder runtime workflow"
+          git push origin HEAD:agent/bide-plot-builder-runtime-audit
