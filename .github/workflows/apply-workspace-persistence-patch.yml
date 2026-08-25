@@ -1,0 +1,139 @@
+name: Apply workspace persistence patch
+
+on:
+  push:
+    branches: [agent/bide-workspace-persistence-audit]
+    paths:
+      - '.github/workflows/apply-workspace-persistence-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/bide-workspace-persistence-audit
+      - name: Apply guarded IDE and generated-type patch
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          ide = Path('src/pages/IDE.tsx')
+          text = ide.read_text()
+
+          old_hook = "  const { saveFile, loadFiles, deleteFile, isReady: dbReady } = useIndexedDB();"
+          new_hook = "  const { saveFile, loadFiles, deleteFile, replaceFiles, isReady: dbReady } = useIndexedDB();"
+          if old_hook not in text:
+              raise SystemExit('useIndexedDB destructure drifted; refusing patch')
+          text = text.replace(old_hook, new_hook, 1)
+
+          start_marker = "      <WorkspaceManager\n        open={workspaceManagerOpen}"
+          start = text.find(start_marker)
+          if start < 0:
+              raise SystemExit('WorkspaceManager JSX start drifted; refusing patch')
+          end = text.find("      />", start)
+          if end < 0:
+              raise SystemExit('WorkspaceManager JSX end drifted; refusing patch')
+          end += len("      />")
+
+          new_block = '''      <WorkspaceManager
+        open={workspaceManagerOpen}
+        onOpenChange={setWorkspaceManagerOpen}
+        currentFiles={files}
+        currentActiveFileId={activeFile}
+        currentLanguage={scratchLanguage}
+        currentScratchCode={scratchCode}
+        onLoadWorkspace={async (workspace) => {
+          if (!dbReady) {
+            toast.error('Local storage is still starting. Try restoring again in a moment.');
+            return false;
+          }
+
+          const restoredFiles = workspace.files as FileItem[];
+          try {
+            await replaceFiles(restoredFiles);
+          } catch (error: any) {
+            console.error('Failed to replace local workspace:', error);
+            toast.error(
+              error?.message === 'STORAGE_FULL'
+                ? 'Not enough local storage to restore this workspace safely.'
+                : 'Could not persist the restored workspace locally.'
+            );
+            return false;
+          }
+
+          localStorage.removeItem('bide_starter_seed_pending');
+          setFiles(restoredFiles);
+
+          const restoredActiveFile = workspace.active_file_id
+            && restoredFiles.some((file) => file.id === workspace.active_file_id)
+              ? workspace.active_file_id
+              : null;
+          setActiveFile(restoredActiveFile);
+
+          const restoredScratch = workspace.scratch_code || '';
+          setScratchLanguage(workspace.language);
+          setScratchCode(restoredScratch);
+          setLanguageCode(prev => ({
+            ...prev,
+            [workspace.language]: restoredScratch,
+          }));
+
+          setDatasets(new Map());
+          setShowDataset(null);
+          for (const file of restoredFiles) {
+            if (file.language === 'csv') {
+              await parseCSV(file.content, file.name);
+            }
+          }
+
+          const activeRestoredFile = restoredActiveFile
+            ? restoredFiles.find((file) => file.id === restoredActiveFile)
+            : null;
+          if (activeRestoredFile?.language === 'csv') {
+            setShowDataset(activeRestoredFile.name);
+            setCsvViewMode('data');
+          }
+
+          return true;
+        }}
+      />'''
+          text = text[:start] + new_block + text[end:]
+          ide.write_text(text)
+
+          types = Path('src/integrations/supabase/types.ts')
+          t = types.read_text()
+          replacements = [
+              (
+                  '''          name: string\n          updated_at: string\n          user_id: string\n''',
+                  '''          name: string\n          scratch_code: string\n          updated_at: string\n          user_id: string\n'''
+              ),
+              (
+                  '''          name: string\n          updated_at?: string\n          user_id: string\n''',
+                  '''          name: string\n          scratch_code?: string\n          updated_at?: string\n          user_id: string\n'''
+              ),
+              (
+                  '''          name?: string\n          updated_at?: string\n          user_id?: string\n''',
+                  '''          name?: string\n          scratch_code?: string\n          updated_at?: string\n          user_id?: string\n'''
+              ),
+          ]
+          for old, new in replacements:
+              if t.count(old) != 1:
+                  raise SystemExit(f'Workspace generated type block drifted: expected one match, got {t.count(old)}')
+              t = t.replace(old, new, 1)
+          types.write_text(t)
+          PY
+      - name: Commit patch
+        run: |
+          if git diff --quiet; then
+            echo "No patch needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/IDE.tsx src/integrations/supabase/types.ts
+          git commit -m "Persist restored cloud workspaces locally"
+          git push origin HEAD:agent/bide-workspace-persistence-audit
