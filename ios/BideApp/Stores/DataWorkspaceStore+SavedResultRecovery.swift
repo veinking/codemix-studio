@@ -68,6 +68,7 @@ extension DataWorkspaceStore {
             .appendingPathComponent("bIDE Projects", isDirectory: true)
             .appendingPathComponent(projectID.uuidString, isDirectory: true)
         let dataDirectory = projectDirectory.appendingPathComponent("data", isDirectory: true)
+        let generationMarker = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
 
         guard manager.fileExists(atPath: dataDirectory.path) else { return true }
         guard let entries = try? manager.contentsOfDirectory(
@@ -75,7 +76,12 @@ extension DataWorkspaceStore {
             includingPropertiesForKeys: [.isRegularFileKey],
             options: []
         ) else {
-            dataError = "bIDE could not inspect this project for interrupted saved-result verification."
+            // If bIDE cannot inspect recovery metadata, do not continue trusting a derived
+            // database whose saved-result transaction state cannot be proven.
+            if manager.fileExists(atPath: generationMarker.path) {
+                try? manager.removeItem(at: generationMarker)
+            }
+            dataError = "bIDE could not inspect this project for interrupted saved-result verification. The local SQL state was invalidated and will not be trusted until recovery succeeds."
             return false
         }
 
@@ -86,14 +92,15 @@ extension DataWorkspaceStore {
 
         var pendingTokens: [String] = []
         var verifiedMarkers: [URL] = []
+        var malformedMarkerName: String?
 
         for marker in markers {
             let name = marker.lastPathComponent
             let token = String(name.dropFirst(Self.pendingSavedResultMarkerPrefix.count))
             guard token.count == 8,
                   token.range(of: "^[a-f0-9]{8}$", options: .regularExpression) != nil else {
-                dataError = "bIDE found an unrecognized saved-result recovery marker and stopped before changing project data."
-                return false
+                malformedMarkerName = name
+                continue
             }
 
             let state = (try? String(contentsOf: marker, encoding: .utf8))?
@@ -105,6 +112,26 @@ extension DataWorkspaceStore {
                 // preserving a result whose verification commit cannot be proven.
                 pendingTokens.append(token)
             }
+        }
+
+        let hasUntrustedRecoveryState = malformedMarkerName != nil || !pendingTokens.isEmpty
+        if hasUntrustedRecoveryState {
+            do {
+                // A pending/unrecognized result may already have created SQLite tables.
+                // Invalidate generation before registry/file cleanup so every later failure
+                // path remains fail-closed for SQL reads.
+                if manager.fileExists(atPath: generationMarker.path) {
+                    try manager.removeItem(at: generationMarker)
+                }
+            } catch {
+                dataError = "bIDE found an interrupted saved result but could not invalidate the local SQL state: \(error.localizedDescription)"
+                return false
+            }
+        }
+
+        if let malformedMarkerName {
+            dataError = "bIDE found an unrecognized saved-result recovery marker (\(malformedMarkerName)) and stopped before changing project data. The local SQL state remains invalidated."
+            return false
         }
 
         do {
@@ -143,19 +170,14 @@ extension DataWorkspaceStore {
                 try manager.removeItem(at: marker)
             }
 
-            // A pending result may already have created SQLite tables. Force migration to
-            // rebuild derived SQL from the rolled-back registry before any query can run.
-            let generationMarker = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
-            if manager.fileExists(atPath: generationMarker.path) {
-                try manager.removeItem(at: generationMarker)
-            }
-
             openProject(projectID)
             return true
         } catch {
-            // Keep pending markers in place whenever possible so another launch can retry.
+            // Pending markers stay in place whenever possible so another launch can retry.
+            // Generation was invalidated before mutation, so partial cleanup can never leave
+            // the old SQLite state eligible for SQL reads.
             openProject(projectID)
-            dataError = "bIDE could not safely recover an interrupted saved-result verification: \(error.localizedDescription)"
+            dataError = "bIDE could not safely recover an interrupted saved-result verification: \(error.localizedDescription). The local SQL state remains invalidated."
             return false
         }
     }
