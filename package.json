@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite",
     "test:default-demo": "node scripts/check-default-demo-plot.mjs",
-    "build": "npm run test:default-demo && vite build",
-    "build:dev": "npm run test:default-demo && vite build --mode development",
+    "test:solo-data-integrity": "node scripts/check-solo-data-integrity.mjs",
+    "build": "npm run test:default-demo && npm run test:solo-data-integrity && vite build",
+    "build:dev": "npm run test:default-demo && npm run test:solo-data-integrity && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
   },

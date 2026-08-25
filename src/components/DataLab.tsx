@@ -55,7 +55,9 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
     setFilename(file.name);
     Papa.parse<Row>(file, {
       header: true,
-      dynamicTyping: true,
+      // Keep CSV values as source strings. DataLab may infer numeric columns for
+      // recommendations, but opening a dataset must never normalize identifiers.
+      dynamicTyping: false,
       skipEmptyLines: true,
       complete: (res) => {
         const data = res.data.filter(r => Object.keys(r).length > 0);
@@ -71,12 +73,23 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
   const analyzeDataset = (data: Row[]): Analysis[] => {
     if (!data.length) return [];
     const cols = Object.keys(data[0]);
+    const looksNumeric = (value: unknown) => {
+      if (typeof value === 'number') return Number.isFinite(value);
+      if (typeof value !== 'string') return false;
+      const text = value.trim();
+      if (!text) return false;
+      // Reject integer-like identifiers with leading zeroes (00123) while still
+      // accepting normal decimals such as 0.5 and scientific notation.
+      return /^[-+]?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(text);
+    };
+
     return cols.map(col => {
       const vals = data.map(r => r[col]);
       const nulls = vals.filter(v => v === '' || v == null || Number.isNaN(v)).length;
       const missingPct = data.length ? nulls / data.length : 0;
-      const numeric = vals.every(v => typeof v === 'number' || v == null || v === '');
-      const uniqueCount = new Set(vals.filter(v => v !== '' && v != null)).size;
+      const present = vals.filter(v => v !== '' && v != null);
+      const numeric = present.length > 0 && present.every(looksNumeric);
+      const uniqueCount = new Set(present).size;
       return { col, nulls, missingPct, numeric, uniqueCount };
     });
   };
@@ -92,14 +105,16 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
     return Array.from(new Set(s));
   };
 
-  const pythonBoilerplate = (csvName: string) => `# Load required packages from Pyodide (offline-friendly)
+  const pythonBoilerplate = (csvName: string) => {
+    const quotedCsvName = JSON.stringify(csvName);
+    return `# Load required packages from Pyodide (offline-friendly)
 import pyodide
 await pyodide.loadPackage(['pandas','matplotlib'])
 
 import pandas as pd
 import matplotlib.pyplot as plt
 
-df = pd.read_csv('${csvName}')
+df = pd.read_csv(${quotedCsvName})
 
 # Basic info
 print(df.shape)
@@ -115,10 +130,13 @@ df[num_cols].hist(figsize=(10,6))
 plt.tight_layout()
 plt.show()
 `;
+  };
 
-  const rBoilerplate = (csvName: string) => `
+  const rBoilerplate = (csvName: string) => {
+    const quotedCsvName = JSON.stringify(csvName);
+    return `
 library(readr); library(dplyr); library(ggplot2)
-df <- read_csv("${csvName}")
+df <- read_csv(${quotedCsvName})
 glimpse(df)
 num_cols <- names(df)[sapply(df, is.numeric)]
 for (col in num_cols) {
@@ -129,6 +147,7 @@ if (length(num_cols) > 0) {
   ggplot(df, aes(x = .data[[num_cols[1]]])) + geom_histogram() + theme_minimal()
 }
 `;
+  };
 
   const mkCode = () => {
     if (!filename) {
