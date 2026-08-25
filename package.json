@@ -10,8 +10,9 @@
     "test:plot-builder-runtime": "node scripts/check-plot-builder-runtime.mjs",
     "test:share-hardening": "node scripts/check-share-hardening.mjs",
     "test:workspace-persistence": "node scripts/check-workspace-persistence.mjs",
-    "build": "npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && vite build",
-    "build:dev": "npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && vite build --mode development",
+    "test:team-boundaries": "node scripts/check-team-handoff-boundaries.mjs",
+    "build": "npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && npm run test:team-boundaries && vite build",
+    "build:dev": "npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && npm run test:team-boundaries && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
   },

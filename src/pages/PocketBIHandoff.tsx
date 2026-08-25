@@ -48,12 +48,14 @@ export default function PocketBIHandoff() {
     if (!isReady) return;
 
     const announceReady = () => {
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: "pocketbi:bide:ready", version: 1 }, "*");
+      if (!window.opener || window.opener.closed) return;
+      for (const origin of ALLOWED_ORIGINS) {
+        window.opener.postMessage({ type: "pocketbi:bide:ready", version: 1 }, origin);
       }
     };
 
     const onMessage = async (event: MessageEvent) => {
+      if (!window.opener || event.source !== window.opener) return;
       if (!ALLOWED_ORIGINS.has(event.origin) || !isDatasetMessage(event.data)) return;
       setError("");
       setStatus("Saving cleaned dataset into BIDE…");
@@ -84,15 +86,13 @@ export default function PocketBIHandoff() {
         }));
         localStorage.setItem("bide_visited", "true");
 
-        if (event.source && "postMessage" in event.source) {
-          (event.source as WindowProxy).postMessage({
-            type: "pocketbi:bide:accepted",
-            version: 1,
-            fileId: id,
-            fileName: name,
-            columns,
-          }, { targetOrigin: event.origin });
-        }
+        window.opener.postMessage({
+          type: "pocketbi:bide:accepted",
+          version: 1,
+          fileId: id,
+          fileName: name,
+          columns,
+        }, event.origin);
 
         setStatus(`${name} is ready in BIDE.`);
         window.setTimeout(() => navigate(`/ide?source=pocketbi&file=${encodeURIComponent(name)}`, { replace: true }), 250);
@@ -100,9 +100,7 @@ export default function PocketBIHandoff() {
         const message = caught instanceof Error ? caught.message : "BIDE could not accept this PocketBI dataset.";
         setError(message);
         setStatus("Handoff failed.");
-        if (event.source && "postMessage" in event.source) {
-          (event.source as WindowProxy).postMessage({ type: "pocketbi:bide:error", version: 1, error: message }, { targetOrigin: event.origin });
-        }
+        window.opener.postMessage({ type: "pocketbi:bide:error", version: 1, error: message }, event.origin);
       }
     };
 
@@ -123,7 +121,7 @@ export default function PocketBIHandoff() {
       <h1 style={{margin:"10px 0 8px",fontSize:30,letterSpacing:"-.04em"}}>Opening your dataset workspace.</h1>
       <p style={{margin:0,color:"#a1a1aa",lineHeight:1.55}}>{status}</p>
       {error && <p style={{marginTop:14,padding:12,border:"1px solid #7f1d1d",borderRadius:10,background:"rgba(127,29,29,.15)",color:"#fecaca"}}>{error}</p>}
-      <p style={{margin:"18px 0 0",fontSize:12,color:"#71717a"}}>The CSV is transferred browser-to-browser and saved into BIDE's existing local workspace store. It is not placed in the URL.</p>
+      <p style={{margin:"18px 0 0",fontSize:12,color:"#71717a"}}>The CSV is transferred directly from the trusted PocketBI opener and saved into BIDE's existing local workspace store. It is not placed in the URL.</p>
     </section>
   </main>;
 }

@@ -85,7 +85,7 @@ const features = [
       },
       {
         title: "Templates + sharing",
-        description: "Start from reusable examples or share code without making templates and collaboration permanent toolbar clutter.",
+        description: "Start from reusable examples or create unlisted code links without making templates and sharing permanent toolbar clutter.",
         icon: <Share2 className="w-5 h-5" />,
       },
     ],
