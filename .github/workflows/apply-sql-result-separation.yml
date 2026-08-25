@@ -1,0 +1,103 @@
+name: Apply SQL Result Source Separation
+
+on:
+  push:
+    branches:
+      - agent/bide-sql-result-separation
+    paths:
+      - .github/workflows/apply-sql-result-separation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/bide-sql-result-separation
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Apply focused SQL result/source fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ide = Path('src/pages/IDE.tsx')
+          s = ide.read_text()
+
+          old = "  const [datasets, setDatasets] = useState<Map<string, Dataset>>(new Map());\n  const [showDataset, setShowDataset] = useState<string | null>(null);\n  const [plotData, setPlotData] = useState<string | null>(null);"
+          new = "  const [datasets, setDatasets] = useState<Map<string, Dataset>>(new Map());\n  const [showDataset, setShowDataset] = useState<string | null>(null);\n  const [lastResultDatasetName, setLastResultDatasetName] = useState<string | null>(null);\n  const [plotData, setPlotData] = useState<string | null>(null);"
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = "        setDatasets(nextDatasets);\n        setShowDataset(result.datasets[result.datasets.length - 1].name);\n      }\n"
+          new = "        setDatasets(nextDatasets);\n        const latestResultName = result.datasets[result.datasets.length - 1].name;\n        setLastResultDatasetName(latestResultName);\n        setShowDataset(latestResultName);\n        setActiveFile(null);\n      }\n"
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = "  const currentFile = files.find((f) => f.id === activeFile);\n  const currentDataset = showDataset ? datasets.get(showDataset) : null;\n"
+          new = "  const currentFile = files.find((f) => f.id === activeFile);\n  const currentFileDataset = currentFile?.language === 'csv'\n    ? datasets.get(currentFile.name)\n    : null;\n  const currentDataset = showDataset ? datasets.get(showDataset) : null;\n"
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = "    if (currentDataset) {\n      return {\n        rows: currentDataset.data.map((row) =>\n          currentDataset.headers.reduce((obj, header, j) => {\n            obj[header] = row[j];"
+          new = "    if (currentFileDataset) {\n      return {\n        rows: currentFileDataset.data.map((row) =>\n          currentFileDataset.headers.reduce((obj, header, j) => {\n            obj[header] = row[j];"
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = "  }, [currentFile, currentDataset]);"
+          new = "  }, [currentFile, currentFileDataset]);"
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = "            onClick={() => setCsvViewMode('data')}\n          >\n            View Data"
+          new = "            onClick={() => {\n              setShowDataset(currentFile.name);\n              setCsvViewMode('data');\n            }}\n          >\n            View Data"
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = "          </Button>\n          <span className=\"text-xs text-muted-foreground ml-auto\">\n            {currentFile.name}\n          </span>"
+          new = "          </Button>\n          {lastResultDatasetName && datasets.has(lastResultDatasetName) && (\n            <Button\n              variant=\"ghost\"\n              size=\"sm\"\n              onClick={() => {\n                setActiveFile(null);\n                setShowDataset(lastResultDatasetName);\n              }}\n            >\n              View Result\n            </Button>\n          )}\n          <span className=\"text-xs text-muted-foreground ml-auto\">\n            {currentFile.name}\n          </span>"
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          old = "              {currentDataset && (\n                <DatasetViewer\n                  title={currentFile.name}\n                  headers={currentDataset.headers}\n                  data={currentDataset.data}"
+          new = "              {currentFileDataset && (\n                <DatasetViewer\n                  title={currentFile.name}\n                  headers={currentFileDataset.headers}\n                  data={currentFileDataset.data}"
+          assert old in s
+          s = s.replace(old, new, 1)
+
+          ide.write_text(s)
+
+          guard = Path('scripts/check-sql-analyst-workflow.mjs')
+          g = guard.read_text()
+          old = "assert.match(ide, /setShowDataset\\(result\\.datasets\\[result\\.datasets\\.length - 1\\]\\.name\\)/, 'Latest SQL result must open automatically');"
+          new = "assert.match(ide, /const latestResultName = result\\.datasets\\[result\\.datasets\\.length - 1\\]\\.name;[\\s\\S]*setShowDataset\\(latestResultName\\);[\\s\\S]*setActiveFile\\(null\\)/, 'Latest SQL result must open separately from an active CSV');"
+          assert old in g
+          g = g.replace(old, new, 1)
+
+          marker = "assert.match(viewer, /Back to Code/, 'Result viewer needs an obvious path back to the editor');"
+          assert marker in g
+          additions = "assert.match(ide, /const currentFileDataset = currentFile\\?\\.language === 'csv'/, 'CSV source preview must resolve from the active file');\nassert.match(ide, /View Result/, 'CSV workflow must keep a path back to the latest query result');\nassert.doesNotMatch(ide, /title=\\{currentFile\\.name\\}\\s+headers=\\{currentDataset\\.headers\\}/, 'A query result must never masquerade as the active CSV preview');\nassert.match(ide, /preloadedFromCSV[\\s\\S]*currentFileDataset/, 'Data Lab must preload the active CSV source rather than a query result');\n\n"
+          g = g.replace(marker, additions + marker, 1)
+          guard.write_text(g)
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: SQL workflow regression guard
+        run: npm run test:sql-analyst
+      - name: Production build
+        run: npm run build
+      - name: Commit fix and remove helper
+        run: |
+          rm .github/workflows/apply-sql-result-separation.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/IDE.tsx scripts/check-sql-analyst-workflow.mjs .github/workflows/apply-sql-result-separation.yml
+          git commit -m "Separate SQL results from CSV source previews"
+          git push origin HEAD:agent/bide-sql-result-separation
