@@ -86,6 +86,7 @@ const IDE = () => {
   const [errorExplanationCache, setErrorExplanationCache] = useState<Map<string, ErrorExplanation>>(new Map());
   const [datasets, setDatasets] = useState<Map<string, Dataset>>(new Map());
   const [showDataset, setShowDataset] = useState<string | null>(null);
+  const [lastResultDatasetName, setLastResultDatasetName] = useState<string | null>(null);
   const [plotData, setPlotData] = useState<string | null>(null);
   const [plotCode, setPlotCode] = useState<string | null>(null);
   const [installedPackages, setInstalledPackages] = useState<string[]>([]);
@@ -1012,7 +1013,10 @@ Jack,30,Miami,86`,
           });
         });
         setDatasets(nextDatasets);
-        setShowDataset(result.datasets[result.datasets.length - 1].name);
+        const latestResultName = result.datasets[result.datasets.length - 1].name;
+        setLastResultDatasetName(latestResultName);
+        setShowDataset(latestResultName);
+        setActiveFile(null);
       }
 
       addToConsole(">>> Execution completed ✓");
@@ -1350,6 +1354,9 @@ Jack,30,Miami,86`,
   };
 
   const currentFile = files.find((f) => f.id === activeFile);
+  const currentFileDataset = currentFile?.language === 'csv'
+    ? datasets.get(currentFile.name)
+    : null;
   const currentDataset = showDataset ? datasets.get(showDataset) : null;
 
   // Prepare components
@@ -1445,10 +1452,10 @@ Jack,30,Miami,86`,
 
   const preloadedFromCSV = useMemo(() => {
     if (currentFile?.language !== 'csv') return undefined;
-    if (currentDataset) {
+    if (currentFileDataset) {
       return {
-        rows: currentDataset.data.map((row) =>
-          currentDataset.headers.reduce((obj, header, j) => {
+        rows: currentFileDataset.data.map((row) =>
+          currentFileDataset.headers.reduce((obj, header, j) => {
             obj[header] = row[j];
             return obj;
             }, {} as Record<string, any>)
@@ -1468,7 +1475,7 @@ Jack,30,Miami,86`,
       }
     } catch {}
     return undefined;
-  }, [currentFile, currentDataset]);
+  }, [currentFile, currentFileDataset]);
 
   const dataLabComponent = (
     <DataLab
@@ -1501,7 +1508,10 @@ Jack,30,Miami,86`,
           <Button
             variant={csvViewMode === 'data' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setCsvViewMode('data')}
+            onClick={() => {
+              setShowDataset(currentFile.name);
+              setCsvViewMode('data');
+            }}
           >
             View Data
           </Button>
@@ -1512,6 +1522,18 @@ Jack,30,Miami,86`,
           >
             Write Code
           </Button>
+          {lastResultDatasetName && datasets.has(lastResultDatasetName) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setActiveFile(null);
+                setShowDataset(lastResultDatasetName);
+              }}
+            >
+              View Result
+            </Button>
+          )}
           <span className="text-xs text-muted-foreground ml-auto">
             {currentFile.name}
           </span>
@@ -1521,11 +1543,11 @@ Jack,30,Miami,86`,
         <div className="flex-1 overflow-auto">
           {csvViewMode === 'data' ? (
             <div className="h-full overflow-auto flex flex-col gap-4 p-2">
-              {currentDataset && (
+              {currentFileDataset && (
                 <DatasetViewer
                   title={currentFile.name}
-                  headers={currentDataset.headers}
-                  data={currentDataset.data}
+                  headers={currentFileDataset.headers}
+                  data={currentFileDataset.data}
                   onVisualize={() => setPlotBuilderOpen(true)}
                 />
               )}
