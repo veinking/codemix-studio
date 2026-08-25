@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 const ideSource = readFileSync(new URL('../src/pages/IDE.tsx', import.meta.url), 'utf8');
 const workerSource = readFileSync(new URL('../public/pyWorker.js', import.meta.url), 'utf8');
 const runtimeSource = readFileSync(new URL('../src/runtimes/PythonRuntime.ts', import.meta.url), 'utf8');
+const plotViewerSource = readFileSync(new URL('../src/components/PlotViewer.tsx', import.meta.url), 'utf8');
 
 const demoMatch = ideSource.match(
   /name:\s*['"]demo\.py['"][\s\S]*?content:\s*`([\s\S]*?)`\s*,\s*\n\s*}/,
@@ -34,4 +35,14 @@ assert.doesNotMatch(
 assert.match(runtimeSource, /msg\.type\s*===\s*['"]plot['"]/, 'PythonRuntime must consume plot worker messages');
 assert.match(runtimeSource, /result\.plotUrl\s*=\s*msg\.dataUrl/, 'PythonRuntime must return the plot through ExecutionResult.plotUrl');
 
-console.log('✓ Default demo Matplotlib worker regression guard passed');
+assert.match(plotViewerSource, /<img[\s\S]*src=\{plotData\}/, 'Plot Viewer must render captured image data directly');
+assert.match(plotViewerSource, /onLoad=\{\(\) => setIsLoading\(false\)\}/, 'Plot Viewer must clear loading when the image loads');
+assert.match(plotViewerSource, /onClick=\{handleDownloadImage\}/, 'Plot Viewer must expose image download');
+assert.match(plotViewerSource, />\s*Download Plot\s*</, 'Plot Viewer must label the image download distinctly from code download');
+assert.doesNotMatch(
+  plotViewerSource,
+  /canvasRef|useRef<HTMLCanvasElement>/,
+  'Plot Viewer must not reintroduce the canvas-mount loading deadlock',
+);
+
+console.log('✓ Default demo Matplotlib + Plot Viewer regression guard passed');
