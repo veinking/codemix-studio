@@ -98,18 +98,30 @@ jobs:
           import hashlib
           import os
           import plistlib
+          import re
           from pathlib import Path
 
           profile = plistlib.loads(Path(os.environ['PROFILE_PLIST']).read_bytes())
           team_ids = profile.get('TeamIdentifier') or []
+          profile_team = team_ids[0] if len(team_ids) == 1 else ''
+          configured_team = os.environ['APPLE_TEAM_ID']
           app_id = (profile.get('Entitlements') or {}).get('application-identifier')
-          print('Provisioning profile TeamIdentifier:', ', '.join(team_ids) if team_ids else '<missing>')
-          print('Provisioning profile application-identifier:', app_id or '<missing>')
 
-          if team_ids != [os.environ['APPLE_TEAM_ID']]:
-              raise SystemExit('Provisioning profile TeamIdentifier does not match APPLE_TEAM_ID.')
+          def fp(value):
+              return hashlib.sha256(value.encode('utf-8')).hexdigest().upper()[:16]
 
-          expected_app_id = f"{os.environ['APPLE_TEAM_ID']}.com.bideide.ios"
+          print(f"Configured APPLE_TEAM_ID length: {len(configured_team)}")
+          print(f"Profile TeamIdentifier length: {len(profile_team)}")
+          print(f"Configured APPLE_TEAM_ID fingerprint: {fp(configured_team)}")
+          print(f"Profile TeamIdentifier fingerprint: {fp(profile_team)}")
+          print(f"IDs match exactly: {configured_team == profile_team}")
+          print(f"Configured APPLE_TEAM_ID has valid 10-character format: {bool(re.fullmatch(r'[A-Z0-9]{10}', configured_team))}")
+          print(f"Profile TeamIdentifier has valid 10-character format: {bool(re.fullmatch(r'[A-Z0-9]{10}', profile_team))}")
+
+          if team_ids != [configured_team]:
+              raise SystemExit('Provisioning profile TeamIdentifier does not match APPLE_TEAM_ID. Use the lengths/fingerprints above to identify which value is wrong without exposing either ID.')
+
+          expected_app_id = f"{configured_team}.com.bideide.ios"
           if app_id != expected_app_id:
               raise SystemExit('Provisioning profile application-identifier does not match com.bideide.ios.')
 
