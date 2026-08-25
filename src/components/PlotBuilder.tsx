@@ -277,9 +277,9 @@ export const PlotBuilder = ({ open, onOpenChange, datasets, onInsertCode, langua
                     </Select>
                   </div>
 
-                  {chartType !== 'histogram' && chartType !== 'box' && (
+                  {requiresYColumn(chartType) && (
                     <div>
-                      <Label>Y-Axis Column {chartType === 'bar' ? '*' : ''}</Label>
+                      <Label>Y-Axis Column *</Label>
                       <Select value={yColumn} onValueChange={setYColumn}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select column" />
