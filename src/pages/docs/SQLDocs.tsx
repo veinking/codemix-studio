@@ -16,7 +16,7 @@ export default function SQLDocs() {
     <>
       <Helmet>
         <title>SQL Documentation - bIDE | Database Query Reference</title>
-        <meta name="description" content="Complete SQL reference for bIDE. SELECT, JOIN, aggregations, subqueries, and database operations. Practice SQL queries in your browser with instant execution." />
+        <meta name="description" content="SQL reference for bIDE local SQLite. Practice SELECT, JOIN, aggregations, subqueries, and CSV-backed analysis directly in your browser." />
         <meta name="keywords" content="sql documentation, sql syntax, sql tutorial, sql queries, learn sql, database queries, sql examples" />
         <link rel="canonical" href="https://bideide.com/docs/sql" />
       </Helmet>
@@ -28,7 +28,7 @@ export default function SQLDocs() {
       <SoftwareApplicationSchema 
         language="sql"
         languageName="SQL"
-        description="Free online SQL IDE powered by sql.js. Practice database queries in your browser. Learn SELECT, JOIN, aggregations, and more with instant execution."
+        description="Browser SQL IDE powered by local SQLite via sql.js. Query workspace CSV tables, practice joins and aggregations, and inspect or export results without sending source data to a database server."
       />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-slate-50 to-cyan-50 dark:from-background dark:via-slate-900 dark:to-cyan-950">
@@ -39,7 +39,7 @@ export default function SQLDocs() {
                 <span className="text-3xl">🗄️</span>
                 <div>
                   <h1 className="text-2xl font-bold">SQL Reference</h1>
-                  <p className="text-xs text-muted-foreground">Query and manage relational databases</p>
+                  <p className="text-xs text-muted-foreground">Practice against local in-browser SQLite</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -74,7 +74,7 @@ export default function SQLDocs() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
-                    <span>Query databases for reporting</span>
+                    <span>Query local workspace tables for reporting</span>
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
@@ -94,7 +94,7 @@ export default function SQLDocs() {
                   </div>
                   <div className="flex items-start gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5" />
-                    <span>Data warehousing</span>
+                    <span>CSV-backed local analysis</span>
                   </div>
                 </div>
               </CardContent>
@@ -116,7 +116,11 @@ export default function SQLDocs() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>Learn database operations</span>
+                    <span>Uploaded CSVs refresh into SQLite tables before each SQL run</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    <span>Inspect SELECT results, export CSV, or save a result back to Files</span>
                   </div>
                 </div>
               </CardContent>
@@ -148,7 +152,11 @@ export default function SQLDocs() {
                 <li>🔹 Use LIMIT to restrict number of rows returned</li>
                 <li>🔹 ORDER BY for sorting results</li>
                 <li>🔹 GROUP BY for aggregations</li>
-                <li>🔹 Always end statements with semicolon</li>
+                <li>🔹 Use semicolons to separate multiple SQL statements</li>
+                <li>🔹 Uploaded orders.csv becomes a table such as orders; normalized names are shown in the console</li>
+                <li>🔹 Identifier-like columns (ID, code, ZIP, account, SKU) stay text so join keys keep leading zeros</li>
+                <li>🔹 Blank CSV cells import as SQL NULL; saved/exported result CSVs write NULL as empty cells</li>
+                <li>🔹 CSV-backed tables rebuild from Files after reload; ad-hoc CREATE TABLE state is session-only unless you save the source/result</li>
                 <li>🔹 Use aliases (AS) for clarity</li>
               </ul>
             </CardContent>

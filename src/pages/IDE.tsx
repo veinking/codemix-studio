@@ -190,25 +190,33 @@ useEffect(() => {
 
   const codeParam = params.get('code');
   const langParam = params.get('lang');
-  
-  if (codeParam && langParam) {
-    try {
-      const decodedCode = atob(codeParam);
-      const validLang = ['python', 'r', 'javascript', 'sql'].includes(langParam) 
-        ? langParam as 'python' | 'r' | 'javascript' | 'sql'
-        : 'python';
-      
-      setScratchCode(decodedCode);
-      setScratchLanguage(validLang);
-      setLanguageCode(prev => ({
-        ...prev,
-        [validLang]: decodedCode
-      }));
-      window.history.replaceState({}, '', '/ide');
-      toast.success('Code loaded from documentation!');
-    } catch (e) {
-      console.error('Failed to decode code from URL:', e);
+  const validLang = langParam && ['python', 'r', 'javascript', 'sql'].includes(langParam)
+    ? langParam as 'python' | 'r' | 'javascript' | 'sql'
+    : null;
+
+  if (validLang) {
+    setActiveFile(null);
+    setShowDataset(null);
+    setScratchLanguage(validLang);
+
+    if (codeParam) {
+      try {
+        const decodedCode = atob(codeParam);
+        setScratchCode(decodedCode);
+        setLanguageCode(prev => ({
+          ...prev,
+          [validLang]: decodedCode,
+        }));
+        toast.success('Code loaded from documentation!');
+      } catch (e) {
+        console.error('Failed to decode code from URL:', e);
+        toast.error('Could not load the documentation example');
+      }
+    } else {
+      setScratchCode(languageCode[validLang] || '');
     }
+
+    window.history.replaceState({}, '', '/ide');
   }
 }, []);
 
@@ -619,18 +627,22 @@ Jack,30,Miami,86`,
     }
   };
 
+  const parseCSVContent = (content: string): Dataset => {
+    const res = Papa.parse<Record<string, any>>(content, {
+      header: true,
+      // Preserve source strings here. SQL performs separate conservative type
+      // inference without mutating the persisted CSV source.
+      dynamicTyping: false,
+      skipEmptyLines: true,
+    });
+    const headers = res.meta.fields || Object.keys(res.data[0] || {});
+    const data = (res.data as any[]).map(row => headers.map(h => String(row?.[h] ?? '')));
+    return { headers, data };
+  };
+
   const parseCSV = async (content: string, fileName: string) => {
     try {
-      // Prefer Papa Parse for robustness
-      const res = Papa.parse<Record<string, any>>(content, {
-        header: true,
-        // Preserve source values exactly. Converting identifiers such as 00123
-        // to numbers here destroys information before the user runs any code.
-        dynamicTyping: false,
-        skipEmptyLines: true,
-      });
-      const headers = res.meta.fields || Object.keys(res.data[0] || {});
-      const data = (res.data as any[]).map(row => headers.map(h => String(row?.[h] ?? '')));
+      const { headers, data } = parseCSVContent(content);
       setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
       addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
       
@@ -652,6 +664,33 @@ Jack,30,Miami,86`,
       addToConsole(`✗ Failed to parse ${fileName} safely`, true);
       toast.error(`Could not parse ${fileName} safely`);
     }
+  };
+
+  const collectSQLDatasets = () => {
+    const workspaceDatasets: Array<{ name: string; headers: string[]; data: string[][] }> = [];
+    const sourceDatasetNames = new Set<string>();
+    const duplicateCounts = new Map<string, number>();
+
+    // Reparse persisted CSV bytes so SQL works immediately after reload, even
+    // before the user reopens every CSV preview.
+    for (const file of files) {
+      if (file.language !== 'csv') continue;
+      const count = (duplicateCounts.get(file.name) || 0) + 1;
+      duplicateCounts.set(file.name, count);
+      const datasetName = count === 1 ? file.name : `${file.name} (${count})`;
+      const parsed = parseCSVContent(file.content);
+      workspaceDatasets.push({ name: datasetName, ...parsed });
+      sourceDatasetNames.add(file.name);
+    }
+
+    // Data Lab datasets can participate too, but previous SQL result views do
+    // not silently become new source tables on the next run.
+    datasets.forEach((dataset, name) => {
+      if (sourceDatasetNames.has(name) || name.startsWith('SQL Result')) return;
+      workspaceDatasets.push({ name, headers: dataset.headers, data: dataset.data });
+    });
+
+    return workspaceDatasets;
   };
 
   const handleFileSelect = (fileId: string) => {
@@ -797,7 +836,7 @@ Jack,30,Miami,86`,
         code = scratchCode;
         language = scratchLanguage;
       } else {
-        addToConsole("✗ This is a CSV preview. Switch to 'Write Code' to run Python or R.");
+        addToConsole("✗ This is a CSV preview. Switch to 'Write Code' to run code against the workspace.");
         setIsRunning(false);
         return;
       }
@@ -868,6 +907,24 @@ Jack,30,Miami,86`,
           next.delete(language);
           return next;
         });
+      }
+    }
+
+    // Refresh workspace datasets into SQLite before each SQL run.
+    if (language === 'sql' && runtime instanceof SQLRuntime) {
+      try {
+        const mappings = runtime.syncDatasets(collectSQLDatasets());
+        if (mappings.length > 0) {
+          addToConsole(
+            `✓ SQL tables refreshed: ${mappings
+              .map(({ datasetName, tableName }) => `${datasetName} → ${tableName}`)
+              .join(', ')}`,
+          );
+        }
+      } catch (error: any) {
+        addToConsole(`✗ Failed to prepare SQL workspace tables: ${error.message}`, true);
+        setIsRunning(false);
+        return;
       }
     }
 
@@ -945,14 +1002,17 @@ Jack,30,Miami,86`,
         }
       }
 
-      // Handle datasets (for SQL queries)
+      // Structured query results become inspectable/exportable datasets.
       if (result.datasets && result.datasets.length > 0) {
+        const nextDatasets = new Map(datasets);
         result.datasets.forEach(ds => {
-          setDatasets(prev => new Map(prev).set(ds.name, {
+          nextDatasets.set(ds.name, {
             headers: ds.headers,
-            data: ds.data
-          }));
+            data: ds.data,
+          });
         });
+        setDatasets(nextDatasets);
+        setShowDataset(result.datasets[result.datasets.length - 1].name);
       }
 
       addToConsole(">>> Execution completed ✓");
@@ -1216,6 +1276,10 @@ Jack,30,Miami,86`,
       setInitializedRuntimes((prev) => new Set([...prev, scratchLanguage]));
     }
 
+    if (scratchLanguage === 'sql' && runtime instanceof SQLRuntime) {
+      runtime.syncDatasets(collectSQLDatasets());
+    }
+
     let capturedOutput = '';
     const result = await runtime.execute(code, (text) => {
       capturedOutput += text + '\n';
@@ -1246,6 +1310,43 @@ Jack,30,Miami,86`,
       output: result.output || capturedOutput,
       error: result.error
     };
+  };
+
+  const handleExportDataset = (datasetName: string) => {
+    const dataset = datasets.get(datasetName);
+    if (!dataset) return;
+    const csv = Papa.unparse([dataset.headers, ...dataset.data]);
+    const baseName = datasetName
+      .replace(/\.csv$/i, '')
+      .replace(/[^A-Za-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'dataset';
+    saveAs(
+      new Blob([csv], { type: 'text/csv;charset=utf-8' }),
+      `${baseName}.csv`,
+    );
+    toast.success(`Exported ${baseName}.csv`);
+  };
+
+  const handleSaveDatasetAsFile = async (datasetName: string) => {
+    const dataset = datasets.get(datasetName);
+    if (!dataset) return;
+    const baseName = datasetName
+      .replace(/\.csv$/i, '')
+      .replace(/[^A-Za-z0-9_-]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toLowerCase() || 'dataset';
+    const requestedName = prompt('Save result as:', `${baseName}.csv`);
+    if (!requestedName) return;
+    const fileName = requestedName.toLowerCase().endsWith('.csv')
+      ? requestedName
+      : `${requestedName}.csv`;
+    const csv = Papa.unparse([dataset.headers, ...dataset.data]);
+    await handleCreateFile(fileName, csv);
+    await parseCSV(csv, fileName);
+    setShowDataset(fileName);
+    setCsvViewMode('data');
+    toast.success(`Saved ${fileName} to Files`);
   };
 
   const currentFile = files.find((f) => f.id === activeFile);
@@ -1421,6 +1522,7 @@ Jack,30,Miami,86`,
             <div className="h-full overflow-auto flex flex-col gap-4 p-2">
               {currentDataset && (
                 <DatasetViewer
+                  title={currentFile.name}
                   headers={currentDataset.headers}
                   data={currentDataset.data}
                   onVisualize={() => setPlotBuilderOpen(true)}
@@ -1439,11 +1541,15 @@ Jack,30,Miami,86`,
           )}
         </div>
       </div>
-    ) : currentDataset ? (
+    ) : currentDataset && showDataset ? (
       <DatasetViewer
+        title={showDataset}
         headers={currentDataset.headers}
         data={currentDataset.data}
         onVisualize={() => setPlotBuilderOpen(true)}
+        onExportCSV={() => handleExportDataset(showDataset)}
+        onSaveAsFile={() => handleSaveDatasetAsFile(showDataset)}
+        onClose={() => setShowDataset(null)}
       />
     ) : (
       <CodeEditor
@@ -1454,6 +1560,16 @@ Jack,30,Miami,86`,
         onEditorReady={(editor) => editorRef.current = editor}
       />
     )
+  ) : currentDataset && showDataset ? (
+    <DatasetViewer
+      title={showDataset}
+      headers={currentDataset.headers}
+      data={currentDataset.data}
+      onVisualize={() => setPlotBuilderOpen(true)}
+      onExportCSV={() => handleExportDataset(showDataset)}
+      onSaveAsFile={() => handleSaveDatasetAsFile(showDataset)}
+      onClose={() => setShowDataset(null)}
+    />
   ) : (
     <CodeEditor
       value={scratchCode}
