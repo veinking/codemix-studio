@@ -9,8 +9,9 @@
     "test:solo-data-integrity": "node scripts/check-solo-data-integrity.mjs",
     "test:plot-builder-runtime": "node scripts/check-plot-builder-runtime.mjs",
     "test:share-hardening": "node scripts/check-share-hardening.mjs",
-    "build": "npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && vite build",
-    "build:dev": "npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && vite build --mode development",
+    "test:workspace-persistence": "node scripts/check-workspace-persistence.mjs",
+    "build": "npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && vite build",
+    "build:dev": "npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -83,7 +84,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/typography": "^5.16.0",
     "@types/node": "^22.16.5",
     "@types/react": "^18.3.23",
     "@types/react-dom": "^18.3.7",
