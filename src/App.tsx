@@ -15,7 +15,6 @@ import RuntimeLab from "./pages/RuntimeLab";
 import SharedCode from "./pages/SharedCode";
 import NotFound from "./pages/NotFound";
 import Features from "./pages/Features";
-import Tutorials from "./pages/Tutorials";
 import Auth from "./pages/Auth";
 import Account from "./pages/Account";
 import Terms from "./pages/Terms";
@@ -32,18 +31,6 @@ import PythonDocs from "./pages/docs/PythonDocs";
 import RDocs from "./pages/docs/RDocs";
 import JavaScriptDocs from "./pages/docs/JavaScriptDocs";
 import SQLDocs from "./pages/docs/SQLDocs";
-import PHPDocs from "./pages/docs/PHPDocs";
-import RubyDocs from "./pages/docs/RubyDocs";
-import LuaDocs from "./pages/docs/LuaDocs";
-import JavaDocs from "./pages/docs/JavaDocs";
-import TypeScriptDocs from "./pages/docs/TypeScriptDocs";
-import CppDocs from "./pages/docs/CppDocs";
-import CDocs from "./pages/docs/CDocs";
-import RustDocs from "./pages/docs/RustDocs";
-import GoDocs from "./pages/docs/GoDocs";
-import SwiftDocs from "./pages/docs/SwiftDocs";
-import KotlinDocs from "./pages/docs/KotlinDocs";
-import CSharpDocs from "./pages/docs/CSharpDocs";
 
 const queryClient = new QueryClient();
 
@@ -64,7 +51,7 @@ const App = () => {
                 <Route path="/auth/pocketbi/callback" element={<PocketBICallback />} />
                 <Route path="/runtime-lab" element={<RuntimeLab />} />
                 <Route path="/features" element={<Features />} />
-                <Route path="/tutorials" element={<Tutorials />} />
+                <Route path="/tutorials" element={<Navigate to="/docs" replace />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/account" element={<Account />} />
                 <Route path="/upgrade" element={<Navigate to="/account" replace />} />
@@ -84,18 +71,18 @@ const App = () => {
                 <Route path="/docs/r" element={<RDocs />} />
                 <Route path="/docs/javascript" element={<JavaScriptDocs />} />
                 <Route path="/docs/sql" element={<SQLDocs />} />
-                <Route path="/docs/php" element={<PHPDocs />} />
-                <Route path="/docs/ruby" element={<RubyDocs />} />
-                <Route path="/docs/lua" element={<LuaDocs />} />
-                <Route path="/docs/java" element={<JavaDocs />} />
-                <Route path="/docs/typescript" element={<TypeScriptDocs />} />
-                <Route path="/docs/cpp" element={<CppDocs />} />
-                <Route path="/docs/c" element={<CDocs />} />
-                <Route path="/docs/rust" element={<RustDocs />} />
-                <Route path="/docs/go" element={<GoDocs />} />
-                <Route path="/docs/swift" element={<SwiftDocs />} />
-                <Route path="/docs/kotlin" element={<KotlinDocs />} />
-                <Route path="/docs/csharp" element={<CSharpDocs />} />
+                <Route path="/docs/php" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/ruby" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/lua" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/java" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/typescript" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/cpp" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/c" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/rust" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/go" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/swift" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/kotlin" element={<Navigate to="/docs" replace />} />
+                <Route path="/docs/csharp" element={<Navigate to="/docs" replace />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
