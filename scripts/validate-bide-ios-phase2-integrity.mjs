@@ -17,6 +17,7 @@ const files = [
   "ios/BideApp/Data/SQLiteProjectEngine.swift",
   "ios/BideApp/Stores/WorkspaceStore.swift",
   "ios/BideApp/Stores/DataWorkspaceStore.swift",
+  "ios/BideApp/Stores/DataWorkspaceStore+RegistryIntegrity.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift",
   "ios/BideApp/Stores/DataWorkspaceStore+SavedResultRecovery.swift",
@@ -25,6 +26,7 @@ const files = [
   "ios/BideApp/Views/DatasetsView.swift",
   "ios/BideApp/Views/SQLResultsView.swift",
   "ios/BideApp/BideApp.swift",
+  "ios/BideTests/DatasetRegistryIntegrityTests.swift",
   "ios/BideTests/DatabaseMigrationEdgeCaseTests.swift",
   "ios/BideTests/RebuildDatabaseFailureTests.swift",
   "ios/BideTests/ProjectImportFormatTests.swift",
@@ -51,12 +53,25 @@ requireTokens("ios/BideApp/Stores/DataWorkspaceStore.swift", [
   ".bide-delete-",
 ]);
 
+requireTokens("ios/BideApp/Stores/DataWorkspaceStore+RegistryIntegrity.swift", [
+  "DatasetRegistryIntegrityStatus",
+  "datasetRegistryIntegrityStatus",
+  "validateDatasetRegistryBeforeRecovery",
+  "case unreadable",
+  "pendingSavedResultMarkerPrefix",
+  "registry is missing",
+  "SQL-only project",
+]);
+
 requireTokens("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift", [
   "isDerivedDatabaseReadyForSQL",
   "prepareDerivedDatabaseForSQLIfNeeded",
+  "datasetRegistryIntegrityStatus",
+  "validateDatasetRegistryBeforeRecovery",
   ".bide-sqlite-generation",
   "refreshDatasetRegistryFromSourceAssets",
   "rebuildDatabaseWithinDataOperation",
+  "Only failures from this migration attempt",
 ]);
 
 requireTokens("ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift", [
@@ -109,16 +124,18 @@ requireTokens("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift", [
 ]);
 
 const app = requireTokens("ios/BideApp/BideApp.swift", [
+  "validateDatasetRegistryBeforeRecovery",
   "recoverInterruptedDatasetDeletions",
   "recoverInterruptedSavedResults",
   "reconcileProjectFiles",
   "migrateDerivedDatabaseIfNeeded",
 ]);
 assert.ok(
-  app.indexOf("recoverInterruptedDatasetDeletions") < app.indexOf("recoverInterruptedSavedResults") &&
+  app.indexOf("validateDatasetRegistryBeforeRecovery") < app.indexOf("recoverInterruptedDatasetDeletions") &&
+    app.indexOf("recoverInterruptedDatasetDeletions") < app.indexOf("recoverInterruptedSavedResults") &&
     app.indexOf("recoverInterruptedSavedResults") < app.indexOf("reconcileProjectFiles") &&
     app.indexOf("reconcileProjectFiles") < app.indexOf("migrateDerivedDatabaseIfNeeded"),
-  "Startup recovery order must be delete recovery → saved-result recovery → source reconciliation → SQLite migration."
+  "Startup order must be registry validation → delete recovery → saved-result recovery → source reconciliation → SQLite migration."
 );
 
 requireTokens("ios/BideApp/Views/ProjectsView.swift", [
@@ -138,6 +155,10 @@ requireTokens("ios/BideApp/Views/SQLResultsView.swift", [
 ]);
 
 const regressions = [
+  ["ios/BideTests/DatasetRegistryIntegrityTests.swift", "testCorruptRegistryStopsRecoveryPreservesStagedSourceAndInvalidatesSQL"],
+  ["ios/BideTests/DatasetRegistryIntegrityTests.swift", "testMissingRegistryWithRecoveryArtifactPreservesFilesAndInvalidatesSQL"],
+  ["ios/BideTests/DatasetRegistryIntegrityTests.swift", "testMissingRegistryWithoutRecoveryArtifactPreservesLegitimateSQLOnlyProject"],
+  ["ios/BideTests/DatasetRegistryIntegrityTests.swift", "testMigrationClearsStaleErrorBeforeCommittingSuccessfulGeneration"],
   ["ios/BideTests/DatabaseMigrationEdgeCaseTests.swift", "testExecuteSQLRepairsStaleGenerationBeforeRunningQuery"],
   ["ios/BideTests/RebuildDatabaseFailureTests.swift", "testFailedRebuildDiscardsPartialDatabaseAndPreservesSources"],
   ["ios/BideTests/ProjectImportFormatTests.swift", "testProjectImportSkipsUnsupportedXLSAndParquetFiles"],
