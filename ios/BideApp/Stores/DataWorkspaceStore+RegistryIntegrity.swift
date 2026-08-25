@@ -61,32 +61,37 @@ extension DataWorkspaceStore {
 
         case .missing:
             // A project imported from a folder may legitimately have no registry yet; normal
-            // reconciliation can discover its source datasets. But a missing registry plus a
-            // crash-recovery artifact is ambiguous: we cannot know whether deletion/save
-            // metadata committed before the interruption, so preserve every file and stop.
+            // reconciliation can discover its source datasets. A SQL-only project can also
+            // legitimately have no dataset registry while retaining user-created SQLite
+            // tables, so missing registry by itself is not corruption.
             guard manager.fileExists(atPath: projectDirectory.path) else { return true }
 
+            // A missing registry plus a crash-recovery artifact is different: without the
+            // registry we cannot know whether deletion/save metadata committed before the
+            // interruption. Preserve every file and invalidate derived SQL instead of
+            // guessing which side of the transaction won.
             let recoveryPrefixes = [
                 ".bide-delete-",
                 Self.pendingSavedResultMarkerPrefix,
             ]
-            let hasRecoveryArtifact: Bool
-            if let enumerator = manager.enumerator(
+
+            guard let enumerator = manager.enumerator(
                 at: projectDirectory,
                 includingPropertiesForKeys: [.isRegularFileKey],
                 options: [.skipsPackageDescendants]
-            ) {
-                hasRecoveryArtifact = enumerator.contains { element in
-                    guard let url = element as? URL,
-                          (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else {
-                        return false
-                    }
-                    return recoveryPrefixes.contains { url.lastPathComponent.hasPrefix($0) }
-                }
-            } else {
+            ) else {
                 guard invalidateDerivedSQLTrust() else { return false }
                 dataError = "bIDE could not inspect this project before dataset recovery. Source files were left untouched and local SQL was invalidated."
                 return false
+            }
+
+            var hasRecoveryArtifact = false
+            for case let url as URL in enumerator {
+                guard (try? url.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else { continue }
+                if recoveryPrefixes.contains(where: { url.lastPathComponent.hasPrefix($0) }) {
+                    hasRecoveryArtifact = true
+                    break
+                }
             }
 
             if hasRecoveryArtifact {
@@ -95,13 +100,6 @@ extension DataWorkspaceStore {
                 return false
             }
 
-            // No registry and no recovery artifact is a valid first-open/import state. If a
-            // derived database somehow survived without its registry, invalidate it so normal
-            // reconciliation/migration reconstructs state from discoverable source files.
-            let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
-            if manager.fileExists(atPath: databaseURL.path) || manager.fileExists(atPath: generationMarker.path) {
-                return invalidateDerivedSQLTrust()
-            }
             return true
         }
     }
