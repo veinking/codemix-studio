@@ -1,0 +1,48 @@
+name: bIDE RC Source Preflight
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: bIDE release-candidate branch, tag, or commit
+        required: true
+        default: agent/bide-ios-testflight-rc2
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-rc-preflight-${{ inputs.source_ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out exact release candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
+
+      - name: Show exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "Source ref: ${{ inputs.source_ref }}"
+          echo "Source SHA: $(git rev-parse HEAD)"
+          test -z "$(git status --porcelain)"
+
+      - name: Validate Phase 1 baseline
+        run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Validate Phase 2 data + SQL
+        run: node scripts/validate-bide-ios-phase2.mjs
+
+      - name: Validate Phase 2 integrity cleanup
+        run: node scripts/validate-bide-ios-phase2-integrity.mjs
+
+      - name: Validate TestFlight release configuration
+        run: node scripts/validate-bide-ios-testflight.mjs
