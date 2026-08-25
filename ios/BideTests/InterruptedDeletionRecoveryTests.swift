@@ -149,4 +149,105 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
         XCTAssertNil(store.dataError)
         XCTAssertTrue(manager.fileExists(atPath: stagedURL.path))
     }
+
+    @MainActor
+    func testMalformedDeleteArtifactInvalidatesDerivedDatabaseBeforeFailing() throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let urls = try projectURLs(projectID: projectID)
+        try manager.createDirectory(at: urls.dataDirectory, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: urls.projectDirectory) }
+
+        let malformedURL = urls.dataDirectory.appendingPathComponent(".bide-delete-not-a-valid-transaction")
+        try "do not touch".write(to: malformedURL, atomically: true, encoding: .utf8)
+        try writeRegistry([], to: urls.registryURL)
+        try "2".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+        _ = try SQLiteProjectEngine.execute(
+            databaseURL: urls.databaseURL,
+            sql: "CREATE TABLE stale_table (value TEXT);"
+        )
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertTrue(store.isDerivedDatabaseReadyForSQL(projectID: projectID))
+
+        XCTAssertFalse(store.recoverInterruptedDatasetDeletions(projectID: projectID))
+        XCTAssertTrue(manager.fileExists(atPath: malformedURL.path))
+        XCTAssertFalse(manager.fileExists(atPath: urls.markerURL.path))
+        XCTAssertFalse(store.isDerivedDatabaseReadyForSQL(projectID: projectID))
+        XCTAssertTrue(store.dataError?.contains("unrecognized interrupted-delete file") == true)
+    }
+
+    @MainActor
+    func testDuplicateDeleteArtifactsStopBeforeMovingFilesAndInvalidateSQL() throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let urls = try projectURLs(projectID: projectID)
+        try manager.createDirectory(at: urls.dataDirectory, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: urls.projectDirectory) }
+
+        let assetID = UUID()
+        let first = urls.dataDirectory.appendingPathComponent(
+            ".bide-delete-\(assetID.uuidString)-\(UUID().uuidString)"
+        )
+        let second = urls.dataDirectory.appendingPathComponent(
+            ".bide-delete-\(assetID.uuidString)-\(UUID().uuidString)"
+        )
+        try "first".write(to: first, atomically: true, encoding: .utf8)
+        try "second".write(to: second, atomically: true, encoding: .utf8)
+        try writeRegistry([], to: urls.registryURL)
+        try "2".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+
+        XCTAssertFalse(store.recoverInterruptedDatasetDeletions(projectID: projectID))
+        XCTAssertTrue(manager.fileExists(atPath: first.path))
+        XCTAssertTrue(manager.fileExists(atPath: second.path))
+        XCTAssertFalse(manager.fileExists(atPath: urls.markerURL.path))
+        XCTAssertTrue(store.dataError?.contains("multiple interrupted-delete copies") == true)
+    }
+
+    @MainActor
+    func testSourceAndStagedConflictStopsBeforeMutationAndInvalidatesSQL() throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let urls = try projectURLs(projectID: projectID)
+        try manager.createDirectory(at: urls.dataDirectory, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: urls.projectDirectory) }
+
+        let sourceURL = urls.dataDirectory.appendingPathComponent("orders.csv")
+        try "id,value\n1,original\n".write(to: sourceURL, atomically: true, encoding: .utf8)
+        let parsed = try XCTUnwrap(DatasetParser.parse(url: sourceURL, format: .csv).first)
+        let asset = DatasetAsset(
+            fileName: "orders.csv",
+            relativePath: "data/orders.csv",
+            format: .csv,
+            sizeBytes: Int64((try Data(contentsOf: sourceURL)).count),
+            tables: [
+                DatasetTableDescriptor(
+                    displayName: "orders",
+                    sqliteName: "orders",
+                    rowCount: parsed.rows.count,
+                    columns: parsed.columns
+                )
+            ]
+        )
+        try writeRegistry([asset], to: urls.registryURL)
+        try "2".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+
+        let stagedURL = urls.dataDirectory.appendingPathComponent(
+            ".bide-delete-\(asset.id.uuidString)-\(UUID().uuidString)"
+        )
+        try "id,value\n1,staged\n".write(to: stagedURL, atomically: true, encoding: .utf8)
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+
+        XCTAssertFalse(store.recoverInterruptedDatasetDeletions(projectID: projectID))
+        XCTAssertTrue(manager.fileExists(atPath: sourceURL.path))
+        XCTAssertTrue(manager.fileExists(atPath: stagedURL.path))
+        XCTAssertFalse(manager.fileExists(atPath: urls.markerURL.path))
+        XCTAssertTrue(store.dataError?.contains("both the registered source and an interrupted-delete copy") == true)
+    }
 }
