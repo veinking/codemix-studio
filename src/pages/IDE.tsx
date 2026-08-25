@@ -116,6 +116,7 @@ const IDE = () => {
   const [mobileConsoleOpen, setMobileConsoleOpen] = useState(false);
   const previousOutputLength = React.useRef(0);
   const editorRef = React.useRef<any>(null);
+  const starterFilesRef = React.useRef<FileItem[] | null>(null);
   
   // Per-language code storage (scratch pad per language)
   const [languageCode, setLanguageCode] = useState<{
@@ -244,15 +245,21 @@ const IDE = () => {
     RuntimeRegistry.register(new SQLRuntime());
   }, []);
 
-  // First-run experience
+  // First-run experience. Keep a pending seed marker until the starter
+  // workspace is actually committed to IndexedDB so an early reload cannot
+  // strand a new guest with an empty workspace.
   useEffect(() => {
     const isFirstVisit = !localStorage.getItem('bide_visited');
-    if (isFirstVisit) {
-      setShowWelcome(true);
-      localStorage.setItem('bide_visited', 'true');
+    const starterSeedPending = localStorage.getItem('bide_starter_seed_pending') === 'true';
+    if (isFirstVisit || starterSeedPending) {
+      if (isFirstVisit) {
+        setShowWelcome(true);
+        localStorage.setItem('bide_visited', 'true');
+      }
+      localStorage.setItem('bide_starter_seed_pending', 'true');
       
       // Show notebook hint on mobile after 3 seconds (first-time users)
-      if (isMobile && !activeFile) {
+      if (isFirstVisit && isMobile && !activeFile) {
         setTimeout(() => {
           if (!localStorage.getItem('notebook_hint_shown')) {
             toast.info('💡 Try Notebook Mode for Jupyter-style cells!', {
@@ -369,6 +376,7 @@ Jack,30,Miami,86`,
         },
       ];
       
+      starterFilesRef.current = demoFiles;
       setFiles(demoFiles);
       setActiveFile('demo-py');
       
@@ -394,7 +402,17 @@ Jack,30,Miami,86`,
             language: f.language as FileItem['language']
           }));
           setFiles(typedFiles);
+          localStorage.removeItem('bide_starter_seed_pending');
           toast.success(`Loaded ${storedFiles.length} file(s) from storage`);
+        } else if (localStorage.getItem('bide_starter_seed_pending') === 'true') {
+          const starterFiles = starterFilesRef.current || [];
+          if (starterFiles.length > 0) {
+            for (const file of starterFiles) {
+              await saveFile(file);
+            }
+            localStorage.removeItem('bide_starter_seed_pending');
+            console.log(`[IDE] Persisted ${starterFiles.length} starter files`);
+          }
         }
       } catch (error) {
         console.error("Error loading files:", error);
@@ -537,7 +555,7 @@ Jack,30,Miami,86`,
       
       // If CSV, parse and store as dataset
       if (language === 'csv') {
-        parseCSV(content, file.name);
+        await parseCSV(content, file.name);
         addToConsole(`✓ Dataset loaded: ${file.name}`);
       }
       
@@ -561,7 +579,14 @@ Jack,30,Miami,86`,
     
     setFiles((prev) => [...prev, ...newFiles]);
     if (newFiles.length > 0) {
-      setActiveFile(newFiles[0].id);
+      const firstFile = newFiles[0];
+      setActiveFile(firstFile.id);
+      if (firstFile.language === 'csv') {
+        setShowDataset(firstFile.name);
+        setCsvViewMode('data');
+      } else {
+        setShowDataset(null);
+      }
       toast.success(`Uploaded ${newFiles.length} file(s)`);
     }
   };
@@ -571,7 +596,9 @@ Jack,30,Miami,86`,
       // Prefer Papa Parse for robustness
       const res = Papa.parse<Record<string, any>>(content, {
         header: true,
-        dynamicTyping: true,
+        // Preserve source values exactly. Converting identifiers such as 00123
+        // to numbers here destroys information before the user runs any code.
+        dynamicTyping: false,
         skipEmptyLines: true,
       });
       const headers = res.meta.fields || Object.keys(res.data[0] || {});
@@ -591,27 +618,11 @@ Jack,30,Miami,86`,
         }
       }
     } catch (e) {
-      // Fallback to naive parser
-      const lines = content.split('\n').filter(line => line.trim());
-      if (lines.length === 0) return;
-      const headers = lines[0].split(',').map(h => h.trim());
-      const data = lines.slice(1).map(line => 
-        line.split(',').map(cell => cell.trim())
-      );
-      setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
-      addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
-      
-      // Write CSV to Python runtime virtual filesystem
-      const runtime = RuntimeRegistry.get('python');
-      if (runtime && runtime.isInitialized) {
-        try {
-          // @ts-ignore - writeCSVToFS exists on PythonRuntime
-          await runtime.writeCSVToFS(fileName, content);
-          console.log(`[IDE] Wrote ${fileName} to Pyodide FS`);
-        } catch (err) {
-          console.warn(`[IDE] Could not write ${fileName} to Pyodide FS:`, err);
-        }
-      }
+      // Never fall back to splitting on commas: quoted commas/newlines are
+      // valid CSV and a naive parser can silently change the user's data.
+      console.error(`[IDE] Failed to parse ${fileName}:`, e);
+      addToConsole(`✗ Failed to parse ${fileName} safely`, true);
+      toast.error(`Could not parse ${fileName} safely`);
     }
   };
 
@@ -672,7 +683,8 @@ Jack,30,Miami,86`,
   };
 
   const handleCodeChange = async (value: string | undefined) => {
-    if (!value) return;
+    // Empty string is a valid editor state. Only ignore Monaco's undefined.
+    if (value === undefined) return;
     
     // If no file is active, update scratch pad
     if (!activeFile) {
@@ -847,11 +859,16 @@ Jack,30,Miami,86`,
           const dataset = datasets.get(csvFilename);
           
           if (dataset) {
-            // Convert dataset to CSV string
-            const csvContent = [
-              dataset.headers.join(','),
-              ...dataset.data.map(row => row.join(','))
-            ].join('\n');
+            // Prefer the exact uploaded bytes. Rebuilding CSV with row.join(',')
+            // destroys quoted commas/newlines. Generated in-memory datasets use
+            // Papa.unparse so CSV escaping remains standards-compliant.
+            const sourceFile = [...files]
+              .reverse()
+              .find(file => file.language === 'csv' && file.name === csvFilename);
+            const csvContent = sourceFile?.content ?? Papa.unparse([
+              dataset.headers,
+              ...dataset.data,
+            ]);
             
             try {
               // @ts-ignore - writeCSVToFS exists on PythonRuntime
@@ -875,14 +892,6 @@ Jack,30,Miami,86`,
       });
     }
     
-    // Mobile plot warning
-    if (deviceType === 'mobile' && language === 'python' && code.includes('plt.')) {
-      toast.info("Mobile Plotting", {
-        description: "Complex plots may have limited rendering on mobile devices",
-        duration: 5000,
-      });
-    }
-    
     try {
       const result = await runtime.execute(code, (output) => {
         addToConsole(output);
@@ -901,10 +910,9 @@ Jack,30,Miami,86`,
             setPlotCode(code);
           }
         } else if (deviceType === 'mobile' && result.output.includes("couldn't capture image")) {
-          // Mobile plot capture failed - show helpful message
-          toast.error("Plot Rendering Limited on Mobile", {
-            description: "The code executed successfully, but couldn't display the plot. Try: (1) Simpler chart types like bar/line, (2) View on desktop, or (3) Download the code",
-            duration: 8000,
+          toast.error("Plot rendering failed", {
+            description: "bIDE expects supported plots to render in-browser. Close the viewer and retry the run.",
+            duration: 6000,
           });
         }
       }
@@ -949,10 +957,17 @@ Jack,30,Miami,86`,
   }, [consoleOutput.length, isMobile]);
 
 
+  const scratchExtension = (language: 'python' | 'r' | 'javascript' | 'sql') => ({
+    python: 'py',
+    r: 'r',
+    javascript: 'js',
+    sql: 'sql',
+  }[language]);
+
   const handleDownload = () => {
     if (!activeFile) {
       // Download scratch content
-      const ext = scratchLanguage === 'python' ? 'py' : 'r';
+      const ext = scratchExtension(scratchLanguage);
       const blob = new Blob([scratchCode], { type: "text/plain;charset=utf-8" });
       saveAs(blob, `scratch.${ext}`);
       toast.success(`Downloaded scratch.${ext}`);
@@ -968,7 +983,7 @@ Jack,30,Miami,86`,
   };
 
   const handleSaveScratchAsFile = async () => {
-    const ext = scratchLanguage === 'python' ? 'py' : 'r';
+    const ext = scratchExtension(scratchLanguage);
     const fileName = prompt('Enter file name:', `untitled.${ext}`);
     if (!fileName) return;
     
@@ -1057,11 +1072,13 @@ Jack,30,Miami,86`,
     };
     
     // Parse and store as dataset
-    parseCSV(content, file.name);
+    await parseCSV(content, file.name);
     addToConsole(`✓ Dataset loaded: ${file.name}`);
     
     setFiles((prev) => [...prev, fileItem]);
     setActiveFile(fileItem.id);
+    setShowDataset(fileItem.name);
+    setCsvViewMode('data');
     
     if (dbReady) {
       try {
@@ -1102,13 +1119,17 @@ Jack,30,Miami,86`,
 
   const handleTranslatedCode = (code: string, language: 'python' | 'r' | 'javascript' | 'sql') => {
     if (activeFile) {
-      // If file is active, replace its content and update language
+      // If file is active, replace its content and update language, then persist
+      // the translated version just like a normal editor change.
       setFiles((prev) =>
-        prev.map((f) =>
-          f.id === activeFile
-            ? { ...f, content: code, language: language }
-            : f
-        )
+        prev.map((f) => {
+          if (f.id !== activeFile) return f;
+          const updated = { ...f, content: code, language: language };
+          if (dbReady) {
+            saveFile(updated).catch((error) => console.error('Failed to persist translation:', error));
+          }
+          return updated;
+        })
       );
     } else {
       // If in scratch pad, save current language code first, then switch
@@ -1125,10 +1146,15 @@ Jack,30,Miami,86`,
   const handleLoadTemplate = (template: any) => {
     // If no active file, load into scratch pad
     if (!activeFile) {
+      // Switch language and content atomically; handleLanguageChange would load
+      // the old target-language scratch buffer and overwrite the template.
+      setLanguageCode(prev => ({
+        ...prev,
+        [scratchLanguage]: scratchCode,
+        [template.language]: template.code,
+      }));
+      setScratchLanguage(template.language);
       setScratchCode(template.code);
-      if (template.language !== scratchLanguage) {
-        handleLanguageChange(template.language);
-      }
       toast.success(`Template "${template.title}" loaded!`);
       addToConsole(`✓ Loaded template: ${template.title}`);
     } else {
@@ -1303,7 +1329,7 @@ Jack,30,Miami,86`,
     try {
       const res = Papa.parse<Record<string, any>>(currentFile.content, {
         header: true,
-        dynamicTyping: true,
+        dynamicTyping: false,
         skipEmptyLines: true,
       });
       const rows = (res.data as any[]).filter(r => r && Object.keys(r).length > 0);
@@ -1444,7 +1470,7 @@ Jack,30,Miami,86`,
   const dataOpsComponent = (
     <DataOperations 
       onInsertCode={handleInsertCode}
-      datasetName={currentFile ? files.find(f => f.id === activeFile)?.name : undefined}
+      datasetName={currentFile?.language === 'csv' ? currentFile.name : showDataset || undefined}
       currentLanguage={
         currentFile?.language === 'r' || currentFile?.language === 'python' 
           ? currentFile.language 
@@ -1599,10 +1625,6 @@ Jack,30,Miami,86`,
             setPlotCode(null);
           }} 
         />
-      )}
-
-      {showWelcome && (
-        <WelcomeOverlay onDismiss={() => setShowWelcome(false)} />
       )}
 
       <TranslateDialog
