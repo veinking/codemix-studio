@@ -11,9 +11,9 @@ const MobileCoding = () => {
 
   useEffect(() => {
     updatePageSEO({
-      title: 'Code Python on iPhone & Android | Mobile Python IDE',
-      description: 'Full-featured Python and R IDE for mobile. Code on iPhone, iPad, or Android. Works offline, syncs across devices. Free mobile coding app - no installation required.',
-      keywords: 'python on iphone, code on android, mobile python ide, iphone coding app, android code editor, mobile programming, pythonista alternative',
+      title: 'Code Python, R, JavaScript & SQL on Mobile | bIDE',
+      description: 'Use bIDE on iPhone, iPad, or Android for focused browser coding with Python, R, JavaScript and SQL. Save local files, create explicit cloud snapshots when signed in, and restore those snapshots on another device.',
+      keywords: 'python on iphone, code on android, mobile python ide, iphone coding app, android code editor, mobile programming, browser ide',
       canonical: 'https://bideide.com/use-cases/mobile-coding'
     });
   }, []);
@@ -34,9 +34,9 @@ const MobileCoding = () => {
 
         <div className="space-y-8">
           <div>
-            <h1 className="text-4xl font-bold mb-4">Code Python & R on Your Phone</h1>
+            <h1 className="text-4xl font-bold mb-4">Code on Your Phone or Tablet</h1>
             <p className="text-xl text-muted-foreground">
-              Full IDE for iPhone, iPad, and Android. Code anywhere, anytime.
+              Use the same focused bIDE workspace on iPhone, iPad, Android, and desktop browsers.
             </p>
           </div>
 
@@ -44,10 +44,10 @@ const MobileCoding = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Smartphone className="h-6 w-6" />
-                Mobile-First Coding Experience
+                Mobile Coding Experience
               </CardTitle>
               <CardDescription>
-                Designed to work perfectly on mobile devices. Not just a desktop app squeezed onto a small screen.
+                The workspace condenses files, editor tools, and output for smaller screens instead of pretending a phone is a desktop monitor.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -55,9 +55,9 @@ const MobileCoding = () => {
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">Touch-Optimized Interface</h3>
+                    <h3 className="font-semibold mb-1">Touch-Friendly Workspace</h3>
                     <p className="text-sm text-muted-foreground">
-                      Large buttons, swipe gestures, and mobile-friendly code editor. Designed for your thumbs.
+                      Mobile layouts keep the editor central and move secondary tools into focused drawers and sheets.
                     </p>
                   </div>
                 </div>
@@ -65,9 +65,9 @@ const MobileCoding = () => {
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">Works on iPhone & iPad</h3>
+                    <h3 className="font-semibold mb-1">iPhone & iPad</h3>
                     <p className="text-sm text-muted-foreground">
-                      Install as a PWA on iOS. Works in Safari, Chrome, or any mobile browser.
+                      Use bIDE in Safari or another modern browser, and add the PWA to your home screen for app-like launching.
                     </p>
                   </div>
                 </div>
@@ -77,7 +77,7 @@ const MobileCoding = () => {
                   <div>
                     <h3 className="font-semibold mb-1">Android Support</h3>
                     <p className="text-sm text-muted-foreground">
-                      Perfect companion for Android tablets and phones. Add to home screen for app-like experience.
+                      Use the browser workspace on Android phones and tablets and add it to the home screen when supported.
                     </p>
                   </div>
                 </div>
@@ -85,9 +85,9 @@ const MobileCoding = () => {
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">Offline Capable</h3>
+                    <h3 className="font-semibold mb-1">Browser-Local Execution</h3>
                     <p className="text-sm text-muted-foreground">
-                      Code on planes, trains, or anywhere without WiFi. Everything runs locally in your browser.
+                      Supported runtimes execute in the browser. Initial runtime loading, package installation, account services, and uncached assets can still require an internet connection.
                     </p>
                   </div>
                 </div>
@@ -95,9 +95,9 @@ const MobileCoding = () => {
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">Auto-Sync Across Devices</h3>
+                    <h3 className="font-semibold mb-1">Explicit Cloud Snapshots</h3>
                     <p className="text-sm text-muted-foreground">
-                      Start on your phone, finish on your laptop. Your code syncs automatically.
+                      Signed-in users can save a workspace snapshot, then intentionally restore that snapshot on another device. bIDE does not silently live-sync edits between devices.
                     </p>
                   </div>
                 </div>
@@ -109,17 +109,17 @@ const MobileCoding = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Zap className="h-6 w-6" />
-                Perfect Mobile Use Cases
+                Useful Mobile Workflows
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-muted-foreground">
-                <li>• Code between classes on campus</li>
-                <li>• Practice coding during your commute</li>
-                <li>• Quick fixes and debugging on the go</li>
+                <li>• Practice or review code between classes</li>
+                <li>• Run a quick Python, R, JavaScript, or SQL experiment</li>
+                <li>• Inspect a CSV or query a local dataset on the go</li>
                 <li>• Review and test code snippets</li>
-                <li>• Learn Python/R with mobile tutorials</li>
-                <li>• Share code instantly with classmates</li>
+                <li>• Share an unlisted code link with a classmate or teammate</li>
+                <li>• Restore a cloud workspace snapshot on another device</li>
               </ul>
             </CardContent>
           </Card>
@@ -135,19 +135,19 @@ const MobileCoding = () => {
               <div>
                 <h3 className="font-semibold mb-1">1. Open in Browser</h3>
                 <p className="text-sm text-muted-foreground">
-                  Visit bideide.com on Safari (iOS) or Chrome (Android)
+                  Visit bideide.com in a modern mobile browser.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold mb-1">2. Add to Home Screen</h3>
+                <h3 className="font-semibold mb-1">2. Add to Home Screen (Optional)</h3>
                 <p className="text-sm text-muted-foreground">
-                  Tap Share → Add to Home Screen for app-like experience
+                  Use your browser's Add to Home Screen action if you want an app-like launch icon.
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold mb-1">3. Start Coding</h3>
+                <h3 className="font-semibold mb-1">3. Code Locally, Snapshot Deliberately</h3>
                 <p className="text-sm text-muted-foreground">
-                  Launch from home screen and code like a native app
+                  Local files stay in that browser. Sign in only when you want identity-connected features such as cloud workspace snapshots.
                 </p>
               </div>
             </CardContent>
@@ -155,14 +155,14 @@ const MobileCoding = () => {
 
           <Card className="bg-accent/5 border-accent/20">
             <CardHeader>
-              <CardTitle>Try Mobile Coding Now</CardTitle>
+              <CardTitle>Try bIDE on Mobile</CardTitle>
               <CardDescription>
-                Works on iPhone, iPad, and Android. No app store required.
+                No native app install is required to use the browser workspace.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={() => navigate("/ide")} 
+              <Button
+                onClick={() => navigate("/ide")}
                 size="lg"
                 className="w-full sm:w-auto"
               >
