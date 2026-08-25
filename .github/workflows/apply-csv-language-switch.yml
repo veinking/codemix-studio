@@ -1,0 +1,93 @@
+name: Apply CSV Write-Code Language Switch
+
+on:
+  push:
+    branches: [agent/bide-csv-language-switch]
+    paths:
+      - .github/workflows/apply-csv-language-switch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/bide-csv-language-switch
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply focused CSV language-switch fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          toolbar = Path('src/components/Toolbar.tsx')
+          text = toolbar.read_text()
+          old = '  isMobile?: boolean;\n}'
+          new = '  isMobile?: boolean;\n  showScratchLanguageSelector?: boolean;\n}'
+          assert old in text
+          text = text.replace(old, new, 1)
+
+          old = '  isMobile = false,\n}: ToolbarProps) => {'
+          new = '  isMobile = false,\n  showScratchLanguageSelector = false,\n}: ToolbarProps) => {'
+          assert old in text
+          text = text.replace(old, new, 1)
+
+          old = '  const openPocketBIAccount = () => window.open("https://pocketbi.app/account", "_blank", "noopener,noreferrer");\n'
+          new = old + '\n  const shouldShowLanguageSelector = !currentFile || showScratchLanguageSelector;\n'
+          assert old in text
+          text = text.replace(old, new, 1)
+
+          mobile_old = '''        <div className="min-w-0 flex-1">\n          {!currentFile && (\n            <LanguageSelector'''
+          mobile_new = '''        <div className="min-w-0 flex-1">\n          {shouldShowLanguageSelector && (\n            <LanguageSelector'''
+          assert mobile_old in text
+          text = text.replace(mobile_old, mobile_new, 1)
+
+          desktop_old = '''      <div className="flex min-w-0 items-center gap-2">\n        {!currentFile && (\n          <LanguageSelector'''
+          desktop_new = '''      <div className="flex min-w-0 items-center gap-2">\n        {shouldShowLanguageSelector && (\n          <LanguageSelector'''
+          assert desktop_old in text
+          text = text.replace(desktop_old, desktop_new, 1)
+          toolbar.write_text(text)
+
+          ide = Path('src/pages/IDE.tsx')
+          text = ide.read_text()
+          old = '''      isMobile={isMobile}\n    />'''
+          new = '''      isMobile={isMobile}\n      showScratchLanguageSelector={currentFile?.language === 'csv' && csvViewMode === 'code'}\n    />'''
+          assert old in text
+          text = text.replace(old, new, 1)
+          ide.write_text(text)
+
+          guard = Path('scripts/check-sql-analyst-workflow.mjs')
+          text = guard.read_text()
+          old = "const docs = read('src/pages/docs/SQLDocs.tsx');\n"
+          new = old + "const toolbar = read('src/components/Toolbar.tsx');\n"
+          assert old in text
+          text = text.replace(old, new, 1)
+
+          anchor = "assert.match(ide, /if \\(validLang\\)/, 'Language-only documentation deep links must be honored');\n"
+          addition = anchor + "assert.match(ide, /showScratchLanguageSelector=\\{currentFile\\?\\.language === 'csv' && csvViewMode === 'code'\\}/, 'CSV Write Code mode must request the scratch language selector');\nassert.match(toolbar, /const shouldShowLanguageSelector = !currentFile \\|\\| showScratchLanguageSelector;/, 'Toolbar must show language switching for CSV Write Code mode');\n"
+          assert anchor in text
+          text = text.replace(anchor, addition, 1)
+          guard.write_text(text)
+          PY
+      - name: Install dependencies
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit -p tsconfig.app.json
+      - name: SQL workflow regression guard
+        run: npm run test:sql-analyst
+      - name: Production build
+        run: npm run build
+      - name: Commit fix and remove helper
+        run: |
+          rm .github/workflows/apply-csv-language-switch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/components/Toolbar.tsx src/pages/IDE.tsx scripts/check-sql-analyst-workflow.mjs .github/workflows/apply-csv-language-switch.yml
+          git commit -m "Keep language switch visible for CSV code mode"
+          git push origin HEAD:agent/bide-csv-language-switch
