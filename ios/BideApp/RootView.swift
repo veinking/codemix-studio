@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var session: AppSession
+    @EnvironmentObject private var workspace: WorkspaceStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
@@ -63,7 +64,11 @@ struct RootView: View {
         case .projects:
             ProjectsView()
         case .datasets:
+            // Dataset detail/navigation state belongs to the active project. Rebuild
+            // this root when the project changes so a detail from Project A cannot
+            // remain actionable after switching to Project B.
             DatasetsView()
+                .id(workspace.activeProjectID)
         case .account:
             AccountView()
         }
