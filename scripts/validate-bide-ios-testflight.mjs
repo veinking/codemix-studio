@@ -27,6 +27,12 @@ for (const token of [
   "ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon",
   "ITSAppUsesNonExemptEncryption: false",
   "TARGETED_DEVICE_FAMILY: \"1,2\"",
+  "UISupportedInterfaceOrientations:",
+  "UISupportedInterfaceOrientations~ipad:",
+  "UIInterfaceOrientationPortrait",
+  "UIInterfaceOrientationPortraitUpsideDown",
+  "UIInterfaceOrientationLandscapeLeft",
+  "UIInterfaceOrientationLandscapeRight",
 ]) {
   assert.ok(project.includes(token), `TestFlight project configuration missing: ${token}`);
 }
