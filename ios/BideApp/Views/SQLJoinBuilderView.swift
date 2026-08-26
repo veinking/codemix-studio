@@ -131,6 +131,7 @@ struct SQLJoinBuilderView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .disabled(dataWorkspace.isRunningSQL)
                 }
             }
             .alert("Join Error", isPresented: Binding(
@@ -143,6 +144,7 @@ struct SQLJoinBuilderView: View {
             }
             .onAppear(perform: configureDefaults)
         }
+        .interactiveDismissDisabled(dataWorkspace.isRunningSQL)
         .sheet(item: $presentedJoinReport, onDismiss: {
             // Close the builder only after the result sheet has completed its own
             // dismissal. This avoids racing two sibling sheet transitions on iOS.
