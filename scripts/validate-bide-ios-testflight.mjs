@@ -12,7 +12,11 @@ const iconPath = "ios/BideApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.pn
 const iconGeneratorPath = "scripts/generate-bide-appicon.mjs";
 const uploadWorkflowPath = ".github/workflows/bide-ios-testflight.yml";
 const joinBuilderPath = "ios/BideApp/Views/SQLJoinBuilderView.swift";
+const resultsViewPath = "ios/BideApp/Views/SQLResultsView.swift";
 const datasetsViewPath = "ios/BideApp/Views/DatasetsView.swift";
+const workspaceViewPath = "ios/BideApp/Views/WorkspaceView.swift";
+const projectsViewPath = "ios/BideApp/Views/ProjectsView.swift";
+const rootViewPath = "ios/BideApp/RootView.swift";
 
 assert.ok(exists(iconGeneratorPath), `TestFlight release file missing: ${iconGeneratorPath}`);
 execFileSync(process.execPath, [iconGeneratorPath], { stdio: "inherit" });
@@ -24,7 +28,11 @@ for (const path of [
   iconPath,
   uploadWorkflowPath,
   joinBuilderPath,
+  resultsViewPath,
   datasetsViewPath,
+  workspaceViewPath,
+  projectsViewPath,
+  rootViewPath,
 ]) {
   assert.ok(exists(path), `TestFlight release file missing: ${path}`);
 }
@@ -79,15 +87,13 @@ assert.ok(
   `App Store icon must not contain an alpha channel; PNG color type is ${colorType}.`
 );
 
-// RGB/palette PNGs can still define transparency through a tRNS chunk even without an
-// explicit alpha channel. Walk the chunk table and reject that form as well.
 let offset = 8;
 let hasTransparencyChunk = false;
 while (offset + 12 <= png.length) {
   const chunkLength = png.readUInt32BE(offset);
   const typeStart = offset + 4;
   const typeEnd = typeStart + 4;
-  const chunkEnd = typeEnd + chunkLength + 4; // payload + CRC
+  const chunkEnd = typeEnd + chunkLength + 4;
   assert.ok(chunkEnd <= png.length, "AppIcon PNG contains a truncated chunk.");
   const chunkType = png.toString("ascii", typeStart, typeEnd);
   if (chunkType === "tRNS") hasTransparencyChunk = true;
@@ -104,8 +110,10 @@ for (const token of [
   "presentedJoinReport",
   ".sheet(item: $presentedJoinReport",
   "presentedJoinReport = report",
+  ".interactiveDismissDisabled(dataWorkspace.isRunningSQL)",
+  ".disabled(dataWorkspace.isRunningSQL)",
 ]) {
-  assert.ok(joinBuilder.includes(token), `Join-result presentation guard missing: ${token}`);
+  assert.ok(joinBuilder.includes(token), `Join-result lifecycle guard missing: ${token}`);
 }
 const runJoinStart = joinBuilder.indexOf("private func runJoin");
 const createQueryStart = joinBuilder.indexOf("private func createQuery");
@@ -113,6 +121,18 @@ assert.ok(runJoinStart >= 0 && createQueryStart > runJoinStart, "Could not isola
 const runJoinBody = joinBuilder.slice(runJoinStart, createQueryStart);
 assert.ok(!runJoinBody.includes("dismiss()"), "runJoin must not dismiss the Join Builder before results are presented.");
 assert.ok(runJoinBody.includes("onJoinCompleted(report)"), "runJoin must persist the completed report before presentation.");
+
+// Full-result share/save may stream and verify more than the screen preview. The
+// results UI must not be dismissible mid-operation and orphan that lifecycle.
+const resultsView = read(resultsViewPath);
+for (const token of [
+  ".interactiveDismissDisabled(isWorking)",
+  "Button(\"Done\") { dismiss() }",
+  ".disabled(isWorking)",
+  "Preparing complete query result",
+]) {
+  assert.ok(resultsView.includes(token), `SQL result work-lifecycle guard missing: ${token}`);
+}
 
 const datasetsView = read(datasetsViewPath);
 for (const token of [
@@ -124,6 +144,36 @@ for (const token of [
 ]) {
   assert.ok(datasetsView.includes(token), `Last Join Result recovery guard missing: ${token}`);
 }
+
+// A project switch while a detached data/SQL task is active is recoverable in the
+// store, but it is confusing and can strand stale presentation state. Block the
+// normal user-facing switch paths while database work is active.
+const workspaceView = read(workspaceViewPath);
+for (const token of [
+  "activeProjectHasDatabaseWork",
+  "hasActiveDataOperation",
+  "hasActiveSQLOperation",
+  ".disabled(activeProjectHasDatabaseWork)",
+  "activeLanguage == .sql && dataWorkspace.isImporting",
+]) {
+  assert.ok(workspaceView.includes(token), `Workspace project-operation guard missing: ${token}`);
+}
+
+const projectsView = read(projectsViewPath);
+for (const token of [
+  "activeProjectHasDatabaseWork",
+  "Finish the active project's SQL or dataset operation before switching projects.",
+  ".disabled(activeProjectHasDatabaseWork)",
+  "projectHasDatabaseWork",
+]) {
+  assert.ok(projectsView.includes(token), `Projects database-work guard missing: ${token}`);
+}
+
+// Dataset navigation/detail state is project-scoped. Recreate the Datasets root on
+// project change so a Project A detail cannot remain actionable inside Project B.
+const rootView = read(rootViewPath);
+assert.ok(rootView.includes("@EnvironmentObject private var workspace: WorkspaceStore"), "RootView must observe active project identity.");
+assert.ok(rootView.includes("DatasetsView()\n                .id(workspace.activeProjectID)"), "Datasets navigation must reset when the active project changes.");
 
 const workflow = read(uploadWorkflowPath);
 assert.ok(workflow.includes("workflow_dispatch:"), "TestFlight workflow must remain manual-only.");
