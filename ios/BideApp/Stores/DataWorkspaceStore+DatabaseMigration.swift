@@ -2,7 +2,7 @@ import Foundation
 
 @MainActor
 extension DataWorkspaceStore {
-    private static let derivedDatabaseGeneration = "2"
+    private static let derivedDatabaseGeneration = "3"
 
     func isDerivedDatabaseReadyForSQL(projectID: UUID) -> Bool {
         guard activeProjectID == projectID else { return false }
