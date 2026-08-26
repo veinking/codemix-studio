@@ -22,14 +22,18 @@ struct ProjectsView: View {
         return types
     }
 
+    private var activeProjectHasDatabaseWork: Bool {
+        guard let projectID = workspace.activeProjectID else { return false }
+        return projectHasDatabaseWork(projectID)
+    }
+
     var body: some View {
         List {
             Section {
                 ForEach(workspace.projects) { project in
                     HStack(spacing: 10) {
                         Button {
-                            workspace.openProject(project.id)
-                            session.selectedSection = .workspace
+                            openProject(project)
                         } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: project.id == workspace.activeProjectID ? "folder.fill" : "folder")
@@ -56,12 +60,14 @@ struct ProjectsView: View {
                             .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .disabled(activeProjectHasDatabaseWork && project.id != workspace.activeProjectID)
 
                         Menu {
                             Button("Open", systemImage: "folder") {
-                                workspace.openProject(project.id)
-                                session.selectedSection = .workspace
+                                openProject(project)
                             }
+                            .disabled(activeProjectHasDatabaseWork && project.id != workspace.activeProjectID)
+
                             Button("Rename", systemImage: "pencil") {
                                 renameValue = project.name
                                 renameTarget = project
@@ -113,6 +119,7 @@ struct ProjectsView: View {
                     Image(systemName: "square.and.arrow.down")
                 }
                 .accessibilityLabel("Import project or code files")
+                .disabled(activeProjectHasDatabaseWork)
 
                 Button {
                     newProjectName = "New Project"
@@ -121,6 +128,7 @@ struct ProjectsView: View {
                     Image(systemName: "plus")
                 }
                 .accessibilityLabel("New project")
+                .disabled(activeProjectHasDatabaseWork)
             }
         }
         .fileImporter(
@@ -128,6 +136,10 @@ struct ProjectsView: View {
             allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
+            guard !activeProjectHasDatabaseWork else {
+                projectOperationError = "Finish the active project's SQL or dataset operation before importing another project."
+                return
+            }
             guard case .success(let urls) = result, let sourceURL = urls.first else { return }
             if let importedID = workspace.importProject(from: sourceURL) {
                 workspace.openProject(importedID)
@@ -139,6 +151,10 @@ struct ProjectsView: View {
             allowedContentTypes: importableCodeTypes,
             allowsMultipleSelection: true
         ) { result in
+            guard !activeProjectHasDatabaseWork else {
+                projectOperationError = "Finish the active project's SQL or dataset operation before importing code into another project."
+                return
+            }
             guard case .success(let urls) = result else { return }
             if let importedID = workspace.importCodeFilesAsProject(urls) {
                 workspace.openProject(importedID)
@@ -158,6 +174,11 @@ struct ProjectsView: View {
                     }
                     ToolbarItem(placement: .confirmationAction) {
                         Button("Create") {
+                            guard !activeProjectHasDatabaseWork else {
+                                createPresented = false
+                                projectOperationError = "Finish the active project's SQL or dataset operation before creating and switching to another project."
+                                return
+                            }
                             workspace.createProject(named: newProjectName)
                             createPresented = false
                             session.selectedSection = .workspace
@@ -211,13 +232,22 @@ struct ProjectsView: View {
         )) {
             Button("OK", role: .cancel) { projectOperationError = nil }
         } message: {
-            Text(projectOperationError ?? "Finish the project's current database work before deleting it.")
+            Text(projectOperationError ?? "Finish the project's current database work before changing projects.")
         }
     }
 
     private func projectHasDatabaseWork(_ projectID: UUID) -> Bool {
         dataWorkspace.hasActiveDataOperation(projectID: projectID) ||
             dataWorkspace.hasActiveSQLOperation(projectID: projectID)
+    }
+
+    private func openProject(_ project: BideProjectManifest) {
+        if project.id != workspace.activeProjectID, activeProjectHasDatabaseWork {
+            projectOperationError = "Finish the active project's SQL or dataset operation before switching projects."
+            return
+        }
+        workspace.openProject(project.id)
+        session.selectedSection = .workspace
     }
 
     private func requestProjectDeletion(_ project: BideProjectManifest) {
