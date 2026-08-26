@@ -151,6 +151,7 @@ assert.ok(
 const migration = read("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift");
 for (const migrationCapability of [
   "derivedDatabaseGeneration",
+  'derivedDatabaseGeneration = "3"',
   ".bide-sqlite-generation",
   "isDerivedDatabaseReadyForSQL",
   "prepareDerivedDatabaseForSQLIfNeeded",
@@ -260,7 +261,8 @@ for (const joinCapability of [
   "hasSuffix(\"_id\")",
   "SELECT l.*, r.*",
   "onEditableQueryCreated",
-  "previousFileID",
+  "workspace.saveState",
+  "could not activate the editable SQL file",
   "The Join Builder will stay open so nothing is lost",
 ]) {
   assert.ok(joinBuilder.includes(joinCapability), `Guided join capability missing: ${joinCapability}`);
@@ -286,9 +288,10 @@ for (const regression of [
   "XCTAssertEqual(roundTrip.rows.count, 27)",
   "12 fields",
   "header declares 7",
+  'try "2".write',
   "XCTAssertEqual(repaired.rowCount, 27)",
   "XCTAssertEqual(repaired.columns.count, 7)",
-  "XCTAssertEqual(generation, \"2\")",
+  "XCTAssertEqual(generation, \"3\")",
 ]) {
   assert.ok(joinTests.includes(regression), `Phone join regression coverage missing: ${regression}`);
 }
