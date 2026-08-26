@@ -7,12 +7,14 @@ struct SQLJoinBuilderView: View {
 
     let tables: [DatasetTableDescriptor]
     let onEditableQueryCreated: () -> Void
+    let onJoinCompleted: (SQLRunReport) -> Void
 
     @State private var leftTableID: UUID?
     @State private var rightTableID: UUID?
     @State private var leftColumn = ""
     @State private var rightColumn = ""
     @State private var joinType: JoinType = .inner
+    @State private var presentedJoinReport: SQLRunReport?
 
     var body: some View {
         NavigationStack {
@@ -141,6 +143,14 @@ struct SQLJoinBuilderView: View {
             }
             .onAppear(perform: configureDefaults)
         }
+        .sheet(item: $presentedJoinReport, onDismiss: {
+            // Close the builder only after the result sheet has completed its own
+            // dismissal. This avoids racing two sibling sheet transitions on iOS.
+            dismiss()
+        }) { report in
+            SQLResultsView(report: report, title: "Join Results")
+                .presentationDetents([.medium, .large])
+        }
     }
 
     private var leftTable: DatasetTableDescriptor? {
@@ -221,9 +231,14 @@ struct SQLJoinBuilderView: View {
 
         Task {
             await dataWorkspace.executeSQL(sql, projectID: projectID)
-            if dataWorkspace.lastSQLRun != nil {
-                dismiss()
-            }
+            guard let report = dataWorkspace.lastSQLRun else { return }
+
+            // Capture the report in both the builder and parent before presentation.
+            // Keep the builder alive while results are visible so SwiftUI performs
+            // only one sheet transition at a time.
+            dataWorkspace.lastSQLRun = nil
+            onJoinCompleted(report)
+            presentedJoinReport = report
         }
     }
 
