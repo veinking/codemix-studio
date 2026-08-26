@@ -229,7 +229,7 @@ final class JoinPipelineTests: XCTestCase {
             options: .atomic
         )
         try Data().write(to: dataDirectory.appendingPathComponent(".bide.sqlite"), options: .atomic)
-        try "1".write(
+        try "2".write(
             to: dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
             atomically: true,
             encoding: .utf8
@@ -258,6 +258,6 @@ final class JoinPipelineTests: XCTestCase {
             contentsOf: dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
             encoding: .utf8
         ).trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "2")
+        XCTAssertEqual(generation, "3")
     }
 }
