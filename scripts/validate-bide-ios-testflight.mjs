@@ -17,6 +17,7 @@ const datasetsViewPath = "ios/BideApp/Views/DatasetsView.swift";
 const workspaceViewPath = "ios/BideApp/Views/WorkspaceView.swift";
 const projectsViewPath = "ios/BideApp/Views/ProjectsView.swift";
 const rootViewPath = "ios/BideApp/RootView.swift";
+const migrationPath = "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift";
 
 assert.ok(exists(iconGeneratorPath), `TestFlight release file missing: ${iconGeneratorPath}`);
 execFileSync(process.execPath, [iconGeneratorPath], { stdio: "inherit" });
@@ -33,6 +34,7 @@ for (const path of [
   workspaceViewPath,
   projectsViewPath,
   rootViewPath,
+  migrationPath,
 ]) {
   assert.ok(exists(path), `TestFlight release file missing: ${path}`);
 }
@@ -112,6 +114,8 @@ for (const token of [
   "presentedJoinReport = report",
   ".interactiveDismissDisabled(dataWorkspace.isRunningSQL)",
   ".disabled(dataWorkspace.isRunningSQL)",
+  "workspace.saveState",
+  "could not activate the editable SQL file",
 ]) {
   assert.ok(joinBuilder.includes(token), `Join-result lifecycle guard missing: ${token}`);
 }
@@ -121,6 +125,14 @@ assert.ok(runJoinStart >= 0 && createQueryStart > runJoinStart, "Could not isola
 const runJoinBody = joinBuilder.slice(runJoinStart, createQueryStart);
 assert.ok(!runJoinBody.includes("dismiss()"), "runJoin must not dismiss the Join Builder before results are presented.");
 assert.ok(runJoinBody.includes("onJoinCompleted(report)"), "runJoin must persist the completed report before presentation.");
+
+// Build 9 must distrust generation-2 derived SQLite state. Earlier hardware work
+// exposed that a poisoned local database can otherwise survive an app upgrade even
+// though the source parser/exporter have already been hardened.
+const migration = read(migrationPath);
+assert.ok(migration.includes('derivedDatabaseGeneration = "3"'), "TestFlight build must force a generation-3 source rebuild of derived SQLite state.");
+assert.ok(migration.includes("refreshDatasetRegistryFromSourceAssets"), "Generation migration must reconstruct metadata from project source files.");
+assert.ok(migration.includes("rebuildDatabaseWithinDataOperation(projectID: projectID)"), "Generation migration must rebuild SQLite from the refreshed source registry.");
 
 // Full-result share/save may stream and verify more than the screen preview. The
 // results UI must not be dismissible mid-operation and orphan that lifecycle.
