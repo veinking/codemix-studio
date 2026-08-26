@@ -11,11 +11,21 @@ const iconContentsPath = "ios/BideApp/Assets.xcassets/AppIcon.appiconset/Content
 const iconPath = "ios/BideApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png";
 const iconGeneratorPath = "scripts/generate-bide-appicon.mjs";
 const uploadWorkflowPath = ".github/workflows/bide-ios-testflight.yml";
+const joinBuilderPath = "ios/BideApp/Views/SQLJoinBuilderView.swift";
+const datasetsViewPath = "ios/BideApp/Views/DatasetsView.swift";
 
 assert.ok(exists(iconGeneratorPath), `TestFlight release file missing: ${iconGeneratorPath}`);
 execFileSync(process.execPath, [iconGeneratorPath], { stdio: "inherit" });
 
-for (const path of [projectPath, privacyPath, iconContentsPath, iconPath, uploadWorkflowPath]) {
+for (const path of [
+  projectPath,
+  privacyPath,
+  iconContentsPath,
+  iconPath,
+  uploadWorkflowPath,
+  joinBuilderPath,
+  datasetsViewPath,
+]) {
   assert.ok(exists(path), `TestFlight release file missing: ${path}`);
 }
 
@@ -85,6 +95,35 @@ while (offset + 12 <= png.length) {
   if (chunkType === "IEND") break;
 }
 assert.ok(!hasTransparencyChunk, "App Store icon must not contain PNG tRNS transparency.");
+
+// Hardware regression guard: do not dismiss the Join Builder and then immediately
+// present a sibling result sheet. That raced on iPhone and left Last Join Result inert.
+const joinBuilder = read(joinBuilderPath);
+for (const token of [
+  "onJoinCompleted",
+  "presentedJoinReport",
+  ".sheet(item: $presentedJoinReport",
+  "presentedJoinReport = report",
+]) {
+  assert.ok(joinBuilder.includes(token), `Join-result presentation guard missing: ${token}`);
+}
+const runJoinStart = joinBuilder.indexOf("private func runJoin");
+const createQueryStart = joinBuilder.indexOf("private func createQuery");
+assert.ok(runJoinStart >= 0 && createQueryStart > runJoinStart, "Could not isolate runJoin for presentation validation.");
+const runJoinBody = joinBuilder.slice(runJoinStart, createQueryStart);
+assert.ok(!runJoinBody.includes("dismiss()"), "runJoin must not dismiss the Join Builder before results are presented.");
+assert.ok(runJoinBody.includes("onJoinCompleted(report)"), "runJoin must persist the completed report before presentation.");
+
+const datasetsView = read(datasetsViewPath);
+for (const token of [
+  "onJoinCompleted: { report in",
+  "lastCompletedJoinReport = report",
+  "openJoinReport(report)",
+  "joinResultReport = nil",
+  "joinResultReport = report",
+]) {
+  assert.ok(datasetsView.includes(token), `Last Join Result recovery guard missing: ${token}`);
+}
 
 const workflow = read(uploadWorkflowPath);
 assert.ok(workflow.includes("workflow_dispatch:"), "TestFlight workflow must remain manual-only.");
