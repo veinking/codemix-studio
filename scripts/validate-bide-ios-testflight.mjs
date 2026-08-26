@@ -23,7 +23,7 @@ const project = read(projectPath);
 for (const token of [
   "PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios",
   "MARKETING_VERSION: 0.2.6",
-  "CURRENT_PROJECT_VERSION: 8",
+  "CURRENT_PROJECT_VERSION: 9",
   "ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon",
   "ITSAppUsesNonExemptEncryption: false",
   "TARGETED_DEVICE_FAMILY: \"1,2\"",
