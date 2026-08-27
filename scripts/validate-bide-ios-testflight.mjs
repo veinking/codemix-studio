@@ -43,7 +43,7 @@ const project = read(projectPath);
 for (const token of [
   "PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios",
   "MARKETING_VERSION: 0.2.6",
-  "CURRENT_PROJECT_VERSION: 9",
+  "CURRENT_PROJECT_VERSION: 10",
   "ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon",
   "ITSAppUsesNonExemptEncryption: false",
   "TARGETED_DEVICE_FAMILY: \"1,2\"",
@@ -126,7 +126,7 @@ const runJoinBody = joinBuilder.slice(runJoinStart, createQueryStart);
 assert.ok(!runJoinBody.includes("dismiss()"), "runJoin must not dismiss the Join Builder before results are presented.");
 assert.ok(runJoinBody.includes("onJoinCompleted(report)"), "runJoin must persist the completed report before presentation.");
 
-// Build 9 must distrust generation-2 derived SQLite state. Earlier hardware work
+// Build 10 must distrust generation-2 derived SQLite state. Earlier hardware work
 // exposed that a poisoned local database can otherwise survive an app upgrade even
 // though the source parser/exporter have already been hardened.
 const migration = read(migrationPath);
