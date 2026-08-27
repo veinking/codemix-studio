@@ -59,7 +59,7 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
         )
         try writeRegistry([asset], to: urls.registryURL)
         try SQLiteProjectEngine.importTable(databaseURL: urls.databaseURL, sqliteName: "orders", table: parsed)
-        try "2".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+        try "3".write(to: urls.markerURL, atomically: true, encoding: .utf8)
 
         let stagedURL = urls.dataDirectory.appendingPathComponent(
             ".bide-delete-\(asset.id.uuidString)-\(UUID().uuidString)"
@@ -100,7 +100,7 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
         )
         try "id,value\n1,deleted\n".write(to: stagedURL, atomically: true, encoding: .utf8)
         try writeRegistry([], to: urls.registryURL)
-        try "2".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+        try "3".write(to: urls.markerURL, atomically: true, encoding: .utf8)
 
         _ = try SQLiteProjectEngine.execute(
             databaseURL: urls.databaseURL,
@@ -123,7 +123,7 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
 
         let generation = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "2")
+        XCTAssertEqual(generation, "3")
     }
 
     @MainActor
@@ -161,7 +161,7 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
         let malformedURL = urls.dataDirectory.appendingPathComponent(".bide-delete-not-a-valid-transaction")
         try "do not touch".write(to: malformedURL, atomically: true, encoding: .utf8)
         try writeRegistry([], to: urls.registryURL)
-        try "2".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+        try "3".write(to: urls.markerURL, atomically: true, encoding: .utf8)
         _ = try SQLiteProjectEngine.execute(
             databaseURL: urls.databaseURL,
             sql: "CREATE TABLE stale_table (value TEXT);"
@@ -196,7 +196,7 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
         try "first".write(to: first, atomically: true, encoding: .utf8)
         try "second".write(to: second, atomically: true, encoding: .utf8)
         try writeRegistry([], to: urls.registryURL)
-        try "2".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+        try "3".write(to: urls.markerURL, atomically: true, encoding: .utf8)
 
         let store = DataWorkspaceStore()
         store.openProject(projectID)
@@ -234,7 +234,7 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
             ]
         )
         try writeRegistry([asset], to: urls.registryURL)
-        try "2".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+        try "3".write(to: urls.markerURL, atomically: true, encoding: .utf8)
 
         let stagedURL = urls.dataDirectory.appendingPathComponent(
             ".bide-delete-\(asset.id.uuidString)-\(UUID().uuidString)"
