@@ -2,9 +2,16 @@ import { useEffect, useState } from "react";
 import Papa from "papaparse";
 import { useNavigate } from "react-router-dom";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
+import {
+  appendBIDELineage,
+  normalizePocketBIHandoffV1,
+  type PocketBIHandoffManifest,
+  validatePocketBIHandoffV1,
+} from "@/lib/pocketBIHandoffV1";
 
 const CONTEXT_KEY = "bide.pocketbi.dataset.v1";
 const MAX_BYTES = 20 * 1024 * 1024;
+const MAX_COLUMNS = 2_000;
 const ALLOWED_ORIGINS = new Set([
   "https://pocket-clean.vercel.app",
   "https://pocketbi.app",
@@ -15,6 +22,17 @@ type PocketBIDatasetMessage = {
   version: 1;
   fileName: string;
   csv: string;
+  manifest?: unknown;
+};
+
+type CsvFacts = {
+  columns: string[];
+  rowCount: number;
+};
+
+type ManifestDecision = {
+  manifest: PocketBIHandoffManifest | null;
+  warning: string;
 };
 
 function isDatasetMessage(value: unknown): value is PocketBIDatasetMessage {
@@ -32,10 +50,76 @@ function safeFileName(value: string): string {
   return /\.csv$/i.test(normalized) ? normalized : `${normalized || "pocketbi-dataset"}.csv`;
 }
 
-function headersFromCsv(csv: string): string[] {
-  const parsed = Papa.parse<string[]>(csv, { preview: 1, skipEmptyLines: true });
-  const first = parsed.data[0] || [];
-  return first.map((header) => String(header ?? "").trim()).filter(Boolean).slice(0, 2_000);
+function csvFacts(csv: string): CsvFacts {
+  const parsed = Papa.parse<Record<string, string>>(csv, {
+    header: true,
+    skipEmptyLines: "greedy",
+  });
+  const columns = (parsed.meta.fields || [])
+    .map((header) => String(header ?? ""))
+    .filter(Boolean)
+    .slice(0, MAX_COLUMNS);
+  return { columns, rowCount: parsed.data.length };
+}
+
+function sameColumns(actual: string[], expected: { name: string }[]): boolean {
+  return actual.length === expected.length
+    && actual.every((column, index) => column === expected[index]?.name);
+}
+
+function decideManifest(
+  value: unknown,
+  facts: CsvFacts,
+  bytes: number,
+  fileName: string,
+): ManifestDecision {
+  if (value == null) return { manifest: null, warning: "" };
+
+  const validation = validatePocketBIHandoffV1(value);
+  if (!validation.ok) {
+    return {
+      manifest: null,
+      warning: `PocketBI metadata was not accepted (${validation.errors.join(" ")}) The CSV was imported normally instead.`,
+    };
+  }
+
+  const manifest = normalizePocketBIHandoffV1(value);
+  if (!manifest) {
+    return { manifest: null, warning: "PocketBI metadata could not be normalized. The CSV was imported normally instead." };
+  }
+
+  const mismatches: string[] = [];
+  if (manifest.payload.format !== "csv") mismatches.push(`payload format is ${manifest.payload.format}, not csv`);
+  if (manifest.payload.fileName && safeFileName(manifest.payload.fileName) !== safeFileName(fileName)) {
+    mismatches.push("payload filename does not match the transferred file");
+  }
+  if (manifest.payload.byteCount > 0 && manifest.payload.byteCount !== bytes) {
+    mismatches.push(`declared byte count ${manifest.payload.byteCount} does not match ${bytes}`);
+  }
+  if (manifest.dataset.rowCount !== facts.rowCount) {
+    mismatches.push(`declared row count ${manifest.dataset.rowCount} does not match ${facts.rowCount}`);
+  }
+  if (manifest.dataset.columnCount !== facts.columns.length) {
+    mismatches.push(`declared column count ${manifest.dataset.columnCount} does not match ${facts.columns.length}`);
+  }
+  if (!sameColumns(facts.columns, manifest.dataset.schema.columns)) {
+    mismatches.push("declared schema columns do not match the CSV header");
+  }
+
+  if (mismatches.length) {
+    return {
+      manifest: null,
+      warning: `PocketBI metadata did not match the transferred CSV (${mismatches.join("; ")}). The CSV was imported normally instead.`,
+    };
+  }
+
+  return {
+    manifest: appendBIDELineage(manifest, "bide.open", {
+      transport: "browser-message",
+      fileName: safeFileName(fileName),
+    }),
+    warning: "",
+  };
 }
 
 export default function PocketBIHandoff() {
@@ -43,6 +127,7 @@ export default function PocketBIHandoff() {
   const { saveFile, isReady } = useIndexedDB();
   const [status, setStatus] = useState("Preparing BIDE workspace…");
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     if (!isReady) return;
@@ -50,7 +135,11 @@ export default function PocketBIHandoff() {
     const announceReady = () => {
       if (!window.opener || window.opener.closed) return;
       for (const origin of ALLOWED_ORIGINS) {
-        window.opener.postMessage({ type: "pocketbi:bide:ready", version: 1 }, origin);
+        window.opener.postMessage({
+          type: "pocketbi:bide:ready",
+          version: 1,
+          handoffFormats: ["pocketbi-handoff@1"],
+        }, origin);
       }
     };
 
@@ -58,14 +147,16 @@ export default function PocketBIHandoff() {
       if (!window.opener || event.source !== window.opener) return;
       if (!ALLOWED_ORIGINS.has(event.origin) || !isDatasetMessage(event.data)) return;
       setError("");
-      setStatus("Saving cleaned dataset into BIDE…");
+      setNotice("");
+      setStatus("Saving PocketBI dataset into BIDE…");
 
       try {
         const bytes = new TextEncoder().encode(event.data.csv).byteLength;
         if (!bytes || bytes > MAX_BYTES) throw new Error("PocketBI handoff must be between 1 byte and 20 MB.");
-        const columns = headersFromCsv(event.data.csv);
-        if (!columns.length) throw new Error("The PocketBI handoff does not contain a usable CSV header.");
+        const facts = csvFacts(event.data.csv);
+        if (!facts.columns.length) throw new Error("The PocketBI handoff does not contain a usable CSV header.");
 
+        const manifestDecision = decideManifest(event.data.manifest, facts, bytes, event.data.fileName);
         const name = safeFileName(event.data.fileName);
         const id = `pocketbi-${crypto.randomUUID()}`;
         await saveFile({
@@ -80,8 +171,16 @@ export default function PocketBIHandoff() {
           version: 1,
           id,
           name,
-          columns,
+          columns: facts.columns,
           source: "pocketbi",
+          sourceApp: manifestDecision.manifest?.source.app || "pocketbi",
+          datasetId: manifestDecision.manifest?.dataset.id || "",
+          datasetRevision: manifestDecision.manifest?.dataset.revision ?? 0,
+          parentId: manifestDecision.manifest?.dataset.parentId || "",
+          workspaceId: manifestDecision.manifest?.dataset.workspaceId || "",
+          lineage: manifestDecision.manifest?.lineage || [],
+          verification: manifestDecision.manifest?.verification || null,
+          manifest: manifestDecision.manifest,
           receivedAt: new Date().toISOString(),
         }));
         localStorage.setItem("bide_visited", "true");
@@ -91,11 +190,19 @@ export default function PocketBIHandoff() {
           version: 1,
           fileId: id,
           fileName: name,
-          columns,
+          columns: facts.columns,
+          rowCount: facts.rowCount,
+          manifestAccepted: Boolean(manifestDecision.manifest),
+          datasetId: manifestDecision.manifest?.dataset.id || "",
+          warning: manifestDecision.warning,
         }, event.origin);
 
-        setStatus(`${name} is ready in BIDE.`);
-        window.setTimeout(() => navigate(`/ide?source=pocketbi&file=${encodeURIComponent(name)}`, { replace: true }), 250);
+        if (manifestDecision.warning) setNotice(manifestDecision.warning);
+        const identity = manifestDecision.manifest?.dataset.id
+          ? ` Dataset ${manifestDecision.manifest.dataset.id} lineage is attached.`
+          : "";
+        setStatus(`${name} is ready in BIDE.${identity}`);
+        window.setTimeout(() => navigate(`/ide?source=pocketbi&file=${encodeURIComponent(name)}`, { replace: true }), 450);
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : "BIDE could not accept this PocketBI dataset.";
         setError(message);
@@ -120,8 +227,9 @@ export default function PocketBIHandoff() {
       <div style={{fontSize:12,fontWeight:900,letterSpacing:".12em",textTransform:"uppercase",color:"#a78bfa"}}>PocketBI → BIDE</div>
       <h1 style={{margin:"10px 0 8px",fontSize:30,letterSpacing:"-.04em"}}>Opening your dataset workspace.</h1>
       <p style={{margin:0,color:"#a1a1aa",lineHeight:1.55}}>{status}</p>
+      {notice && <p style={{marginTop:14,padding:12,border:"1px solid #92400e",borderRadius:10,background:"rgba(146,64,14,.14)",color:"#fde68a"}}>{notice}</p>}
       {error && <p style={{marginTop:14,padding:12,border:"1px solid #7f1d1d",borderRadius:10,background:"rgba(127,29,29,.15)",color:"#fecaca"}}>{error}</p>}
-      <p style={{margin:"18px 0 0",fontSize:12,color:"#71717a"}}>The CSV is transferred directly from the trusted PocketBI opener and saved into BIDE's existing local workspace store. It is not placed in the URL.</p>
+      <p style={{margin:"18px 0 0",fontSize:12,color:"#71717a"}}>The CSV is transferred directly from the trusted PocketBI opener and saved into BIDE's existing local workspace store. Valid Handoff V1 identity and lineage travel with it; the dataset is never placed in the URL.</p>
     </section>
   </main>;
 }
