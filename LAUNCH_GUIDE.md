@@ -320,4 +320,4 @@ Keep these ready for journalists/bloggers who want to write about bIDE:
 
 **Good luck with your launch! 🚀**
 
-For questions, contact: support@bideide.com
+For questions, contact: support@pocketbi.app
