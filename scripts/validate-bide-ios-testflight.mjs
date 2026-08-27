@@ -43,7 +43,7 @@ const project = read(projectPath);
 for (const token of [
   "PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios",
   "MARKETING_VERSION: 0.2.6",
-  "CURRENT_PROJECT_VERSION: 10",
+  "CURRENT_PROJECT_VERSION: 11",
   "ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon",
   "ITSAppUsesNonExemptEncryption: false",
   "TARGETED_DEVICE_FAMILY: \"1,2\"",
@@ -126,13 +126,17 @@ const runJoinBody = joinBuilder.slice(runJoinStart, createQueryStart);
 assert.ok(!runJoinBody.includes("dismiss()"), "runJoin must not dismiss the Join Builder before results are presented.");
 assert.ok(runJoinBody.includes("onJoinCompleted(report)"), "runJoin must persist the completed report before presentation.");
 
-// Build 10 must distrust generation-2 derived SQLite state. Earlier hardware work
-// exposed that a poisoned local database can otherwise survive an app upgrade even
-// though the source parser/exporter have already been hardened.
+// Build 11 must distrust generation-2 derived SQLite state and must also verify that
+// a current generation-3 database still matches the authoritative registry row counts.
+// Physical build-10 testing proved a generation marker plus existing table names is not
+// enough: the SQLite tables can exist yet contain zero rows while the source files persist.
 const migration = read(migrationPath);
 assert.ok(migration.includes('derivedDatabaseGeneration = "3"'), "TestFlight build must force a generation-3 source rebuild of derived SQLite state.");
 assert.ok(migration.includes("refreshDatasetRegistryFromSourceAssets"), "Generation migration must reconstruct metadata from project source files.");
 assert.ok(migration.includes("rebuildDatabaseWithinDataOperation(projectID: projectID)"), "Generation migration must rebuild SQLite from the refreshed source registry.");
+assert.ok(migration.includes("derivedDatabaseMatchesRegistry"), "SQL readiness must compare derived SQLite tables with registry row counts.");
+assert.ok(migration.includes("SELECT COUNT(*)"), "Derived-database validation must verify actual table row counts before SQL runs.");
+assert.ok(migration.includes("could not invalidate the stale SQL state"), "A detected current-generation drift must fail closed if invalidation cannot complete.");
 
 // Full-result share/save may stream and verify more than the screen preview. The
 // results UI must not be dismissible mid-operation and orphan that lifecycle.
