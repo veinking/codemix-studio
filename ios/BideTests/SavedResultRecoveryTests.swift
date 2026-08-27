@@ -57,6 +57,8 @@ final class SavedResultRecoveryTests: XCTestCase {
             sqliteName: table.sqliteName,
             table: parsed
         )
+        // This fixture models already-current derived SQL; stale-generation behavior is
+        // covered separately by the migration tests.
         try "3".write(to: generationURL, atomically: true, encoding: .utf8)
         try markerState.write(to: verificationMarkerURL, atomically: true, encoding: .utf8)
 
