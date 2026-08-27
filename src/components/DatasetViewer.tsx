@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart3, Download, FilePlus2, Code2 } from "lucide-react";
+import { BarChart3, Download, FilePlus2, Code2, ExternalLink } from "lucide-react";
+import { toast } from "sonner";
+import { sendDatasetToPocketBI } from "@/lib/pocketBIOutboundHandoff";
 
 interface DatasetViewerProps {
   data: string[][];
@@ -26,6 +28,30 @@ export const DatasetViewer = ({
 }: DatasetViewerProps) => {
   const displayLimit = 200;
   const displayData = useMemo(() => data.slice(0, displayLimit), [data]);
+  const [sendingToPocketBI, setSendingToPocketBI] = useState(false);
+
+  const continueInPocketBI = async () => {
+    if (!headers.length) {
+      toast.error("This dataset has no columns to send to PocketBI.");
+      return;
+    }
+    setSendingToPocketBI(true);
+    try {
+      const result = await sendDatasetToPocketBI({
+        title: title || "bIDE result",
+        headers,
+        data,
+      });
+      if (result.warning) toast.warning(result.warning);
+      toast.success(
+        `Sent ${result.rowCount.toLocaleString()} rows × ${result.columnCount.toLocaleString()} columns to PocketBI${result.manifestAccepted ? " with lineage" : ""}.`,
+      );
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "bIDE could not hand this dataset to PocketBI.");
+    } finally {
+      setSendingToPocketBI(false);
+    }
+  };
 
   return (
     <div className="h-full bg-editor border rounded flex flex-col">
@@ -56,6 +82,15 @@ export const DatasetViewer = ({
             Export CSV
           </Button>
         )}
+        <Button
+          size="sm"
+          variant="outline"
+          disabled={sendingToPocketBI || !headers.length}
+          onClick={() => void continueInPocketBI()}
+        >
+          <ExternalLink className="w-4 h-4 mr-2" />
+          {sendingToPocketBI ? "Sending…" : "Continue in PocketBI"}
+        </Button>
         {onVisualize && (
           <Button size="sm" variant="default" onClick={onVisualize}>
             <BarChart3 className="w-4 h-4 mr-2" />

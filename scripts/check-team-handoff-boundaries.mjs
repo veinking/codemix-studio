@@ -5,6 +5,9 @@ const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf
 
 const app = read('src/App.tsx');
 const handoff = read('src/pages/PocketBIHandoff.tsx');
+const handoffContract = read('src/lib/pocketBIHandoffV1.ts');
+const outbound = read('src/lib/pocketBIOutboundHandoff.ts');
+const datasetViewer = read('src/components/DatasetViewer.tsx');
 const account = read('src/pages/Account.tsx');
 const mobile = read('src/pages/use-cases/MobileCoding.tsx');
 const docs = read('src/pages/docs/DocsIndex.tsx');
@@ -19,6 +22,35 @@ assert.match(handoff, /event\.source !== window\.opener/, 'PocketBI dataset hand
 assert.match(handoff, /ALLOWED_ORIGINS\.has\(event\.origin\)/, 'PocketBI handoff must enforce the explicit origin allowlist');
 assert.doesNotMatch(handoff, /postMessage\([^\n]*["']\*["']\)/, 'PocketBI handoff must never post to a wildcard target origin');
 assert.match(handoff, /for \(const origin of ALLOWED_ORIGINS\)/, 'Ready handshakes must target only approved PocketBI origins');
+
+// Shared Handoff V1 must validate independently and keep ordinary CSV as fallback.
+assert.match(handoffContract, /POCKETBI_HANDOFF_FORMAT = "pocketbi-handoff"/);
+assert.match(handoffContract, /POCKETBI_HANDOFF_VERSION = 1/);
+assert.match(handoffContract, /pocketBISchemaFingerprint/);
+assert.match(handoffContract, /dataset\.columnCount must match dataset\.schema\.columns length/);
+assert.match(handoff, /handoffFormats: \["pocketbi-handoff@1"\]/);
+assert.match(handoff, /validatePocketBIHandoffV1/);
+assert.match(handoff, /declared row count/);
+assert.match(handoff, /declared column count/);
+assert.match(handoff, /declared schema columns do not match the CSV header/);
+assert.match(handoff, /The CSV was imported normally instead/);
+assert.match(handoff, /appendBIDELineage\(manifest, "bide\.open"/);
+assert.match(handoff, /manifestAccepted: Boolean\(manifestDecision\.manifest\)/);
+assert.match(handoff, /sessionStorage\.setItem\(CONTEXT_KEY/);
+
+// bIDE -> PocketBI result handoff must also use exact-window/origin trust and never put data in URLs.
+assert.match(outbound, /const POCKETBI_ORIGIN = "https:\/\/pocketbi\.app"/);
+assert.match(outbound, /event\.origin === POCKETBI_ORIGIN && event\.source === target/);
+assert.match(outbound, /bide:pocketbi:ready/);
+assert.match(outbound, /bide:pocketbi:dataset/);
+assert.match(outbound, /pocketbi-handoff@1/);
+assert.match(outbound, /operation: isOriginalSource \? "bide\.return_source" : "bide\.dataset_result"/);
+assert.match(outbound, /verification: isOriginalSource && parent/);
+assert.match(outbound, /plainFileFallback: true/);
+assert.doesNotMatch(outbound, /[?&](csv|data)=/i, 'bIDE must never place dataset contents in the PocketBI URL');
+assert.doesNotMatch(outbound, /postMessage\([^\n]*["']\*["']\)/, 'bIDE -> PocketBI handoff must never post to a wildcard origin');
+assert.match(datasetViewer, /Continue in PocketBI/);
+assert.match(datasetViewer, /sendDatasetToPocketBI/);
 
 // V1 team semantics are asynchronous handoff, not shared storage or silent live sync.
 assert.match(account, /Product files are not automatically shared just because the account is shared/, 'Account page must preserve the identity-vs-file-sharing boundary');
@@ -43,4 +75,4 @@ assert.doesNotMatch(sitemap, /16 Programming Languages|12 more languages/i, 'Cra
 assert.match(focusedSeo, /unlisted bIDE code link/, 'Shared-code metadata must describe unlisted handoff truthfully');
 assert.doesNotMatch(support, /navigate\("\/tutorials"\)/, 'Support must link to current docs rather than the retired tutorial implementation');
 
-console.log('✓ Team handoff + public runtime boundary regression guard passed');
+console.log('✓ Team handoff + PocketBI V1 + public runtime boundary regression guard passed');
