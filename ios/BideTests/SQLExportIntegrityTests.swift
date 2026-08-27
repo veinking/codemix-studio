@@ -35,9 +35,9 @@ final class SQLExportIntegrityTests: XCTestCase {
             sqliteName: "export_fixture",
             table: table
         )
-        // These export tests model a database that has already passed the generation-2
+        // These export tests model a database that has already passed the generation-3
         // migration. Tests for stale generation handling live in DatabaseMigrationEdgeCaseTests.
-        try "2".write(to: markerURL, atomically: true, encoding: .utf8)
+        try "3".write(to: markerURL, atomically: true, encoding: .utf8)
 
         let report = try SQLiteProjectEngine.execute(
             databaseURL: databaseURL,
@@ -113,7 +113,7 @@ final class SQLExportIntegrityTests: XCTestCase {
             sqliteName: "wide_sample",
             table: table
         )
-        try "2".write(to: markerURL, atomically: true, encoding: .utf8)
+        try "3".write(to: markerURL, atomically: true, encoding: .utf8)
 
         let report = try SQLiteProjectEngine.execute(
             databaseURL: databaseURL,
