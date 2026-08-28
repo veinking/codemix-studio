@@ -35,6 +35,9 @@ jobs:
       - name: Validate Phase 2 integrity cleanup
         run: node scripts/validate-bide-ios-phase2-integrity.mjs
 
+      - name: Validate canonical multi-sheet XLSX fixture
+        run: node scripts/validate-bide-ios-multisheet-fixture.mjs
+
       - name: Validate TestFlight release configuration
         run: node scripts/validate-bide-ios-testflight.mjs
 
