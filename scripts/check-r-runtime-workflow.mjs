@@ -17,6 +17,10 @@ assert(runtime.includes("R_SPACE_EQUIVALENTS"), 'R runtime must handle visible U
 assert(runtime.includes("R_LINE_EQUIVALENTS"), 'R runtime must normalize Unicode line and paragraph separators');
 assert(runtime.includes("'\\u0085', '\\u2028', '\\u2029'"), 'R runtime must cover NEL, line separator, and paragraph separator clipboard breaks');
 assert(runtime.includes("R_ZERO_WIDTH_CLIPBOARD_CHARS"), 'R runtime must handle zero-width clipboard characters');
+assert(runtime.includes('R_UNICODE_SPACE_PATTERN'), 'R runtime must cover all Unicode space separators outside literals/comments');
+assert(runtime.includes('R_UNICODE_LINE_PATTERN'), 'R runtime must cover all Unicode line/paragraph separators outside literals/comments');
+assert(runtime.includes('R_UNICODE_FORMAT_OR_CONTROL_PATTERN'), 'R runtime must remove otherwise-invalid Unicode format/control characters outside literals/comments');
+assert(runtime.includes("char !== '\\t'") && runtime.includes("char !== '\\n'") && runtime.includes("char !== '\\r'"), 'R sanitizer must preserve ordinary tab/newline/carriage-return source controls');
 assert(runtime.includes("mode === 'comment'"), 'R source normalization must preserve comments');
 assert(runtime.includes("mode === 'single'") && runtime.includes("mode === 'double'") && runtime.includes("mode === 'backtick'"), 'R source normalization must preserve strings and backtick names');
 assert(runtime.includes('withAutoprint: true'), 'R console must autoprint bare expressions');
