@@ -21,10 +21,14 @@ assert.doesNotMatch(dataLabSource, /dynamicTyping:\s*true/, 'DataLab CSV parsing
 assert.match(ideSource, /dynamicTyping:\s*false/, 'IDE must explicitly preserve CSV strings');
 assert.match(dataLabSource, /dynamicTyping:\s*false/, 'DataLab must explicitly preserve CSV strings');
 
-// Python CSV preparation must never rebuild dataset rows/headers with comma joins.
+// Python CSV preparation must never rebuild source rows/headers with comma joins.
 assert.doesNotMatch(ideSource, /dataset\.data\.map\(\s*row\s*=>\s*row\.join\(/, 'CSV rows must not be reconstructed with Array.join');
 assert.doesNotMatch(ideSource, /dataset\.headers\.join\(/, 'CSV headers must not be reconstructed with Array.join');
-assert.match(ideSource, /sourceFile\?\.content\s*\?\?\s*Papa\.unparse/, 'Python must prefer original CSV content and safely serialize generated datasets');
+assert.match(
+  ideSource,
+  /runtime\.syncCSVFiles\([\s\S]*?file\.language === 'csv'[\s\S]*?content: file\.content/,
+  'Python must mirror exact persisted CSV source bytes into the runtime workspace',
+);
 
 // Uploading a CSV should immediately show that dataset rather than an empty data view.
 assert.match(ideSource, /setShowDataset\(firstFile\.name\)/, 'File Explorer CSV upload must open its dataset');
