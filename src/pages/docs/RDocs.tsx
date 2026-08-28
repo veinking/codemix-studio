@@ -28,7 +28,7 @@ export default function RDocs() {
       <SoftwareApplicationSchema 
         language="r"
         languageName="R"
-        description="Free online R IDE for statistics and data science. Run R code with webR in your browser. Includes ggplot2, dplyr, and statistical analysis tools."
+        description="Browser-based R IDE for statistics and data science powered by webR. Supports base R and compatible WebAssembly packages such as ggplot2 and dplyr when installed."
       />
       
       <div className="min-h-screen bg-gradient-to-br from-background via-slate-50 to-purple-50 dark:from-background dark:via-slate-900 dark:to-purple-950">
@@ -112,7 +112,7 @@ export default function RDocs() {
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>Install CRAN packages</span>
+                    <span>Install compatible R packages from the webR WebAssembly repository</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -154,6 +154,9 @@ export default function RDocs() {
                 <li>🔹 Load libraries: library(ggplot2)</li>
                 <li>🔹 Pipe operator: {`%>%`} for chaining operations</li>
                 <li>🔹 View data: head(df), summary(df), str(df)</li>
+                <li>🔹 Uploaded CSVs are mirrored into webR before each run: df &lt;- read.csv("sample.csv")</li>
+                <li>🔹 Install packages from bIDE's Packages panel; availability depends on webR's WebAssembly package repository</li>
+                <li>🔹 Package installs live in the current R session and must be installed again after a full reload</li>
               </ul>
             </CardContent>
           </Card>
@@ -172,6 +175,8 @@ export default function RDocs() {
                 <li>⚠️ Use == for comparison, not =</li>
                 <li>⚠️ R is case-sensitive (data ≠ Data)</li>
                 <li>⚠️ Vectors are recycled in operations</li>
+                <li>⚠️ webR first load and package installation require a network connection</li>
+                <li>⚠️ Native/server-only R packages may not be available in the browser runtime</li>
               </ul>
             </CardContent>
           </Card>
