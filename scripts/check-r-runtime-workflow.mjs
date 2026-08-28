@@ -14,6 +14,8 @@ const templates = read('src/components/RTemplateLibrary.tsx');
 assert(runtime.includes('captureR(executableCode'), 'R execution must use normalized source with webR captureR');
 assert(runtime.includes('normalizeRSourceForExecution'), 'R runtime must normalize invalid clipboard whitespace before execution');
 assert(runtime.includes("R_SPACE_EQUIVALENTS"), 'R runtime must handle visible Unicode space equivalents');
+assert(runtime.includes("R_LINE_EQUIVALENTS"), 'R runtime must normalize Unicode line and paragraph separators');
+assert(runtime.includes("'\\u0085', '\\u2028', '\\u2029'"), 'R runtime must cover NEL, line separator, and paragraph separator clipboard breaks');
 assert(runtime.includes("R_ZERO_WIDTH_CLIPBOARD_CHARS"), 'R runtime must handle zero-width clipboard characters');
 assert(runtime.includes("mode === 'comment'"), 'R source normalization must preserve comments');
 assert(runtime.includes("mode === 'single'") && runtime.includes("mode === 'double'") && runtime.includes("mode === 'backtick'"), 'R source normalization must preserve strings and backtick names');

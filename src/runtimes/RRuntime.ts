@@ -22,7 +22,15 @@ interface NormalizedRSource {
 
 type RSourceMode = 'code' | 'single' | 'double' | 'backtick' | 'comment';
 
-const R_SPACE_EQUIVALENTS = new Set(['\u00a0', '\u2007', '\u202f', '\u3000']);
+// R only treats ASCII space/tab/newline as source whitespace. Rich-text
+// clipboards can also supply the Unicode characters below, including U+2028
+// immediately where a visible line break appears.
+const R_SPACE_EQUIVALENTS = new Set([
+  '\u00a0', '\u1680', '\u180e', '\u2000', '\u2001', '\u2002', '\u2003',
+  '\u2004', '\u2005', '\u2006', '\u2007', '\u2008', '\u2009', '\u200a',
+  '\u202f', '\u205f', '\u3000',
+]);
+const R_LINE_EQUIVALENTS = new Set(['\u0085', '\u2028', '\u2029']);
 const R_ZERO_WIDTH_CLIPBOARD_CHARS = new Set(['\u200b', '\u200c', '\u200d', '\u2060', '\ufeff']);
 
 /**
@@ -87,6 +95,11 @@ function normalizeRSourceForExecution(source: string): NormalizedRSource {
 
     if (R_SPACE_EQUIVALENTS.has(char)) {
       code += ' ';
+      normalizedCount += 1;
+      continue;
+    }
+    if (R_LINE_EQUIVALENTS.has(char)) {
+      code += '\n';
       normalizedCount += 1;
       continue;
     }
