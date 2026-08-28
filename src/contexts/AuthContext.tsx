@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { isSupabaseConfigured, supabase } from '@/integrations/supabase/client';
 import { clearPocketBIOAuthSession, ensurePocketBIOAuthSession, isPocketBIOAuthSession } from '@/integrations/pocketbi/oauth';
-import { getGuestFingerprint } from '@/utils/guestFingerprint';
 
 interface Profile {
   id: string;
@@ -24,15 +23,6 @@ interface EntitlementRow {
   ends_at: string | null;
 }
 
-interface AIUsageInfo {
-  allowed: boolean;
-  tier: 'guest' | 'free' | 'pro';
-  remaining: number;
-  limit: number;
-  used_today: number;
-  message: string;
-}
-
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -42,9 +32,6 @@ interface AuthContextType {
   entitlementError: boolean;
   hasCapability: (capability: string) => boolean;
   refreshEntitlements: () => Promise<void>;
-  aiUsage: AIUsageInfo | null;
-  checkAIUsage: () => Promise<void>;
-  recordAIUsage: (feature: string, action?: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -64,11 +51,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [entitlements, setEntitlements] = useState<EntitlementRow[]>([]);
   const [entitlementError, setEntitlementError] = useState(false);
-  const [aiUsage, setAiUsage] = useState<AIUsageInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const isGuest = !user;
-  const guestFingerprint = isGuest ? getGuestFingerprint() : null;
 
   const refreshEntitlements = async () => {
     if (!isSupabaseConfigured) {
@@ -93,55 +78,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const hasCapability = (capability: string) =>
     entitlements.some((row) => row.capability === capability && entitlementEnabled(row.value));
-
-  const checkAIUsage = async () => {
-    if (!isSupabaseConfigured) {
-      setAiUsage({
-        allowed: false,
-        tier: isGuest ? 'guest' : 'free',
-        remaining: 0,
-        limit: isGuest ? 3 : 6,
-        used_today: 0,
-        message: 'AI features require PocketBI cloud configuration.'
-      });
-      return;
-    }
-
-    try {
-      const { data, error } = await supabase.rpc('check_ai_usage_limit', {
-        p_user_id: user?.id || null,
-        p_guest_fingerprint: guestFingerprint
-      });
-      if (error) throw error;
-      if (data && typeof data === 'object') setAiUsage(data as unknown as AIUsageInfo);
-    } catch (error) {
-      console.error('[AUTH] Error checking AI usage:', error);
-      setAiUsage({
-        allowed: false,
-        tier: isGuest ? 'guest' : 'free',
-        remaining: 0,
-        limit: isGuest ? 3 : 6,
-        used_today: 0,
-        message: 'Unable to check AI usage limits.'
-      });
-    }
-  };
-
-  const recordAIUsage = async (feature: string, action?: string) => {
-    if (!isSupabaseConfigured) return;
-    try {
-      const { error } = await supabase.rpc('record_ai_usage', {
-        p_feature_name: feature,
-        p_user_id: user?.id || null,
-        p_guest_fingerprint: guestFingerprint,
-        p_action_type: action || null
-      });
-      if (error) throw error;
-      await checkAIUsage();
-    } catch (error) {
-      console.error('[AUTH] Error recording AI usage:', error);
-    }
-  };
 
   const fetchProfile = async (userId: string) => {
     if (!isSupabaseConfigured) return;
@@ -169,7 +105,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setProfile(null);
     setEntitlements([]);
     setEntitlementError(false);
-    setAiUsage(null);
 
     if (!isSupabaseConfigured) return;
     const oauthSession = isPocketBIOAuthSession();
@@ -229,10 +164,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!isLoading) void checkAIUsage();
-  }, [user, isLoading]);
-
   const value: AuthContextType = {
     user,
     session,
@@ -242,9 +173,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     entitlementError,
     hasCapability,
     refreshEntitlements,
-    aiUsage,
-    checkAIUsage,
-    recordAIUsage,
     signOut
   };
 
