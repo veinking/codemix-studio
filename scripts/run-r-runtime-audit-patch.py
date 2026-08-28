@@ -19,6 +19,11 @@ new = 'Load a workspace CSV with df = read.csv(\\"file.csv\\") and install the l
 if old not in text:
     raise RuntimeError('Could not locate R template prerequisite copy in audit patch')
 text = text.replace(old, new, 1)
+old_guard = "assert(!runtime.includes('capture.output'), 'legacy capture.output wrapper must not return');"
+new_guard = "assert(!runtime.includes('paste(capture.output'), 'legacy capture.output wrapper must not return');"
+if old_guard not in text:
+    raise RuntimeError('Could not locate legacy capture guard in audit patch')
+text = text.replace(old_guard, new_guard, 1)
 patch.write_text(text)
 subprocess.run([sys.executable, str(patch)], check=True)
 Path(__file__).unlink()
