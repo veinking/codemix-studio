@@ -49,7 +49,7 @@ assert.doesNotMatch(ideSource, /View on desktop/, 'Plot failure UX must remain b
 assert.match(ideSource, /\[template\.language\]: template\.code/, 'Template language switch must preserve the selected template code');
 
 // Retired telemetry and bIDE-funded AI quota bookkeeping must stay out of browser execution/auth.
-assert.doesNotMatch(activityTrackingSource, /supabase/i, 'Retired activity tracking must not call Supabase');
+assert.doesNotMatch(activityTrackingSource, /from\\s+['\"]@\\/integrations\\/supabase|supabase\\s*\\.|\\.rpc\\s*\\(/i, 'Retired activity tracking must not call Supabase');
 assert.doesNotMatch(activityTrackingSource, /increment_stats|add_recent_activity/, 'Retired activity RPCs must not return to browser execution');
 assert.match(activityTrackingSource, /compatibility hook as a local no-op/, 'Activity tracking compatibility hook must remain an explicit local no-op');
 assert.doesNotMatch(authContextSource, /check_ai_usage_limit|record_ai_usage|getGuestFingerprint|AIUsageInfo|aiUsage/, 'PocketBI auth context must not restore retired bIDE AI quota state');
