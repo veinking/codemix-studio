@@ -1,6 +1,16 @@
 import { RuntimeExecutor, RuntimeConfig, ExecutionResult, CompatibilityResult } from './RuntimeInterface';
 import { checkLibraryCompatibility } from '@/utils/libraryCompatibility';
 
+interface WorkspaceCSVFile {
+  name: string;
+  content: string;
+}
+
+interface PythonCSVSyncResult {
+  synced: string[];
+  duplicateNames: string[];
+}
+
 export class PythonRuntime implements RuntimeExecutor {
   private worker: Worker | null = null;
   private isReady = false;
@@ -148,6 +158,46 @@ export class PythonRuntime implements RuntimeExecutor {
 
       this.worker!.addEventListener('message', listener);
       this.worker!.postMessage({ type: 'install', name });
+    });
+  }
+
+  private validateWorkspaceFileName(name: string): void {
+    if (!name || name.includes('/') || name.includes('\\') || name.includes('\0')) {
+      throw new Error(`Python cannot mirror workspace CSV with unsafe file name: ${name || '(blank)'}`);
+    }
+  }
+
+  async syncCSVFiles(files: WorkspaceCSVFile[]): Promise<PythonCSVSyncResult> {
+    if (!this.isInitialized || !this.worker) {
+      throw new Error('Python runtime not initialized');
+    }
+
+    const latestByName = new Map<string, string>();
+    const duplicateNames = new Set<string>();
+    for (const file of files) {
+      this.validateWorkspaceFileName(file.name);
+      if (latestByName.has(file.name)) duplicateNames.add(file.name);
+      latestByName.set(file.name, file.content);
+    }
+
+    const synced = [...latestByName.keys()];
+    return new Promise((resolve, reject) => {
+      const listener = (evt: MessageEvent) => {
+        const msg = evt.data;
+        if (msg.type === 'csv-sync-complete') {
+          this.worker?.removeEventListener('message', listener);
+          resolve({ synced, duplicateNames: [...duplicateNames] });
+        } else if (msg.type === 'error') {
+          this.worker?.removeEventListener('message', listener);
+          reject(new Error(msg.error));
+        }
+      };
+
+      this.worker!.addEventListener('message', listener);
+      this.worker!.postMessage({
+        type: 'syncCSVs',
+        files: [...latestByName].map(([name, content]) => ({ name, content })),
+      });
     });
   }
 

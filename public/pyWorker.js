@@ -7,6 +7,7 @@
 
 let pyodide = null;
 let isInitializing = false;
+let managedCsvFiles = new Set();
 
 const PYODIDE_URLS = [
   // Primary CDN (pin to 0.28.3 full build)
@@ -315,6 +316,39 @@ await micropip.install("${msg.name}")
         type: "installed",
         name: msg.name,
         text: `✅ Installed package: ${msg.name}`,
+      });
+    } catch (err) {
+      self.postMessage({ type: "error", error: String(err) });
+    }
+    return;
+  }
+
+  // =============== SYNC WORKSPACE CSV FILES ===============
+  if (msg.type === "syncCSVs") {
+    try {
+      await initPyodideSafe();
+      if (!pyodide) throw new Error("Pyodide not initialized");
+
+      const files = Array.isArray(msg.files) ? msg.files : [];
+      const nextNames = new Set(files.map(file => file.name));
+
+      for (const oldName of managedCsvFiles) {
+        if (nextNames.has(oldName)) continue;
+        try {
+          pyodide.FS.unlink(oldName);
+        } catch {
+          // The VFS may already have been reset or the file removed manually.
+        }
+      }
+
+      for (const file of files) {
+        pyodide.FS.writeFile(file.name, file.content);
+      }
+
+      managedCsvFiles = nextNames;
+      self.postMessage({
+        type: "csv-sync-complete",
+        files: [...nextNames],
       });
     } catch (err) {
       self.postMessage({ type: "error", error: String(err) });

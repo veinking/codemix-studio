@@ -650,17 +650,6 @@ Jack,30,Miami,86`,
       setDatasets(prev => new Map(prev).set(fileName, { headers, data }));
       addToConsole(`✓ Loaded ${fileName}: ${data.length} rows × ${headers.length} columns`);
       
-      // Write CSV to Python runtime virtual filesystem
-      const runtime = RuntimeRegistry.get('python');
-      if (runtime && runtime.isInitialized) {
-        try {
-          // @ts-ignore - writeCSVToFS exists on PythonRuntime
-          await runtime.writeCSVToFS(fileName, content);
-          console.log(`[IDE] Wrote ${fileName} to Pyodide FS`);
-        } catch (err) {
-          console.warn(`[IDE] Could not write ${fileName} to Pyodide FS:`, err);
-        }
-      }
     } catch (e) {
       // Never fall back to splitting on commas: quoted commas/newlines are
       // valid CSV and a naive parser can silently change the user's data.
@@ -982,41 +971,28 @@ Jack,30,Miami,86`,
     // Execute code
     addToConsole(`>>> Running ${runtime.config.displayName} code...`);
     
-    // If Python runtime, check for CSV references and write them to virtual FS
-    if (language === 'python' && runtime.config.name === 'python') {
-      const csvPattern = /pd\.read_csv\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-      const matches = [...code.matchAll(csvPattern)];
-      
-      if (matches.length > 0) {
-        addToConsole(`>>> Preparing ${matches.length} CSV file(s)...`);
-        
-        for (const match of matches) {
-          const csvFilename = match[1];
-          const dataset = datasets.get(csvFilename);
-          
-          if (dataset) {
-            // Prefer the exact uploaded bytes. Rebuilding CSV with row.join(',')
-            // destroys quoted commas/newlines. Generated in-memory datasets use
-            // Papa.unparse so CSV escaping remains standards-compliant.
-            const sourceFile = [...files]
-              .reverse()
-              .find(file => file.language === 'csv' && file.name === csvFilename);
-            const csvContent = sourceFile?.content ?? Papa.unparse([
-              dataset.headers,
-              ...dataset.data,
-            ]);
-            
-            try {
-              // @ts-ignore - writeCSVToFS exists on PythonRuntime
-              await runtime.writeCSVToFS(csvFilename, csvContent);
-              addToConsole(`✓ ${csvFilename} loaded into Python environment`);
-            } catch (err: any) {
-              addToConsole(`✗ Failed to load ${csvFilename}: ${err.message}`);
-            }
-          } else {
-            addToConsole(`⚠ Warning: ${csvFilename} not found in uploaded datasets`);
-          }
+    // Mirror persisted CSV source bytes into Pyodide before every Python run.
+    // This makes workspace CSVs available from normal scratch/code files after
+    // upload or reload without requiring the user to reopen a CSV preview first.
+    if (language === 'python' && runtime instanceof PythonRuntime) {
+      try {
+        const { synced, duplicateNames } = await runtime.syncCSVFiles(
+          files
+            .filter((file) => file.language === 'csv')
+            .map((file) => ({ name: file.name, content: file.content })),
+        );
+        if (synced.length > 0) {
+          addToConsole(`✓ Python workspace CSVs refreshed: ${synced.join(', ')}`);
         }
+        if (duplicateNames.length > 0) {
+          addToConsole(
+            `⚠ Duplicate CSV names in Python workspace: ${duplicateNames.join(', ')}. The most recent workspace copy is used.`,
+          );
+        }
+      } catch (error: any) {
+        addToConsole(`✗ Failed to prepare Python workspace files: ${error.message}`, true);
+        setIsRunning(false);
+        return;
       }
     }
     
@@ -1333,6 +1309,13 @@ Jack,30,Miami,86`,
     if (scratchLanguage === 'sql' && runtime instanceof SQLRuntime) {
       runtime.syncDatasets(collectSQLDatasets());
     }
+    if (scratchLanguage === 'python' && runtime instanceof PythonRuntime) {
+      await runtime.syncCSVFiles(
+        files
+          .filter((file) => file.language === 'csv')
+          .map((file) => ({ name: file.name, content: file.content })),
+      );
+    }
     if (scratchLanguage === 'r' && runtime instanceof RRuntime) {
       await runtime.syncCSVFiles(
         files
@@ -1573,6 +1556,16 @@ Jack,30,Miami,86`,
         {/* CSV Toggle Bar */}
         <div className="flex items-center gap-2 p-2 bg-toolbar border-b border-border">
           <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setActiveFile(null);
+              setShowDataset(null);
+            }}
+          >
+            Back to IDE
+          </Button>
+          <Button
             variant={csvViewMode === 'data' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => {
@@ -1617,6 +1610,10 @@ Jack,30,Miami,86`,
                   data={currentFileDataset.data}
                   onExportCSV={() => handleExportSourceCSV(currentFile)}
                   onVisualize={() => setPlotBuilderOpen(true)}
+                  onClose={() => {
+                    setActiveFile(null);
+                    setShowDataset(null);
+                  }}
                 />
               )}
               {dataLabComponent}
