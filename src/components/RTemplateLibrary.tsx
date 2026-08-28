@@ -283,7 +283,7 @@ export const RTemplateLibrary = ({
             R Template Library
           </DialogTitle>
           <DialogDescription>
-            Beautiful ggplot2 visualizations and tidyverse workflows
+            Templates assume a data frame named df. Load a workspace CSV with df = read.csv("file.csv") and install the listed webR packages first.
           </DialogDescription>
         </DialogHeader>
 

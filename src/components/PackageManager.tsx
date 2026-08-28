@@ -97,7 +97,7 @@ export const PackageManager = ({
                       key={pkg}
                       variant={isInstalled ? "default" : "outline"}
                       className="cursor-pointer text-xs"
-                      onClick={() => !isInstalled && onInstallPackage(pkg)}
+                      onClick={() => !isInstalled && !isInstalling && onInstallPackage(pkg)}
                     >
                       {pkg}
                     </Badge>

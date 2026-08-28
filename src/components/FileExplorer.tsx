@@ -37,13 +37,13 @@ interface FileExplorerProps {
   installedPackages: string[];
   onInstallPackage: (packageName: string) => Promise<void>;
   isInstalling: boolean;
+  currentLanguage: 'python' | 'r' | 'javascript' | 'sql';
   onOpenLabTrainer?: () => void;
 }
 
 const FILE_TEMPLATES = {
   python: { extension: '.py', template: '# Python Script\n\nprint("Hello, World!")\n' },
   r: { extension: '.r', template: '# R Script\n\nprint("Hello, World!")\n' },
-  rmarkdown: { extension: '.rmd', template: `---\ntitle: "Untitled"\noutput: html_document\n---\n\n\`\`\`{r setup, include=FALSE}\nknitr::opts_chunk$set(echo = TRUE)\n\`\`\`\n\n## R Markdown Document\n` },
   text: { extension: '.txt', template: '' },
 };
 
@@ -58,6 +58,7 @@ export const FileExplorer = ({
   installedPackages,
   onInstallPackage,
   isInstalling,
+  currentLanguage,
   onOpenLabTrainer = () => {},
 }: FileExplorerProps) => {
   const [newFileOpen, setNewFileOpen] = useState(false);
@@ -106,7 +107,6 @@ export const FileExplorer = ({
                   <SelectContent>
                     <SelectItem value="python">Python (.py)</SelectItem>
                     <SelectItem value="r">R Script (.r)</SelectItem>
-                    <SelectItem value="rmarkdown">R Markdown (.rmd)</SelectItem>
                     <SelectItem value="text">Text File (.txt)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -140,7 +140,7 @@ export const FileExplorer = ({
             id="file-upload"
             type="file"
             multiple
-            accept=".py,.r,.rmd,.csv,.txt"
+            accept=".py,.r,.csv,.txt"
             className="hidden"
             onChange={handleFileInput}
           />
@@ -195,6 +195,7 @@ export const FileExplorer = ({
         installedPackages={installedPackages}
         onInstallPackage={onInstallPackage}
         isInstalling={isInstalling}
+        currentLanguage={currentLanguage}
       />
     </div>
   );

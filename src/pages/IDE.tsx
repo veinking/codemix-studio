@@ -89,7 +89,10 @@ const IDE = () => {
   const [lastResultDatasetName, setLastResultDatasetName] = useState<string | null>(null);
   const [plotData, setPlotData] = useState<string | null>(null);
   const [plotCode, setPlotCode] = useState<string | null>(null);
-  const [installedPackages, setInstalledPackages] = useState<string[]>([]);
+  const [installedPackagesByLanguage, setInstalledPackagesByLanguage] = useState<Record<'python' | 'r', string[]>>({
+    python: [],
+    r: [],
+  });
   const [isInstalling, setIsInstalling] = useState(false);
   const [selectedCode, setSelectedCode] = useState<string>("");
   const [labTrainerOpen, setLabTrainerOpen] = useState(false);
@@ -782,8 +785,12 @@ Jack,30,Miami,86`,
   };
 
   const installPackage = async (packageName: string): Promise<void> => {
-    const language = activeFile
-      ? (files.find(f => f.id === activeFile)?.language || 'python')
+    const activeLanguage = activeFile
+      ? files.find(f => f.id === activeFile)?.language
+      : null;
+    const language = activeLanguage === 'python' || activeLanguage === 'r' ||
+      activeLanguage === 'javascript' || activeLanguage === 'sql'
+      ? activeLanguage
       : scratchLanguage;
 
     const runtime = RuntimeRegistry.get(language);
@@ -807,8 +814,32 @@ Jack,30,Miami,86`,
     addToConsole(`>>> Installing ${packageName}...`);
     
     try {
+      // Packages can be the user's first interaction with a runtime. Initialize
+      // it here instead of requiring a throwaway code run before installation.
+      if (!runtime.isInitialized) {
+        setLoadingRuntimes(prev => new Set(prev).add(language));
+        try {
+          await runtime.initialize(isMobile);
+          setInitializedRuntimes(prev => new Set(prev).add(language));
+          addToConsole(`✓ ${runtime.config.displayName} environment ready!`);
+        } finally {
+          setLoadingRuntimes(prev => {
+            const next = new Set(prev);
+            next.delete(language);
+            return next;
+          });
+        }
+      }
+
       await runtime.installPackage(packageName);
-      setInstalledPackages(prev => [...prev, packageName]);
+      if (language === 'python' || language === 'r') {
+        setInstalledPackagesByLanguage(prev => ({
+          ...prev,
+          [language]: prev[language].includes(packageName)
+            ? prev[language]
+            : [...prev[language], packageName],
+        }));
+      }
       addToConsole(`✓ ${packageName} installed successfully`);
       toast.success(`${packageName} installed!`);
     } catch (error: any) {
@@ -919,6 +950,30 @@ Jack,30,Miami,86`,
         }
       } catch (error: any) {
         addToConsole(`✗ Failed to prepare SQL workspace tables: ${error.message}`, true);
+        setIsRunning(false);
+        return;
+      }
+    }
+
+    // Mirror persisted CSV source bytes into webR before every R run so
+    // read.csv("file.csv") works immediately after upload or reload.
+    if (language === 'r' && runtime instanceof RRuntime) {
+      try {
+        const { synced, duplicateNames } = await runtime.syncCSVFiles(
+          files
+            .filter((file) => file.language === 'csv')
+            .map((file) => ({ name: file.name, content: file.content })),
+        );
+        if (synced.length > 0) {
+          addToConsole(`✓ R workspace CSVs refreshed: ${synced.join(', ')}`);
+        }
+        if (duplicateNames.length > 0) {
+          addToConsole(
+            `⚠ Duplicate CSV names in R workspace: ${duplicateNames.join(', ')}. The most recent workspace copy is used.`,
+          );
+        }
+      } catch (error: any) {
+        addToConsole(`✗ Failed to prepare R workspace files: ${error.message}`, true);
         setIsRunning(false);
         return;
       }
@@ -1278,6 +1333,13 @@ Jack,30,Miami,86`,
     if (scratchLanguage === 'sql' && runtime instanceof SQLRuntime) {
       runtime.syncDatasets(collectSQLDatasets());
     }
+    if (scratchLanguage === 'r' && runtime instanceof RRuntime) {
+      await runtime.syncCSVFiles(
+        files
+          .filter((file) => file.language === 'csv')
+          .map((file) => ({ name: file.name, content: file.content })),
+      );
+    }
 
     let capturedOutput = '';
     const result = await runtime.execute(code, (text) => {
@@ -1360,6 +1422,14 @@ Jack,30,Miami,86`,
   };
 
   const currentFile = files.find((f) => f.id === activeFile);
+  const currentRuntimeLanguage: 'python' | 'r' | 'javascript' | 'sql' =
+    currentFile?.language === 'python' || currentFile?.language === 'r' ||
+    currentFile?.language === 'javascript' || currentFile?.language === 'sql'
+      ? currentFile.language
+      : scratchLanguage;
+  const installedPackages = currentRuntimeLanguage === 'python' || currentRuntimeLanguage === 'r'
+    ? installedPackagesByLanguage[currentRuntimeLanguage]
+    : [];
   const currentFileDataset = currentFile?.language === 'csv'
     ? datasets.get(currentFile.name)
     : null;
@@ -1383,12 +1453,7 @@ Jack,30,Miami,86`,
       onOpenLabTrainer={() => setLabTrainerOpen(true)}
       onOpenRecipeGallery={() => setRecipeGalleryOpen(true)}
       onOpenWorkspaceManager={() => setWorkspaceManagerOpen(true)}
-      currentLanguage={
-        currentFile?.language === 'python' || currentFile?.language === 'r' || 
-        currentFile?.language === 'javascript' || currentFile?.language === 'sql'
-          ? currentFile.language
-          : scratchLanguage
-      }
+      currentLanguage={currentRuntimeLanguage}
       isNotebookMode={isNotebookMode}
       currentFile={activeFile}
       isRunning={isRunning}
@@ -1410,12 +1475,7 @@ Jack,30,Miami,86`,
       installedPackages={installedPackages}
       onInstallPackage={installPackage}
       isInstalling={isInstalling}
-      currentLanguage={
-        currentFile?.language === 'python' || currentFile?.language === 'r' || 
-        currentFile?.language === 'javascript' || currentFile?.language === 'sql'
-          ? currentFile.language
-          : scratchLanguage
-      }
+      currentLanguage={currentRuntimeLanguage}
     />
   );
 
@@ -1452,6 +1512,7 @@ Jack,30,Miami,86`,
       installedPackages={installedPackages}
       onInstallPackage={installPackage}
       isInstalling={isInstalling}
+      currentLanguage={currentRuntimeLanguage}
       onOpenLabTrainer={() => setLabTrainerOpen(true)}
     />
   );
