@@ -38,6 +38,9 @@ jobs:
       - name: Validate canonical multi-sheet XLSX fixture
         run: node scripts/validate-bide-ios-multisheet-fixture.mjs
 
+      - name: Validate hardware regression source map
+        run: node scripts/validate-bide-ios-hardware-regressions.mjs
+
       - name: Validate TestFlight release configuration
         run: node scripts/validate-bide-ios-testflight.mjs
 
