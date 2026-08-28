@@ -1,11 +1,17 @@
 name: bIDE
 options:
   bundleIdPrefix: com.bideide
+  developmentLanguage: en
   deploymentTarget:
     iOS: "17.0"
-  createIntermediateGroups: true
 
 packages:
+  Runestone:
+    url: https://github.com/simonbs/Runestone.git
+    from: 0.5.2
+  TreeSitterLanguages:
+    url: https://github.com/simonbs/TreeSitterLanguages.git
+    revision: 15cf3a9ec3ab95e0d058b7df9f35619123c9e02d
   CoreXLSX:
     url: https://github.com/CoreOffice/CoreXLSX.git
     exactVersion: 0.14.2
@@ -16,9 +22,15 @@ targets:
     platform: iOS
     sources:
       - path: BideApp
-    resources:
-      - path: BideApp/PrivacyInfo.xcprivacy
     dependencies:
+      - package: Runestone
+        product: Runestone
+      - package: TreeSitterLanguages
+        product: TreeSitterPythonRunestone
+      - package: TreeSitterLanguages
+        product: TreeSitterSQLRunestone
+      - package: TreeSitterLanguages
+        product: TreeSitterRRunestone
       - package: CoreXLSX
         product: CoreXLSX
       - sdk: libsqlite3.tbd
@@ -26,9 +38,15 @@ targets:
       path: BideApp/Info.plist
       properties:
         CFBundleDisplayName: bIDE
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        LSApplicationCategoryType: public.app-category.developer-tools
+        UIApplicationSupportsIndirectInputEvents: true
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
         UISupportedInterfaceOrientations~ipad:
@@ -36,15 +54,19 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+        LSSupportsOpeningDocumentsInPlace: false
         CFBundleDocumentTypes:
-          - CFBundleTypeName: bIDE Project Files
+          - CFBundleTypeName: bIDE Source Code
             CFBundleTypeRole: Editor
-            LSHandlerRank: Owner
+            LSHandlerRank: Alternate
             LSItemContentTypes:
               - public.python-script
               - com.bideide.sql-source
               - com.bideide.r-source
-              - net.daringfireball.markdown
+          - CFBundleTypeName: bIDE Dataset
+            CFBundleTypeRole: Viewer
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
               - public.comma-separated-values-text
               - public.tab-separated-values-text
               - public.json
