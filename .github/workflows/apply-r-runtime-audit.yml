@@ -18,7 +18,7 @@ jobs:
           node-version: 22
           cache: npm
       - name: Apply R runtime audit patch
-        run: python scripts/apply-r-runtime-audit.py
+        run: python scripts/run-r-runtime-audit-patch.py
       - name: Install dependencies
         run: npm ci
       - name: Typecheck
