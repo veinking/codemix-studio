@@ -11,9 +11,22 @@
     {
       "source": "/auth/pocketbi/callback",
       "headers": [
-        { "key": "Cache-Control", "value": "no-store" },
-        { "key": "Referrer-Policy", "value": "no-referrer" }
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        }
       ]
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "preview/**": true,
+      "**": false
+    }
+  }
 }
