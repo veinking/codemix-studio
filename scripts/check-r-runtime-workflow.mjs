@@ -11,7 +11,12 @@ const explorer = read('src/components/FileExplorer.tsx');
 const docs = read('src/pages/docs/RDocs.tsx');
 const templates = read('src/components/RTemplateLibrary.tsx');
 
-assert(runtime.includes('captureR(code'), 'R execution must use webR captureR');
+assert(runtime.includes('captureR(executableCode'), 'R execution must use normalized source with webR captureR');
+assert(runtime.includes('normalizeRSourceForExecution'), 'R runtime must normalize invalid clipboard whitespace before execution');
+assert(runtime.includes("R_SPACE_EQUIVALENTS"), 'R runtime must handle visible Unicode space equivalents');
+assert(runtime.includes("R_ZERO_WIDTH_CLIPBOARD_CHARS"), 'R runtime must handle zero-width clipboard characters');
+assert(runtime.includes("mode === 'comment'"), 'R source normalization must preserve comments');
+assert(runtime.includes("mode === 'single'") && runtime.includes("mode === 'double'") && runtime.includes("mode === 'backtick'"), 'R source normalization must preserve strings and backtick names');
 assert(runtime.includes('withAutoprint: true'), 'R console must autoprint bare expressions');
 assert(runtime.includes('throwJsException: true'), 'R errors must propagate to IDE error handling');
 assert(!runtime.includes('paste(capture.output'), 'legacy capture.output wrapper must not return');
