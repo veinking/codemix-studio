@@ -15,6 +15,92 @@ interface RFileSyncResult {
   duplicateNames: string[];
 }
 
+interface NormalizedRSource {
+  code: string;
+  normalizedCount: number;
+}
+
+type RSourceMode = 'code' | 'single' | 'double' | 'backtick' | 'comment';
+
+const R_SPACE_EQUIVALENTS = new Set(['\u00a0', '\u2007', '\u202f', '\u3000']);
+const R_ZERO_WIDTH_CLIPBOARD_CHARS = new Set(['\u200b', '\u200c', '\u200d', '\u2060', '\ufeff']);
+
+/**
+ * Clipboard-rich text can carry non-breaking or zero-width characters that look
+ * like ordinary whitespace but R does not parse as whitespace. Normalize only
+ * while lexically outside strings, backtick names, and comments so user data is
+ * never changed inside R literals.
+ */
+function normalizeRSourceForExecution(source: string): NormalizedRSource {
+  let mode: RSourceMode = 'code';
+  let escaped = false;
+  let normalizedCount = 0;
+  let code = '';
+
+  for (const char of source) {
+    if (mode === 'comment') {
+      code += char;
+      if (char === '\n' || char === '\r') mode = 'code';
+      continue;
+    }
+
+    if (mode !== 'code') {
+      code += char;
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === '\\') {
+        escaped = true;
+        continue;
+      }
+      if (
+        (mode === 'single' && char === "'") ||
+        (mode === 'double' && char === '"') ||
+        (mode === 'backtick' && char === '`')
+      ) {
+        mode = 'code';
+      }
+      continue;
+    }
+
+    if (char === '#') {
+      mode = 'comment';
+      code += char;
+      continue;
+    }
+    if (char === "'") {
+      mode = 'single';
+      code += char;
+      continue;
+    }
+    if (char === '"') {
+      mode = 'double';
+      code += char;
+      continue;
+    }
+    if (char === '`') {
+      mode = 'backtick';
+      code += char;
+      continue;
+    }
+
+    if (R_SPACE_EQUIVALENTS.has(char)) {
+      code += ' ';
+      normalizedCount += 1;
+      continue;
+    }
+    if (R_ZERO_WIDTH_CLIPBOARD_CHARS.has(char)) {
+      normalizedCount += 1;
+      continue;
+    }
+
+    code += char;
+  }
+
+  return { code, normalizedCount };
+}
+
 export class RRuntime implements RuntimeExecutor {
   private webR: any | null = null;
   private workingDirectory: string | null = null;
@@ -128,11 +214,18 @@ export class RRuntime implements RuntimeExecutor {
     let images: ImageBitmap[] = [];
 
     try {
+      const normalizedSource = normalizeRSourceForExecution(code);
+      const executableCode = normalizedSource.code;
+      if (normalizedSource.normalizedCount > 0) {
+        const noun = normalizedSource.normalizedCount === 1 ? 'character' : 'characters';
+        onOutput(`ℹ R normalized ${normalizedSource.normalizedCount} invisible clipboard ${noun} outside strings/comments.`);
+      }
+
       // captureR is webR's supported console/graphics path. withAutoprint makes
       // bare expressions behave like an R console instead of silently vanishing.
       // R errors are allowed to throw through to IDE error handling so bIDE never
       // reports a failed R run as "Execution completed".
-      const capture = await shelter.captureR(code, {
+      const capture = await shelter.captureR(executableCode, {
         captureStreams: true,
         captureConditions: false,
         captureGraphics: {
