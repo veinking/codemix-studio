@@ -6,6 +6,7 @@ const ideSource = readFileSync(new URL('../src/pages/IDE.tsx', import.meta.url),
 const dataOpsSource = readFileSync(new URL('../src/components/DataOperations.tsx', import.meta.url), 'utf8');
 const dataLabSource = readFileSync(new URL('../src/components/DataLab.tsx', import.meta.url), 'utf8');
 const activityTrackingSource = readFileSync(new URL('../src/hooks/useActivityTracking.ts', import.meta.url), 'utf8');
+const authContextSource = readFileSync(new URL('../src/contexts/AuthContext.tsx', import.meta.url), 'utf8');
 
 // First-run persistence must survive an early reload before IndexedDB is ready.
 assert.match(ideSource, /bide_starter_seed_pending/, 'Starter workspace must use a durable pending seed marker');
@@ -47,10 +48,12 @@ assert.doesNotMatch(ideSource, /View on desktop/, 'Plot failure UX must remain b
 // Cross-language templates should not be overwritten by stale scratch state.
 assert.match(ideSource, /\[template\.language\]: template\.code/, 'Template language switch must preserve the selected template code');
 
-// The retired global activity feed/counter must stay retired at the execution boundary.
+// Retired telemetry and bIDE-funded AI quota bookkeeping must stay out of browser execution/auth.
 assert.doesNotMatch(activityTrackingSource, /supabase/i, 'Retired activity tracking must not call Supabase');
 assert.doesNotMatch(activityTrackingSource, /increment_stats|add_recent_activity/, 'Retired activity RPCs must not return to browser execution');
 assert.match(activityTrackingSource, /compatibility hook as a local no-op/, 'Activity tracking compatibility hook must remain an explicit local no-op');
+assert.doesNotMatch(authContextSource, /check_ai_usage_limit|record_ai_usage|getGuestFingerprint|AIUsageInfo|aiUsage/, 'PocketBI auth context must not restore retired bIDE AI quota state');
+assert.match(authContextSource, /get_my_entitlements/, 'PocketBI shared entitlement refresh must remain intact');
 
 // Real CSV behavior check: quoted commas and leading-zero identifiers survive parsing + serialization.
 const sourceCsv = 'customer_id,customer_name,notes\n00123,"ACME, Inc.","Line one, still same cell"\n';
@@ -75,4 +78,4 @@ assert.equal(reparsed.data[0].customer_id, '00123', 'Leading-zero identifiers mu
 assert.equal(reparsed.data[0].customer_name, 'ACME, Inc.', 'Quoted commas must survive safe CSV serialization');
 assert.equal(reparsed.data[0].notes, 'Line one, still same cell', 'Comma-containing text must survive safe CSV serialization');
 
-console.log('✓ Solo workflow persistence + CSV integrity + retired telemetry regression guard passed');
+console.log('✓ Solo workflow persistence + CSV integrity + retired telemetry/quota regression guard passed');
