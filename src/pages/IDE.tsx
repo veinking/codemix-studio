@@ -33,7 +33,7 @@ import { RecipeGallery } from "@/components/RecipeGallery";
 import { WorkspaceManager } from "@/components/WorkspaceManager";
 import { AuthDialog } from "@/components/AuthDialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Cloud, GraduationCap } from "lucide-react";
+import { ArrowLeft, Sparkles, Cloud, GraduationCap } from "lucide-react";
 import { useIndexedDB } from "@/hooks/useIndexedDB";
 import { useDeviceType } from "@/hooks/useDeviceType";
 import { useOnlineStatus } from "@/hooks/useOnlineStatus";
@@ -979,47 +979,40 @@ Jack,30,Miami,86`,
       }
     }
 
-    // Execute code
-    addToConsole(`>>> Running ${runtime.config.displayName} code...`);
-    
-    // If Python runtime, check for CSV references and write them to virtual FS
-    if (language === 'python' && runtime.config.name === 'python') {
-      const csvPattern = /pd\.read_csv\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
-      const matches = [...code.matchAll(csvPattern)];
-      
-      if (matches.length > 0) {
-        addToConsole(`>>> Preparing ${matches.length} CSV file(s)...`);
-        
-        for (const match of matches) {
-          const csvFilename = match[1];
-          const dataset = datasets.get(csvFilename);
-          
-          if (dataset) {
-            // Prefer the exact uploaded bytes. Rebuilding CSV with row.join(',')
-            // destroys quoted commas/newlines. Generated in-memory datasets use
-            // Papa.unparse so CSV escaping remains standards-compliant.
-            const sourceFile = [...files]
-              .reverse()
-              .find(file => file.language === 'csv' && file.name === csvFilename);
-            const csvContent = sourceFile?.content ?? Papa.unparse([
-              dataset.headers,
-              ...dataset.data,
-            ]);
-            
-            try {
-              // @ts-ignore - writeCSVToFS exists on PythonRuntime
-              await runtime.writeCSVToFS(csvFilename, csvContent);
-              addToConsole(`✓ ${csvFilename} loaded into Python environment`);
-            } catch (err: any) {
-              addToConsole(`✗ Failed to load ${csvFilename}: ${err.message}`);
-            }
-          } else {
-            addToConsole(`⚠ Warning: ${csvFilename} not found in uploaded datasets`);
-          }
+    // Mirror every persisted workspace CSV into Pyodide before every Python
+    // run. File availability must not depend on opening the CSV preview first
+    // or on matching one narrow pd.read_csv("literal.csv") code pattern.
+    if (language === 'python' && runtime instanceof PythonRuntime) {
+      const duplicateCounts = new Map<string, number>();
+      const duplicateNames = new Set<string>();
+      const synced: string[] = [];
+
+      try {
+        for (const file of files.filter((item) => item.language === 'csv')) {
+          const count = (duplicateCounts.get(file.name) || 0) + 1;
+          duplicateCounts.set(file.name, count);
+          if (count > 1) duplicateNames.add(file.name);
+          await runtime.writeCSVToFS(file.name, file.content);
+          if (!synced.includes(file.name)) synced.push(file.name);
         }
+        if (synced.length > 0) {
+          addToConsole(`✓ Python workspace CSVs refreshed: ${synced.join(', ')}`);
+        }
+        if (duplicateNames.size > 0) {
+          addToConsole(
+            `⚠ Duplicate CSV names in Python workspace: ${[...duplicateNames].join(', ')}. The most recent workspace copy is used.`,
+          );
+        }
+      } catch (error: any) {
+        addToConsole(`✗ Failed to prepare Python workspace files: ${error.message}`, true);
+        setIsRunning(false);
+        return;
       }
     }
-    
+
+    // Execute code
+    addToConsole(`>>> Running ${runtime.config.displayName} code...`);
+
     // Show loading toast for seaborn (first-time install takes ~10 seconds)
     if (language === 'python' && (code.includes('seaborn') || code.includes('sns.'))) {
       toast.info("Loading Seaborn", {
@@ -1333,6 +1326,11 @@ Jack,30,Miami,86`,
     if (scratchLanguage === 'sql' && runtime instanceof SQLRuntime) {
       runtime.syncDatasets(collectSQLDatasets());
     }
+    if (scratchLanguage === 'python' && runtime instanceof PythonRuntime) {
+      for (const file of files.filter((item) => item.language === 'csv')) {
+        await runtime.writeCSVToFS(file.name, file.content);
+      }
+    }
     if (scratchLanguage === 'r' && runtime instanceof RRuntime) {
       await runtime.syncCSVFiles(
         files
@@ -1419,6 +1417,13 @@ Jack,30,Miami,86`,
     setShowDataset(fileName);
     setCsvViewMode('data');
     toast.success(`Saved ${fileName} to Files`);
+  };
+
+  const handleReturnToScratchEditor = () => {
+    setActiveFile(null);
+    setShowDataset(null);
+    setCsvViewMode('data');
+    toast.success('Returned to the IDE');
   };
 
   const currentFile = files.find((f) => f.id === activeFile);
@@ -1572,6 +1577,16 @@ Jack,30,Miami,86`,
       <div className="h-full flex flex-col">
         {/* CSV Toggle Bar */}
         <div className="flex items-center gap-2 p-2 bg-toolbar border-b border-border">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleReturnToScratchEditor}
+            aria-label="Back to IDE"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to IDE
+          </Button>
+          <div className="h-5 w-px bg-border" aria-hidden="true" />
           <Button
             variant={csvViewMode === 'data' ? 'default' : 'ghost'}
             size="sm"
