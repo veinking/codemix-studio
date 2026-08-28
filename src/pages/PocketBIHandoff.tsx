@@ -67,12 +67,21 @@ function sameColumns(actual: string[], expected: { name: string }[]): boolean {
     && actual.every((column, index) => column === expected[index]?.name);
 }
 
-function decideManifest(
+async function sha256Hex(value: string): Promise<string> {
+  if (!globalThis.crypto?.subtle) return "";
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function decideManifest(
   value: unknown,
   facts: CsvFacts,
   bytes: number,
   fileName: string,
-): ManifestDecision {
+  csv: string,
+): Promise<ManifestDecision> {
   if (value == null) return { manifest: null, warning: "" };
 
   const validation = validatePocketBIHandoffV1(value);
@@ -104,6 +113,20 @@ function decideManifest(
   }
   if (!sameColumns(facts.columns, manifest.dataset.schema.columns)) {
     mismatches.push("declared schema columns do not match the CSV header");
+  }
+
+  const declaredSha = manifest.payload.sha256.trim().toLowerCase();
+  if (declaredSha) {
+    if (!/^[0-9a-f]{64}$/.test(declaredSha)) {
+      mismatches.push("declared payload SHA-256 is invalid");
+    } else {
+      const actualSha = await sha256Hex(csv);
+      if (!actualSha) {
+        mismatches.push("browser could not verify the declared payload SHA-256");
+      } else if (actualSha !== declaredSha) {
+        mismatches.push("declared payload SHA-256 does not match the transferred CSV");
+      }
+    }
   }
 
   if (mismatches.length) {
@@ -156,7 +179,13 @@ export default function PocketBIHandoff() {
         const facts = csvFacts(event.data.csv);
         if (!facts.columns.length) throw new Error("The PocketBI handoff does not contain a usable CSV header.");
 
-        const manifestDecision = decideManifest(event.data.manifest, facts, bytes, event.data.fileName);
+        const manifestDecision = await decideManifest(
+          event.data.manifest,
+          facts,
+          bytes,
+          event.data.fileName,
+          event.data.csv,
+        );
         const name = safeFileName(event.data.fileName);
         const id = `pocketbi-${crypto.randomUUID()}`;
         await saveFile({
