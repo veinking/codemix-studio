@@ -93,7 +93,7 @@ extension DataWorkspaceStore {
 
         guard activeProjectID == projectID else { return false }
         if !matchesRegistry {
-            dataError = "bIDE rebuilt the local SQL database, but its tables still do not match the project dataset row counts. SQL was blocked instead of returning an untrusted result."
+            dataError = "bIDE rebuilt the local SQL database, but its table schemas or row counts still do not match the project datasets. SQL was blocked instead of returning an untrusted result."
         }
         return matchesRegistry
     }
@@ -261,19 +261,55 @@ extension DataWorkspaceStore {
         sqlite3_busy_timeout(db, 3_000)
 
         for table in expectedTables {
-            let sql = "SELECT COUNT(*) FROM \(SQLiteProjectEngine.quoteIdentifier(table.sqliteName));"
-            var statement: OpaquePointer?
-            let prepareResult = sql.withCString { pointer in
-                sqlite3_prepare_v2(db, pointer, -1, &statement, nil)
+            let schemaSQL = "PRAGMA table_info(\(SQLiteProjectEngine.quoteIdentifier(table.sqliteName)));"
+            var schemaStatement: OpaquePointer?
+            let schemaPrepareResult = schemaSQL.withCString { pointer in
+                sqlite3_prepare_v2(db, pointer, -1, &schemaStatement, nil)
             }
-            guard prepareResult == SQLITE_OK, let statement else {
-                if let statement { sqlite3_finalize(statement) }
+            guard schemaPrepareResult == SQLITE_OK, let schemaStatement else {
+                if let schemaStatement { sqlite3_finalize(schemaStatement) }
                 return false
             }
-            defer { sqlite3_finalize(statement) }
 
-            guard sqlite3_step(statement) == SQLITE_ROW else { return false }
-            let actualRowCount = Int(sqlite3_column_int64(statement, 0))
+            var actualColumns: [DatasetColumn] = []
+            var schemaStep = sqlite3_step(schemaStatement)
+            while schemaStep == SQLITE_ROW {
+                guard let namePointer = sqlite3_column_text(schemaStatement, 1),
+                      let typePointer = sqlite3_column_text(schemaStatement, 2) else {
+                    sqlite3_finalize(schemaStatement)
+                    return false
+                }
+                let name = String(cString: namePointer)
+                let typeName = String(cString: typePointer).uppercased()
+                guard let type = DatasetColumnType(rawValue: typeName) else {
+                    sqlite3_finalize(schemaStatement)
+                    return false
+                }
+                actualColumns.append(DatasetColumn(name: name, type: type))
+                schemaStep = sqlite3_step(schemaStatement)
+            }
+            guard schemaStep == SQLITE_DONE else {
+                sqlite3_finalize(schemaStatement)
+                return false
+            }
+            sqlite3_finalize(schemaStatement)
+            guard actualColumns == table.columns else { return false }
+
+            let countSQL = "SELECT COUNT(*) FROM \(SQLiteProjectEngine.quoteIdentifier(table.sqliteName));"
+            var countStatement: OpaquePointer?
+            let countPrepareResult = countSQL.withCString { pointer in
+                sqlite3_prepare_v2(db, pointer, -1, &countStatement, nil)
+            }
+            guard countPrepareResult == SQLITE_OK, let countStatement else {
+                if let countStatement { sqlite3_finalize(countStatement) }
+                return false
+            }
+            guard sqlite3_step(countStatement) == SQLITE_ROW else {
+                sqlite3_finalize(countStatement)
+                return false
+            }
+            let actualRowCount = Int(sqlite3_column_int64(countStatement, 0))
+            sqlite3_finalize(countStatement)
             guard actualRowCount == table.rowCount else { return false }
         }
 
