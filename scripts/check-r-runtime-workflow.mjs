@@ -22,6 +22,7 @@ assert(runtime.includes('installPackages([packageName])'), 'R packages must use 
 assert(!runtime.includes("install.packages('${name}')"), 'unsafe source package interpolation must not return');
 assert((ide.match(/runtime\.syncCSVFiles\(/g) || []).length >= 2, 'normal and notebook R runs must refresh CSV files');
 assert(ide.includes('installedPackagesByLanguage'), 'Python and R package badges must not share one list');
+assert(ide.includes('if (!runtime.isInitialized)') && ide.includes('await runtime.initialize(isMobile)'), 'package installation must initialize its runtime when needed');
 assert(explorer.includes('currentLanguage={currentLanguage}'), 'Explorer package manager must follow the active language');
 assert(!explorer.includes('rmarkdown'), 'unsupported R Markdown creation must stay removed');
 assert(!explorer.includes('.rmd'), 'unsupported R Markdown upload must stay removed');

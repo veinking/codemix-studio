@@ -814,6 +814,23 @@ Jack,30,Miami,86`,
     addToConsole(`>>> Installing ${packageName}...`);
     
     try {
+      // Packages can be the user's first interaction with a runtime. Initialize
+      // it here instead of requiring a throwaway code run before installation.
+      if (!runtime.isInitialized) {
+        setLoadingRuntimes(prev => new Set(prev).add(language));
+        try {
+          await runtime.initialize(isMobile);
+          setInitializedRuntimes(prev => new Set(prev).add(language));
+          addToConsole(`✓ ${runtime.config.displayName} environment ready!`);
+        } finally {
+          setLoadingRuntimes(prev => {
+            const next = new Set(prev);
+            next.delete(language);
+            return next;
+          });
+        }
+      }
+
       await runtime.installPackage(packageName);
       if (language === 'python' || language === 'r') {
         setInstalledPackagesByLanguage(prev => ({
