@@ -17,6 +17,23 @@ extension DataWorkspaceStore {
         let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
         let registryURL = projectDirectory.appendingPathComponent("datasets.bide.json")
 
+        // Validate the authoritative registry on every project synchronization, even when
+        // the derived SQLite generation is already current. A damaged registry must never
+        // be treated as an empty project and then overwritten by reconciliation.
+        let registeredAssets: [DatasetAsset]?
+        do {
+            registeredAssets = try strictRegistryAssetsIfPresent(at: registryURL)
+        } catch {
+            dataError = "bIDE found local dataset metadata but could not verify it safely: \(error.localizedDescription)"
+            return
+        }
+
+        if datasets.isEmpty,
+           let registeredAssets,
+           !registeredAssets.isEmpty {
+            datasets = registeredAssets
+        }
+
         let storedGeneration = (try? String(contentsOf: markerURL, encoding: .utf8))?
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let databaseExists = manager.fileExists(atPath: databaseURL.path)
@@ -25,25 +42,15 @@ extension DataWorkspaceStore {
 
         if datasets.isEmpty {
             do {
-                // loadRegistry() intentionally returns [] when a registry cannot decode so
-                // ordinary project opening stays resilient. Migration cannot treat that
-                // ambiguous [] as proof that the project has no datasets, or a damaged
-                // registry could be stamped as successfully migrated forever.
-                if let registeredAssets = try strictRegistryAssetsIfPresent(at: registryURL),
-                   !registeredAssets.isEmpty {
-                    datasets = registeredAssets
-                } else {
-                    try recordDerivedDatabaseGeneration(
-                        manager: manager,
-                        dataDirectory: dataDirectory,
-                        markerURL: markerURL
-                    )
-                    return
-                }
+                try recordDerivedDatabaseGeneration(
+                    manager: manager,
+                    dataDirectory: dataDirectory,
+                    markerURL: markerURL
+                )
             } catch {
-                dataError = "bIDE found local dataset metadata but could not verify it safely for SQL migration: \(error.localizedDescription)"
-                return
+                dataError = "bIDE could not finish its local SQL migration marker: \(error.localizedDescription)"
             }
+            return
         }
 
         do {
