@@ -19,6 +19,40 @@ interface RTemplate {
 
 const R_TEMPLATES: RTemplate[] = [
   {
+    id: "safe-workspace-csv",
+    title: "Load Workspace CSV Safely",
+    description: "Preserve ID-like columns such as customer_id, ZIP, phone, and SKU while still inferring measure columns",
+    category: "data import",
+    icon: BarChart3,
+    packages: [],
+    code: `# Change this to a CSV in your bIDE workspace
+file <- "orders.csv"
+
+# Read headers first so identifier-like columns can be protected from
+# base R's numeric inference (for example, 00123 should stay "00123").
+header <- read.csv(file, nrows = 0, check.names = FALSE)
+column_names <- names(header)
+id_like <- grepl(
+  "(^id$|_id$|^id_|_code$|^code$|zip|postal|phone|sku|identifier|account_number)",
+  column_names,
+  ignore.case = TRUE
+)
+
+column_classes <- rep(NA_character_, length(column_names))
+column_classes[id_like] <- "character"
+
+df <- read.csv(
+  file,
+  colClasses = column_classes,
+  na.strings = c("", "NA"),
+  check.names = FALSE,
+  stringsAsFactors = FALSE
+)
+
+str(df)
+head(df)`
+  },
+  {
     id: "ggplot-scatter",
     title: "Scatter Plot (ggplot2)",
     description: "Beautiful scatter plot with trend line",
@@ -236,7 +270,8 @@ ggplot(df, aes(x = category, y = value, fill = category)) +
   theme(
     plot.title = element_text(size = 16, face = "bold"),
     legend.position = "none"
-  )`
+  ) +
+  coord_flip()`
   }
 ];
 
@@ -283,7 +318,7 @@ export const RTemplateLibrary = ({
             R Template Library
           </DialogTitle>
           <DialogDescription>
-            Templates assume a data frame named df. Load a workspace CSV with df = read.csv("file.csv") and install the listed webR packages first.
+            Templates assume a data frame named df. For workspace CSVs, start with Load Workspace CSV Safely so identifier-like columns keep leading zeros; install listed webR packages first.
           </DialogDescription>
         </DialogHeader>
 
