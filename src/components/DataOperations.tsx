@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sheet,
@@ -107,14 +109,37 @@ const DATA_OPERATIONS = [
 
 export const DataOperations = ({ onInsertCode, datasetName, currentLanguage = 'python' }: DataOperationsProps) => {
   const operations = currentLanguage === 'r' ? R_DATA_OPERATIONS : DATA_OPERATIONS;
-  const activeCsvName = datasetName?.toLowerCase().endsWith('.csv') ? datasetName : undefined;
+  const [rememberedCsvName, setRememberedCsvName] = useState(() => {
+    if (datasetName?.toLowerCase().endsWith('.csv')) return datasetName;
+    if (typeof window === 'undefined') return '';
+    return sessionStorage.getItem('bide_data_ops_csv') || '';
+  });
+
+  useEffect(() => {
+    if (datasetName?.toLowerCase().endsWith('.csv')) {
+      setRememberedCsvName(datasetName);
+    }
+  }, [datasetName]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const trimmed = rememberedCsvName.trim();
+    if (trimmed) {
+      sessionStorage.setItem('bide_data_ops_csv', trimmed);
+    }
+  }, [rememberedCsvName]);
+
+  const trimmedCsvName = rememberedCsvName.trim();
+  const activeCsvName = trimmedCsvName
+    ? (trimmedCsvName.toLowerCase().endsWith('.csv') ? trimmedCsvName : `${trimmedCsvName}.csv`)
+    : undefined;
 
   const resolveOperationCode = (operation: { name: string; code: string }) => {
     if (operation.name !== 'Load CSV' || !activeCsvName) return operation.code;
 
     const quotedFileName = JSON.stringify(activeCsvName);
     if (currentLanguage === 'r') {
-      return operation.code.replace(/read_csv\((['"])data\.csv\1\)/, `read_csv(${quotedFileName})`);
+      return operation.code.replace(/file <- (["'])data\.csv\1/, `file <- ${quotedFileName}`);
     }
 
     return operation.code.replace(/pd\.read_csv\((['"])data\.csv\1\)/, `pd.read_csv(${quotedFileName})`);
@@ -146,12 +171,28 @@ export const DataOperations = ({ onInsertCode, datasetName, currentLanguage = 'p
         <SheetHeader>
           <SheetTitle>Data Operations</SheetTitle>
           <SheetDescription>
-            Quick {currentLanguage === 'r' ? 'R/dplyr' : 'pandas'} operations for data analysis
+            Quick {currentLanguage === 'r' ? 'R' : 'pandas'} operations for data analysis
             {activeCsvName && ` • Dataset: ${activeCsvName}`}
           </SheetDescription>
         </SheetHeader>
+
+        <div className="mt-4 space-y-1.5">
+          <label htmlFor="data-ops-csv" className="text-xs font-medium text-foreground">
+            Workspace CSV
+          </label>
+          <Input
+            id="data-ops-csv"
+            value={rememberedCsvName}
+            onChange={(event) => setRememberedCsvName(event.target.value)}
+            placeholder="orders.csv"
+            className="h-8"
+          />
+          <p className="text-[11px] text-muted-foreground">
+            Opening a CSV in Files fills this automatically. Change it here to target another workspace CSV.
+          </p>
+        </div>
         
-        <ScrollArea className="h-[calc(100vh-120px)] mt-4">
+        <ScrollArea className="h-[calc(100vh-205px)] mt-4">
           <div className="space-y-6 pr-4">
             {operations.map((category: any) => (
               <div key={category.category} className="space-y-3">

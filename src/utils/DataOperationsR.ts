@@ -8,13 +8,33 @@ export const R_DATA_OPERATIONS = [
     operations: [
       {
         name: "Load CSV",
-        code: `# Load CSV file with readr
-library(readr)
+        code: `# Load a workspace CSV with base R (no packages required)
+file <- "data.csv"
 
-df <- read_csv('data.csv')
+# Protect identifier-like columns from numeric inference so values such as
+# 00123 stay "00123" while measure columns can still be inferred normally.
+header <- read.csv(file, nrows = 0, check.names = FALSE)
+column_names <- names(header)
+id_like <- grepl(
+  "(^id$|_id$|^id_|_code$|^code$|zip|postal|phone|sku|identifier|account_number)",
+  column_names,
+  ignore.case = TRUE
+)
+
+column_classes <- rep(NA_character_, length(column_names))
+column_classes[id_like] <- "character"
+
+df <- read.csv(
+  file,
+  colClasses = column_classes,
+  na.strings = c("", "NA"),
+  check.names = FALSE,
+  stringsAsFactors = FALSE
+)
+
 print(head(df))
 cat("\\nShape:", dim(df), "\\n")`,
-        description: "Load and preview CSV data"
+        description: "Load a workspace CSV safely with base R (no package install required)"
       },
       {
         name: "Show Structure",
