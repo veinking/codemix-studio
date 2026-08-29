@@ -17,7 +17,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:sql-analyst": "node scripts/check-sql-analyst-workflow.mjs",
-    "test:r-runtime": "node scripts/check-r-runtime-workflow.mjs"
+    "test:r-runtime": "node scripts/check-r-source-normalization.mjs && node scripts/check-r-runtime-workflow.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
