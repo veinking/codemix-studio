@@ -78,6 +78,13 @@ struct RootView: View {
 private struct AccountView: View {
     @EnvironmentObject private var session: AppSession
 
+    private enum ProductLinks {
+        static let supportEmail = URL(string: "mailto:support@pocketbi.app?subject=bIDE%20iOS%20Support")!
+        static let support = URL(string: "https://bideide.com/support")!
+        static let privacy = URL(string: "https://bideide.com/privacy")!
+        static let terms = URL(string: "https://bideide.com/terms")!
+    }
+
     var body: some View {
         List {
             Section("Access") {
@@ -89,6 +96,26 @@ private struct AccountView: View {
                 Text("PocketBI ID and shared entitlements are intentionally deferred until the standalone editor/runtime path is stable.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+
+            Section("Support & Legal") {
+                Link(destination: ProductLinks.supportEmail) {
+                    Label("Email Support", systemImage: "envelope")
+                }
+                Link(destination: ProductLinks.support) {
+                    Label("bIDE Support", systemImage: "questionmark.circle")
+                }
+                Link(destination: ProductLinks.privacy) {
+                    Label("Privacy Policy", systemImage: "hand.raised")
+                }
+                Link(destination: ProductLinks.terms) {
+                    Label("Terms of Use", systemImage: "doc.text")
+                }
+
+                Text("Support: support@pocketbi.app")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
         }
         .navigationTitle("Account")
