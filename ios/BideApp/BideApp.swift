@@ -53,8 +53,13 @@ struct BideApp: App {
         dataWorkspace.openProject(projectID)
         guard let projectID else { return }
         Task {
-            await dataWorkspace.reconcileProjectFiles(projectID: projectID)
+            // Validate authoritative dataset metadata and migrate the derived SQL layer
+            // before discovery is allowed to mutate the registry. If validation fails,
+            // leave the project untouched and surface the data error to the user.
             await dataWorkspace.migrateDerivedDatabaseIfNeeded(projectID: projectID)
+            guard dataWorkspace.activeProjectID == projectID,
+                  dataWorkspace.dataError == nil else { return }
+            await dataWorkspace.reconcileProjectFiles(projectID: projectID)
         }
     }
 }
