@@ -213,7 +213,7 @@ struct DatasetsView: View {
                     return
                 }
                 deleteTarget = nil
-                Task { await dataWorkspace.deleteDataset(asset, projectID: projectID) }
+                Task { await dataWorkspace.deleteDatasetSafely(asset, projectID: projectID) }
             }
             Button("Cancel", role: .cancel) { deleteTarget = nil }
         } message: {
