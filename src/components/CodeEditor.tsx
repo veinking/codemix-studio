@@ -227,6 +227,14 @@ export const CodeEditor = ({
     registerCompletionProviders(monaco);
     onEditorReady?.(editor);
 
+    // Monaco changes are intentionally debounced to avoid excessive parent
+    // updates. Flush the latest draft as soon as focus leaves the editor so a
+    // language-menu click cannot switch buffers before the final keystrokes are
+    // committed to the per-language scratch state.
+    editor.onDidBlurEditorWidget(() => {
+      flushPendingChange();
+    });
+
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
       const position = editor.getPosition();
       const model = editor.getModel();
