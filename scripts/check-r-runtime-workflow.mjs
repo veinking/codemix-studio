@@ -20,7 +20,8 @@ assert(runtime.includes("R_ZERO_WIDTH_CLIPBOARD_CHARS"), 'R runtime must handle 
 assert(runtime.includes('R_UNICODE_SPACE_PATTERN'), 'R runtime must cover all Unicode space separators outside literals/comments');
 assert(runtime.includes('R_UNICODE_LINE_PATTERN'), 'R runtime must cover all Unicode line/paragraph separators outside literals/comments');
 assert(runtime.includes('R_UNICODE_FORMAT_OR_CONTROL_PATTERN'), 'R runtime must remove otherwise-invalid Unicode format/control characters outside literals/comments');
-assert(runtime.includes("char !== '\\t'") && runtime.includes("char !== '\\n'") && runtime.includes("char !== '\\r'"), 'R sanitizer must preserve ordinary tab/newline/carriage-return source controls');
+assert(runtime.includes("char !== '\\t'") && runtime.includes("char !== '\\n'") && runtime.includes("char !== '\\r'"), 'R sanitizer must preserve ordinary source controls until final line-ending normalization');
+assert(runtime.includes("normalizedSource.code.replace(/\\r\\n?/g, '\\n')"), 'R execution must normalize CR and CRLF source line endings to LF before webR parses text');
 assert(runtime.includes("mode === 'comment'"), 'R source normalization must preserve comments');
 assert(runtime.includes("mode === 'single'") && runtime.includes("mode === 'double'") && runtime.includes("mode === 'backtick'"), 'R source normalization must preserve strings and backtick names');
 assert(runtime.includes('withAutoprint: true'), 'R console must autoprint bare expressions');
