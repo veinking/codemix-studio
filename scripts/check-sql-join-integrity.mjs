@@ -92,6 +92,42 @@ try {
     assert.ok(index >= 0, 'joined output must contain expected customer columns');
   }
 
+  // Every text-valued Orders field must survive the real SQL import/join exactly.
+  // Numeric SQLite columns may normalize display (for example 49.0 -> 49), so
+  // those are deliberately excluded from this exact-string comparison.
+  const exactOrderColumns = ['order_id', 'customer_id', 'order_date', 'product', 'status'];
+  for (const [rowIndex, sourceRow] of orders.data.entries()) {
+    const joinedRow = joined.data[rowIndex];
+    for (const column of exactOrderColumns) {
+      const sourceIndex = orders.headers.indexOf(column);
+      const joinedIndex = joined.headers.indexOf(column);
+      assert.equal(
+        joinedRow[joinedIndex],
+        sourceRow[sourceIndex],
+        `${column} changed during SQL import/join on Orders row ${rowIndex + 1}`,
+      );
+    }
+  }
+
+  const customerRowsById = new Map(
+    customers.data.map((row) => [row[customers.headers.indexOf('customer_id')], row]),
+  );
+  const joinedCustomerColumns = ['customer_name', 'state', 'segment', 'signup_date'];
+  for (const joinedRow of joined.data) {
+    const customerId = joinedRow[customerIdIndex];
+    const sourceCustomer = customerRowsById.get(customerId);
+    if (!sourceCustomer) continue;
+    for (const column of joinedCustomerColumns) {
+      const sourceIndex = customers.headers.indexOf(column);
+      const joinedIndex = joined.headers.indexOf(column);
+      assert.equal(
+        joinedRow[joinedIndex],
+        sourceCustomer[sourceIndex],
+        `${column} changed during SQL import/join for ${customerId}`,
+      );
+    }
+  }
+
   for (const orphanId of ['C999', 'C888']) {
     const row = joined.data.find((candidate) => candidate[customerIdIndex] === orphanId);
     assert.ok(row, `${orphanId} must remain in the LEFT JOIN result`);
@@ -101,10 +137,11 @@ try {
     assert.equal(row[signupIndex], '', `${orphanId} signup_date must export SQL NULL as an empty cell`);
   }
 
-  const forbiddenMutations = new Set(['C001_2', 'Starter Plan_2', '49.0_2', 'VA_2', '1_2']);
+  // The historical corruption suffixed repeated legitimate cell values with
+  // identifier-style uniqueness markers such as C001_2 and Starter Plan_2.
   for (const row of joined.data) {
     for (const value of row) {
-      assert.ok(!forbiddenMutations.has(String(value)), `historical cell mutation reappeared: ${value}`);
+      assert.doesNotMatch(String(value), /_2$/, `historical cell uniqueness mutation reappeared: ${value}`);
     }
   }
 
@@ -119,7 +156,7 @@ try {
     assert.equal(row.length, 11, `CSV row ${index + 1} must remain aligned to 11 fields`);
   }
 
-  console.log('bIDE SQL historical join integrity regression passed: 27 rows, 11 columns, orphan preservation, no cell mutation, valid CSV round-trip.');
+  console.log('bIDE SQL historical join integrity regression passed: 27 rows, 11 columns, exact text preservation, orphan preservation, no cell mutation, valid CSV round-trip.');
 } finally {
   await vite.close();
 }
