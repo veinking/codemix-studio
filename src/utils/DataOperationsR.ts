@@ -1,9 +1,10 @@
-import { Database, ArrowUpDown, Filter, BarChart3, Table2 } from "lucide-react";
+import { createElement } from "react";
+import { ArrowUpDown, Filter, BarChart3, Table2 } from "lucide-react";
 
 export const R_DATA_OPERATIONS = [
   {
     category: "Loading & Viewing",
-    icon: Table2,
+    icon: createElement(Table2, { className: "w-4 h-4" }),
     operations: [
       {
         name: "Load CSV",
@@ -39,7 +40,7 @@ for(col in names(df)) {
   },
   {
     category: "Cleaning",
-    icon: Filter,
+    icon: createElement(Filter, { className: "w-4 h-4" }),
     operations: [
       {
         name: "Drop Missing",
@@ -76,7 +77,7 @@ cat("New dimensions:", dim(df), "\\n")`,
   },
   {
     category: "Sorting & Filtering",
-    icon: ArrowUpDown,
+    icon: createElement(ArrowUpDown, { className: "w-4 h-4" }),
     operations: [
       {
         name: "Sort by Column",
@@ -116,7 +117,7 @@ print(grouped)`,
   },
   {
     category: "Visualization",
-    icon: BarChart3,
+    icon: createElement(BarChart3, { className: "w-4 h-4" }),
     operations: [
       {
         name: "Histogram",

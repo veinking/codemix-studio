@@ -11,6 +11,7 @@ const ide = read('src/pages/IDE.tsx');
 const explorer = read('src/components/FileExplorer.tsx');
 const docs = read('src/pages/docs/RDocs.tsx');
 const templates = read('src/components/RTemplateLibrary.tsx');
+const dataOperationsR = read('src/utils/DataOperationsR.ts');
 
 assert(runtime.includes('captureR(executableCode'), 'R execution must use normalized source with webR captureR');
 assert(runtime.includes('normalizeRSourceForExecution'), 'R runtime must normalize invalid clipboard whitespace before execution');
@@ -49,5 +50,7 @@ assert(templates.includes('Templates assume a data frame named df'), 'R template
 assert(templates.includes('Load Workspace CSV Safely'), 'R templates must provide a discoverable safe workspace CSV import path');
 assert(templates.includes('column_classes[id_like] <- "character"'), 'safe R CSV template must preserve identifier-like columns as character data');
 assert(templates.includes('na.strings = c("", "NA")'), 'safe R CSV template must preserve blank values as R missing values');
+assert((dataOperationsR.match(/icon: createElement\(/g) || []).length === 4, 'all R Data Ops category icons must be React elements before rendering');
+assert(!/icon:\s*(Table2|Filter|ArrowUpDown|BarChart3)\s*,/.test(dataOperationsR), 'R Data Ops must not pass Lucide forwardRef component objects directly as React children');
 
 console.log('✓ R runtime workflow guard passed');
