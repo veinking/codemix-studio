@@ -108,8 +108,9 @@ targets:
       - path: BideTests
         excludes:
           - Fixtures
-    resources:
-      - path: BideTests/Fixtures
+      - path: BideTests/Fixtures/bIDE-Phase2-Test-MultiSheet.xlsx
+        buildPhase: resources
+        group: BideTests/Fixtures
     dependencies:
       - target: bIDE
     settings:
