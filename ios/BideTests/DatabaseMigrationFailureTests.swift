@@ -49,6 +49,8 @@ final class DatabaseMigrationFailureTests: XCTestCase {
         let registryURL = projectDirectory.appendingPathComponent("datasets.bide.json")
         let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
         let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
+        let walURL = URL(fileURLWithPath: databaseURL.path + "-wal")
+        let shmURL = URL(fileURLWithPath: databaseURL.path + "-shm")
         let corruptRegistry = "{not-valid-json-current-generation"
 
         try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
@@ -57,6 +59,8 @@ final class DatabaseMigrationFailureTests: XCTestCase {
         try corruptRegistry.write(to: registryURL, atomically: true, encoding: .utf8)
         try "2".write(to: markerURL, atomically: true, encoding: .utf8)
         XCTAssertTrue(manager.createFile(atPath: databaseURL.path, contents: Data()))
+        XCTAssertTrue(manager.createFile(atPath: walURL.path, contents: Data("stale wal".utf8)))
+        XCTAssertTrue(manager.createFile(atPath: shmURL.path, contents: Data("stale shm".utf8)))
 
         let store = DataWorkspaceStore()
         store.openProject(projectID)
@@ -73,10 +77,79 @@ final class DatabaseMigrationFailureTests: XCTestCase {
             corruptRegistry,
             "Fail-closed validation must not rewrite or reconcile over the damaged registry."
         )
+        XCTAssertFalse(
+            manager.fileExists(atPath: databaseURL.path),
+            "A corrupt authoritative registry must invalidate the derived SQLite database so stale tables cannot remain queryable."
+        )
+        XCTAssertFalse(manager.fileExists(atPath: walURL.path))
+        XCTAssertFalse(manager.fileExists(atPath: shmURL.path))
         XCTAssertEqual(
             try String(contentsOf: markerURL, encoding: .utf8),
             "2",
-            "A current generation marker may remain, but it must not bypass authoritative registry validation."
+            "The generation marker may remain because a missing database forces a future safe rebuild after authority is repaired."
+        )
+    }
+
+    @MainActor
+    func testMissingRegisteredSourceInvalidatesCurrentDerivedDatabase() async throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let documents = try XCTUnwrap(manager.urls(for: .documentDirectory, in: .userDomainMask).first)
+        let projectDirectory = documents
+            .appendingPathComponent("bIDE Projects", isDirectory: true)
+            .appendingPathComponent(projectID.uuidString, isDirectory: true)
+        let dataDirectory = projectDirectory.appendingPathComponent("data", isDirectory: true)
+        let registryURL = projectDirectory.appendingPathComponent("datasets.bide.json")
+        let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
+        let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
+
+        try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: projectDirectory) }
+
+        let missingAsset = DatasetAsset(
+            fileName: "missing.csv",
+            relativePath: "data/missing.csv",
+            format: .csv,
+            sizeBytes: 12,
+            tables: [
+                DatasetTableDescriptor(
+                    displayName: "missing",
+                    sqliteName: "missing",
+                    rowCount: 1,
+                    columns: [DatasetColumn(name: "id", type: .integer)]
+                )
+            ]
+        )
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        let registryData = try encoder.encode([missingAsset])
+        try registryData.write(to: registryURL, options: .atomic)
+        try "2".write(to: markerURL, atomically: true, encoding: .utf8)
+        XCTAssertTrue(manager.createFile(atPath: databaseURL.path, contents: Data("stale table bytes".utf8)))
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertEqual(store.datasets.count, 1, "The valid registry loads before source authority is verified.")
+
+        await store.migrateDerivedDatabaseIfNeeded(projectID: projectID)
+
+        XCTAssertTrue(
+            store.dataError?.contains("could not verify it safely") == true,
+            "A registry entry whose source file disappeared must fail authoritative verification."
+        )
+        XCTAssertTrue(
+            store.dataError?.contains("missing.csv") == true,
+            "The integrity error should identify the missing registered source."
+        )
+        XCTAssertFalse(
+            manager.fileExists(atPath: databaseURL.path),
+            "A missing authoritative source must invalidate stale derived SQL even when its generation marker is current."
+        )
+        XCTAssertEqual(
+            try Data(contentsOf: registryURL),
+            registryData,
+            "Authority failure must not silently rewrite the user's dataset registry."
         )
     }
 
