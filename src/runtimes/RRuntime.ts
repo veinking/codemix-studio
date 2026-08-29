@@ -251,7 +251,11 @@ export class RRuntime implements RuntimeExecutor {
 
     try {
       const normalizedSource = normalizeRSourceForExecution(code);
-      const executableCode = normalizedSource.code;
+      // webR captureR ultimately parses a text string. Normalize Windows/legacy
+      // carriage-return line endings to LF before that parse boundary; otherwise
+      // an invisible CR can be reported as "unexpected input" at the end of an
+      // otherwise-valid first line.
+      const executableCode = normalizedSource.code.replace(/\r\n?/g, '\n');
       if (normalizedSource.normalizedCount > 0) {
         const noun = normalizedSource.normalizedCount === 1 ? 'character' : 'characters';
         onOutput(`ℹ R normalized ${normalizedSource.normalizedCount} invisible clipboard ${noun} outside strings/comments.`);
