@@ -30,6 +30,8 @@ assert(!runtime.includes('paste(capture.output'), 'legacy capture.output wrapper
 assert(!runtime.includes('base64enc'), 'plot capture must not depend on base64enc');
 assert(runtime.includes('syncCSVFiles'), 'R runtime must mirror workspace CSV files');
 assert(runtime.includes('FS.writeFile'), 'R CSV mirroring must use the webR VFS');
+assert(runtime.includes('const vfsContent = /\\r?\\n$/.test(content)'), 'R VFS mirrors must append a final newline when workspace CSVs omit one');
+assert(runtime.includes('encoder.encode(vfsContent)'), 'R VFS must write the newline-hardened mirror without mutating persisted workspace content');
 assert(runtime.includes('installPackages([packageName])'), 'R packages must use webR binary installer');
 assert(!runtime.includes("install.packages('${name}')"), 'unsafe source package interpolation must not return');
 assert((ide.match(/runtime\.syncCSVFiles\(/g) || []).length >= 2, 'normal and notebook R runs must refresh CSV files');
@@ -42,5 +44,8 @@ assert(docs.includes('webR WebAssembly repository'), 'R docs must describe brows
 assert(docs.includes('must be installed again after a full reload'), 'R docs must explain package session lifetime');
 assert(docs.includes('Uploaded CSVs are mirrored into webR'), 'R docs must explain CSV-to-R workflow');
 assert(templates.includes('Templates assume a data frame named df'), 'R templates must disclose their df/package prerequisites');
+assert(templates.includes('Load Workspace CSV Safely'), 'R templates must provide a discoverable safe workspace CSV import path');
+assert(templates.includes('column_classes[id_like] <- "character"'), 'safe R CSV template must preserve identifier-like columns as character data');
+assert(templates.includes('na.strings = c("", "NA")'), 'safe R CSV template must preserve blank values as R missing values');
 
 console.log('✓ R runtime workflow guard passed');
