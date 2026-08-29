@@ -17,14 +17,24 @@ extension DataWorkspaceStore {
         let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
         let registryURL = projectDirectory.appendingPathComponent("datasets.bide.json")
 
-        // Validate the authoritative registry on every project synchronization, even when
-        // the derived SQLite generation is already current. A damaged registry must never
-        // be treated as an empty project and then overwritten by reconciliation.
+        // Validate the authoritative registry and every registered source file on every
+        // project synchronization, even when the derived SQLite generation is current.
+        // If authority cannot be proven, invalidate SQLite so stale tables cannot remain
+        // queryable while the app surfaces the data-integrity error.
         let registeredAssets: [DatasetAsset]?
         do {
-            registeredAssets = try strictRegistryAssetsIfPresent(at: registryURL)
+            registeredAssets = try strictRegistryAssetsIfPresent(
+                at: registryURL,
+                projectDirectory: projectDirectory
+            )
         } catch {
-            dataError = "bIDE found local dataset metadata but could not verify it safely: \(error.localizedDescription)"
+            let verificationError = error.localizedDescription
+            do {
+                try invalidateDerivedDatabase(manager: manager, databaseURL: databaseURL)
+                dataError = "bIDE found local dataset metadata but could not verify it safely. Derived SQL was disabled: \(verificationError)"
+            } catch {
+                dataError = "bIDE found local dataset metadata but could not verify it safely, and could not disable stale derived SQL: \(error.localizedDescription)"
+            }
             return
         }
 
@@ -40,13 +50,11 @@ extension DataWorkspaceStore {
 
         // SQLite is derived state. If there are no authoritative registered datasets,
         // an existing database is orphaned and must not remain queryable. Remove it before
-        // stamping the current generation; source-file reconciliation can rebuild only the
-        // tables that are actually present in the project afterward.
+        // stamping the generation; source-file reconciliation can rebuild only the tables
+        // that are actually present in the project afterward.
         if datasets.isEmpty {
             do {
-                if databaseExists {
-                    try manager.removeItem(at: databaseURL)
-                }
+                try invalidateDerivedDatabase(manager: manager, databaseURL: databaseURL)
                 try recordDerivedDatabaseGeneration(
                     manager: manager,
                     dataDirectory: dataDirectory,
@@ -67,6 +75,7 @@ extension DataWorkspaceStore {
             )
         } catch {
             guard activeProjectID == projectID else { return }
+            try? invalidateDerivedDatabase(manager: manager, databaseURL: databaseURL)
             dataError = "bIDE found older local data metadata but could not safely refresh it from the project source files: \(error.localizedDescription)"
             return
         }
@@ -90,12 +99,47 @@ extension DataWorkspaceStore {
         }
     }
 
-    private func strictRegistryAssetsIfPresent(at registryURL: URL) throws -> [DatasetAsset]? {
+    private func strictRegistryAssetsIfPresent(
+        at registryURL: URL,
+        projectDirectory: URL
+    ) throws -> [DatasetAsset]? {
         guard FileManager.default.fileExists(atPath: registryURL.path) else { return nil }
         let registryData = try Data(contentsOf: registryURL)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return try decoder.decode([DatasetAsset].self, from: registryData)
+        let assets = try decoder.decode([DatasetAsset].self, from: registryData)
+
+        let projectRoot = projectDirectory.standardizedFileURL.path
+        let projectPrefix = projectRoot.hasSuffix("/") ? projectRoot : projectRoot + "/"
+        for asset in assets {
+            let relativePath = asset.relativePath.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !relativePath.isEmpty else {
+                throw DatasetParserError.unreadable(asset.fileName)
+            }
+
+            let sourceURL = projectDirectory
+                .appendingPathComponent(relativePath)
+                .standardizedFileURL
+            guard sourceURL.path.hasPrefix(projectPrefix),
+                  (try? sourceURL.resourceValues(forKeys: [.isRegularFileKey]).isRegularFile) == true else {
+                throw DatasetParserError.unreadable(asset.fileName)
+            }
+        }
+        return assets
+    }
+
+    private func invalidateDerivedDatabase(
+        manager: FileManager,
+        databaseURL: URL
+    ) throws {
+        let relatedURLs = [
+            databaseURL,
+            URL(fileURLWithPath: databaseURL.path + "-wal"),
+            URL(fileURLWithPath: databaseURL.path + "-shm"),
+        ]
+        for url in relatedURLs where manager.fileExists(atPath: url.path) {
+            try manager.removeItem(at: url)
+        }
     }
 
     private func recordDerivedDatabaseGeneration(
