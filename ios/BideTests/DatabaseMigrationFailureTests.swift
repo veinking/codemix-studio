@@ -36,4 +36,47 @@ final class DatabaseMigrationFailureTests: XCTestCase {
             "A corrupt registry must never be stamped as successfully migrated."
         )
     }
+
+    @MainActor
+    func testCorruptRegistryIsRejectedEvenWhenDerivedDatabaseGenerationIsCurrent() async throws {
+        let projectID = UUID()
+        let manager = FileManager.default
+        let documents = try XCTUnwrap(manager.urls(for: .documentDirectory, in: .userDomainMask).first)
+        let projectDirectory = documents
+            .appendingPathComponent("bIDE Projects", isDirectory: true)
+            .appendingPathComponent(projectID.uuidString, isDirectory: true)
+        let dataDirectory = projectDirectory.appendingPathComponent("data", isDirectory: true)
+        let registryURL = projectDirectory.appendingPathComponent("datasets.bide.json")
+        let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
+        let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
+        let corruptRegistry = "{not-valid-json-current-generation"
+
+        try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
+        defer { try? manager.removeItem(at: projectDirectory) }
+
+        try corruptRegistry.write(to: registryURL, atomically: true, encoding: .utf8)
+        try "2".write(to: markerURL, atomically: true, encoding: .utf8)
+        XCTAssertTrue(manager.createFile(atPath: databaseURL.path, contents: Data()))
+
+        let store = DataWorkspaceStore()
+        store.openProject(projectID)
+        XCTAssertTrue(store.datasets.isEmpty, "The forgiving project loader still presents an unreadable registry as empty until strict validation runs.")
+
+        await store.migrateDerivedDatabaseIfNeeded(projectID: projectID)
+
+        XCTAssertTrue(
+            store.dataError?.contains("could not verify it safely") == true,
+            "Strict registry validation must run before the current-generation early return."
+        )
+        XCTAssertEqual(
+            try String(contentsOf: registryURL, encoding: .utf8),
+            corruptRegistry,
+            "Fail-closed validation must not rewrite or reconcile over the damaged registry."
+        )
+        XCTAssertEqual(
+            try String(contentsOf: markerURL, encoding: .utf8),
+            "2",
+            "A current generation marker may remain, but it must not bypass authoritative registry validation."
+        )
+    }
 }
