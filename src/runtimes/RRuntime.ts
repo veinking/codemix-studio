@@ -224,7 +224,11 @@ export class RRuntime implements RuntimeExecutor {
 
     const encoder = new TextEncoder();
     for (const [name, content] of latestByName) {
-      await webR.FS.writeFile(this.workspacePath(name), encoder.encode(content));
+      // Keep the persisted workspace file byte-for-byte unchanged. The webR VFS
+      // mirror gets a final newline only when one is missing so base R readers do
+      // not emit the distracting "incomplete final line" warning.
+      const vfsContent = /\r?\n$/.test(content) ? content : `${content}\n`;
+      await webR.FS.writeFile(this.workspacePath(name), encoder.encode(vfsContent));
     }
 
     this.managedCsvFiles = nextNames;
