@@ -5,6 +5,7 @@ const indexedDb = readFileSync(new URL('../src/hooks/useIndexedDB.ts', import.me
 const cloud = readFileSync(new URL('../src/hooks/useCloudWorkspace.ts', import.meta.url), 'utf8');
 const manager = readFileSync(new URL('../src/components/WorkspaceManager.tsx', import.meta.url), 'utf8');
 const ide = readFileSync(new URL('../src/pages/IDE.tsx', import.meta.url), 'utf8');
+const codeEditor = readFileSync(new URL('../src/components/CodeEditor.tsx', import.meta.url), 'utf8');
 const migration = readFileSync(new URL('../supabase/migrations/20260825150500_harden_bide_cloud_workspaces.sql', import.meta.url), 'utf8');
 
 assert.match(indexedDb, /const replaceFiles = async/, 'Cloud restore must atomically replace local files');
@@ -28,6 +29,7 @@ assert.match(ide, /setActiveFile\(restoredActiveFile\)/, 'IDE restore must clear
 assert.match(ide, /workspace\.scratch_code/, 'IDE restore must restore scratch content');
 assert.match(ide, /file\.language === 'csv'[\s\S]*?parseCSV/, 'IDE restore must rebuild CSV dataset state');
 assert.match(ide, /currentScratchCode=\{scratchCode\}/, 'Workspace manager must receive current scratch content');
+assert.match(codeEditor, /onDidBlurEditorWidget\([\s\S]*?flushPendingChange\(\)/, 'Editor must flush debounced draft changes before toolbar/language interactions can swap buffers');
 
 assert.match(migration, /ADD COLUMN IF NOT EXISTS scratch_code/, 'Database must persist the scratch buffer');
 assert.match(migration, /jsonb_array_length\(files\) <= 100/, 'Database must enforce file-count limit');
