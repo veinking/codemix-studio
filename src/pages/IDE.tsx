@@ -48,6 +48,11 @@ import { SQLRuntime } from "@/runtimes/SQLRuntime";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityTracking } from "@/hooks/useActivityTracking";
 import { GuestPrompt } from "@/components/GuestPrompt";
+import {
+  createLanguageDraftTransition,
+  LanguageDrafts,
+  ScratchLanguage,
+} from "@/utils/languageDrafts";
 
 interface ErrorExplanation {
   what: string;
@@ -123,12 +128,7 @@ const IDE = () => {
   const starterFilesRef = React.useRef<FileItem[] | null>(null);
   
   // Per-language code storage (scratch pad per language)
-  const [languageCode, setLanguageCode] = useState<{
-    python: string;
-    r: string;
-    javascript: string;
-    sql: string;
-  }>(() => {
+  const [languageCode, setLanguageCode] = useState<LanguageDrafts>(() => {
     const stored = sessionStorage.getItem('languageCode');
     if (stored) {
       try {
@@ -139,6 +139,7 @@ const IDE = () => {
     }
     return { python: '', r: '', javascript: '', sql: '' };
   });
+  const languageCodeRef = React.useRef<LanguageDrafts>(languageCode);
   
   // Scratch pad state (not saved to files, only sessionStorage)
   const [scratchCode, setScratchCode] = useState<string>(() => {
@@ -226,6 +227,7 @@ useEffect(() => {
 
   // Persist language code to sessionStorage
   useEffect(() => {
+    languageCodeRef.current = languageCode;
     sessionStorage.setItem('languageCode', JSON.stringify(languageCode));
   }, [languageCode]);
 
@@ -239,18 +241,23 @@ useEffect(() => {
   }, [scratchLanguage]);
 
   // When switching languages, save current code and load new language's code
-  const handleLanguageChange = async (newLang: 'python' | 'r' | 'javascript' | 'sql') => {
-    // Save current language code
-    setLanguageCode(prev => ({
-      ...prev,
-      [scratchLanguage]: scratchCode
-    }));
-    
-    // Switch to new language
+  const handleLanguageChange = async (newLang: ScratchLanguage) => {
+    // Read Monaco synchronously. The debounced React scratchCode state can still
+    // be one paste/keystroke behind when the language menu click blurs the editor.
+    const editorValue = editorRef.current?.getValue?.();
+    const transition = createLanguageDraftTransition(
+      languageCodeRef.current,
+      scratchLanguage,
+      typeof editorValue === 'string' ? editorValue : scratchCode,
+      newLang,
+    );
+
+    // Update the ref before React renders so a rapid second switch sees the
+    // latest complete set of language buffers rather than a stale closure.
+    languageCodeRef.current = transition.drafts;
+    setLanguageCode(transition.drafts);
     setScratchLanguage(newLang);
-    
-    // Load new language's code
-    setScratchCode(languageCode[newLang]);
+    setScratchCode(transition.code);
 
     // Lazy initialize runtime if not already initialized
     if (!initializedRuntimes.has(newLang)) {
