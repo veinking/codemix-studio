@@ -21,7 +21,7 @@ const Support = () => {
         "name": "How do I contact bIDE support?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Email support@bideide.com for technical support, access questions, or general inquiries."
+          "text": "Email support@pocketbi.app for technical support, access questions, or general inquiries."
         }
       },
       {
@@ -69,8 +69,8 @@ const Support = () => {
               </p>
               <div className="flex items-center gap-3 p-4 bg-muted rounded-lg">
                 <Mail className="h-5 w-5 text-primary" />
-                <a href="mailto:support@bideide.com" className="text-lg font-medium hover:text-primary transition-colors">
-                  support@bideide.com
+                <a href="mailto:support@pocketbi.app" className="text-lg font-medium hover:text-primary transition-colors">
+                  support@pocketbi.app
                 </a>
               </div>
               <p className="text-sm text-muted-foreground">Never send passwords, API keys, refresh tokens, access tokens, or private share links in a support email.</p>
