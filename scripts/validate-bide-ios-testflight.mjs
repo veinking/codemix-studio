@@ -18,6 +18,7 @@ const workspaceViewPath = "ios/BideApp/Views/WorkspaceView.swift";
 const projectsViewPath = "ios/BideApp/Views/ProjectsView.swift";
 const rootViewPath = "ios/BideApp/RootView.swift";
 const migrationPath = "ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift";
+const nativeTestsPath = "ios/BideTests";
 
 assert.ok(exists(iconGeneratorPath), `TestFlight release file missing: ${iconGeneratorPath}`);
 execFileSync(process.execPath, [iconGeneratorPath], { stdio: "inherit" });
@@ -35,6 +36,7 @@ for (const path of [
   projectsViewPath,
   rootViewPath,
   migrationPath,
+  nativeTestsPath,
 ]) {
   assert.ok(exists(path), `TestFlight release file missing: ${path}`);
 }
@@ -210,5 +212,120 @@ for (const token of [
 ]) {
   assert.ok(workflow.includes(token), `TestFlight workflow capability missing: ${token}`);
 }
+
+const collectSwiftTests = (directory) => fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+  const path = `${directory}/${entry.name}`;
+  if (entry.isDirectory()) return collectSwiftTests(path);
+  if (entry.isFile() && entry.name.endsWith(".swift")) return [path];
+  return [];
+});
+
+const xctestAwaitViolations = (source) => {
+  const findings = [];
+  const callStart = /\b(XCT(?:Unwrap|Assert[A-Za-z0-9_]*))\s*\(/g;
+  let match;
+
+  while ((match = callStart.exec(source)) !== null) {
+    const openIndex = source.indexOf("(", match.index);
+    let depth = 0;
+    let lineComment = false;
+    let blockCommentDepth = 0;
+    let stringDelimiter = null;
+    let escaped = false;
+    let codeOnly = "";
+    let closeIndex = -1;
+
+    for (let index = openIndex; index < source.length; index += 1) {
+      const char = source[index];
+      const next = source[index + 1] ?? "";
+      const triple = source.slice(index, index + 3);
+
+      if (lineComment) {
+        if (char === "\n") {
+          lineComment = false;
+          codeOnly += "\n";
+        }
+        continue;
+      }
+      if (blockCommentDepth > 0) {
+        if (char === "/" && next === "*") {
+          blockCommentDepth += 1;
+          index += 1;
+        } else if (char === "*" && next === "/") {
+          blockCommentDepth -= 1;
+          index += 1;
+        }
+        continue;
+      }
+      if (stringDelimiter) {
+        if (stringDelimiter === '"""') {
+          if (triple === '"""') {
+            stringDelimiter = null;
+            index += 2;
+          }
+        } else if (escaped) {
+          escaped = false;
+        } else if (char === "\\") {
+          escaped = true;
+        } else if (char === '"') {
+          stringDelimiter = null;
+        }
+        continue;
+      }
+
+      if (char === "/" && next === "/") {
+        lineComment = true;
+        index += 1;
+        continue;
+      }
+      if (char === "/" && next === "*") {
+        blockCommentDepth = 1;
+        index += 1;
+        continue;
+      }
+      if (triple === '"""') {
+        stringDelimiter = '"""';
+        index += 2;
+        continue;
+      }
+      if (char === '"') {
+        stringDelimiter = '"';
+        continue;
+      }
+
+      codeOnly += char;
+      if (char === "(") depth += 1;
+      if (char === ")") {
+        depth -= 1;
+        if (depth === 0) {
+          closeIndex = index;
+          break;
+        }
+      }
+    }
+
+    if (closeIndex < 0) continue;
+    if (/\bawait\b/.test(codeOnly)) {
+      const line = source.slice(0, match.index).split("\n").length;
+      findings.push(`${match[1]} at line ${line}`);
+    }
+    callStart.lastIndex = closeIndex + 1;
+  }
+
+  return findings;
+};
+
+const asyncAutoclosureViolations = [];
+for (const path of collectSwiftTests(nativeTestsPath)) {
+  const source = read(path);
+  for (const finding of xctestAwaitViolations(source)) {
+    asyncAutoclosureViolations.push(`${path}: ${finding}`);
+  }
+}
+assert.deepEqual(
+  asyncAutoclosureViolations,
+  [],
+  `Swift 6 XCTest autoclosures cannot contain await. Resolve async values before XCTest assertions:\n${asyncAutoclosureViolations.join("\n")}`
+);
 
 console.log("bIDE TestFlight release validation passed.");

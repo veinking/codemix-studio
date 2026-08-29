@@ -55,11 +55,12 @@ final class VerifiedResultRelaunchIntegrationTests: XCTestCase {
         XCTAssertNil(result.rows[1][3])
         XCTAssertNil(result.rows[1][4])
 
-        let savedURL = try XCTUnwrap(await firstStore.exportSQLResult(
+        let savedCandidate = await firstStore.exportSQLResult(
             report,
             projectID: projectID,
             registerAsDataset: true
-        ))
+        )
+        let savedURL = try XCTUnwrap(savedCandidate)
         XCTAssertNil(firstStore.dataError)
         XCTAssertEqual(firstStore.datasets.count, 3)
         XCTAssertTrue(manager.fileExists(atPath: savedURL.path))
