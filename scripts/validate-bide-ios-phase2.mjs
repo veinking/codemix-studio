@@ -171,6 +171,8 @@ for (const migrationCapability of [
   "openProject(projectID)",
   "refreshedData.write(to: registryURL, options: .atomic)",
   "registeredAssets = try strictRegistryAssetsIfPresent(at: registryURL)",
+  "removeItem(at: databaseURL)",
+  "no authoritative registered datasets",
 ]) {
   assert.ok(migration.includes(migrationCapability), `Derived SQLite migration capability missing: ${migrationCapability}`);
 }
@@ -178,6 +180,11 @@ assert.ok(
   migration.indexOf("registeredAssets = try strictRegistryAssetsIfPresent(at: registryURL)") <
     migration.indexOf("guard storedGeneration != Self.derivedDatabaseGeneration || !databaseExists else { return }"),
   "Authoritative dataset registry validation must run before the current-generation SQLite early return."
+);
+assert.ok(
+  migration.indexOf("if datasets.isEmpty") <
+    migration.indexOf("guard storedGeneration != Self.derivedDatabaseGeneration || !databaseExists else { return }"),
+  "An orphan derived database must be cleared before a current generation marker can short-circuit migration."
 );
 
 const exportStore = read("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift");
@@ -297,11 +304,15 @@ const migrationFailureTests = read("ios/BideTests/DatabaseMigrationFailureTests.
 for (const regression of [
   "testCorruptDatasetRegistryDoesNotGetMarkedAsMigrated",
   "testCorruptRegistryIsRejectedEvenWhenDerivedDatabaseGenerationIsCurrent",
+  "testOrphanCurrentGenerationDatabaseIsRemovedBeforeSourceReconciliation",
   "{not-valid-json",
   "{not-valid-json-current-generation",
   "could not verify it safely",
   "Strict registry validation must run before the current-generation early return",
   "Fail-closed validation must not rewrite or reconcile over the damaged registry",
+  "A derived database with no authoritative registry must be removed even when its generation marker is current",
+  "Reconciliation should rebuild SQLite only from the real source file after orphan cleanup",
+  "fresh.csv",
   "XCTAssertFalse(",
   ".bide-sqlite-generation",
   ".bide.sqlite",
