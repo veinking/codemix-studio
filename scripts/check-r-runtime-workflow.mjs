@@ -6,6 +6,7 @@ const assert = (condition, message) => {
 };
 
 const runtime = read('src/runtimes/RRuntime.ts');
+const normalization = read('src/runtimes/rSourceNormalization.ts');
 const ide = read('src/pages/IDE.tsx');
 const explorer = read('src/components/FileExplorer.tsx');
 const docs = read('src/pages/docs/RDocs.tsx');
@@ -13,17 +14,18 @@ const templates = read('src/components/RTemplateLibrary.tsx');
 
 assert(runtime.includes('captureR(executableCode'), 'R execution must use normalized source with webR captureR');
 assert(runtime.includes('normalizeRSourceForExecution'), 'R runtime must normalize invalid clipboard whitespace before execution');
-assert(runtime.includes("R_SPACE_EQUIVALENTS"), 'R runtime must handle visible Unicode space equivalents');
-assert(runtime.includes("R_LINE_EQUIVALENTS"), 'R runtime must normalize Unicode line and paragraph separators');
-assert(runtime.includes("'\\u0085', '\\u2028', '\\u2029'"), 'R runtime must cover NEL, line separator, and paragraph separator clipboard breaks');
-assert(runtime.includes("R_ZERO_WIDTH_CLIPBOARD_CHARS"), 'R runtime must handle zero-width clipboard characters');
-assert(runtime.includes('R_UNICODE_SPACE_PATTERN'), 'R runtime must cover all Unicode space separators outside literals/comments');
-assert(runtime.includes('R_UNICODE_LINE_PATTERN'), 'R runtime must cover all Unicode line/paragraph separators outside literals/comments');
-assert(runtime.includes('R_UNICODE_FORMAT_OR_CONTROL_PATTERN'), 'R runtime must remove otherwise-invalid Unicode format/control characters outside literals/comments');
-assert(runtime.includes("char !== '\\t'") && runtime.includes("char !== '\\n'") && runtime.includes("char !== '\\r'"), 'R sanitizer must preserve ordinary source controls until final line-ending normalization');
+assert(normalization.includes("R_SPACE_EQUIVALENTS"), 'R runtime must handle visible Unicode space equivalents');
+assert(normalization.includes("R_LINE_EQUIVALENTS"), 'R runtime must normalize Unicode line and paragraph separators');
+assert(normalization.includes("'\\u0085', '\\u2028', '\\u2029'"), 'R runtime must cover NEL, line separator, and paragraph separator clipboard breaks');
+assert(normalization.includes("R_ZERO_WIDTH_CLIPBOARD_CHARS"), 'R runtime must handle zero-width clipboard characters');
+assert(normalization.includes('R_RICH_TEXT_PLACEHOLDER_CHARS'), 'R runtime must remove rich-text object placeholders outside literals/comments');
+assert(normalization.includes('R_UNICODE_SPACE_PATTERN'), 'R runtime must cover all Unicode space separators outside literals/comments');
+assert(normalization.includes('R_UNICODE_LINE_PATTERN'), 'R runtime must cover all Unicode line/paragraph separators outside literals/comments');
+assert(normalization.includes('R_UNICODE_FORMAT_OR_CONTROL_PATTERN'), 'R runtime must remove otherwise-invalid Unicode format/control characters outside literals/comments');
+assert(normalization.includes('Default_Ignorable_Code_Point'), 'R sanitizer must explicitly cover Unicode default-ignorable code points');
 assert(runtime.includes("normalizedSource.code.replace(/\\r\\n?/g, '\\n')"), 'R execution must normalize CR and CRLF source line endings to LF before webR parses text');
-assert(runtime.includes("mode === 'comment'"), 'R source normalization must preserve comments');
-assert(runtime.includes("mode === 'single'") && runtime.includes("mode === 'double'") && runtime.includes("mode === 'backtick'"), 'R source normalization must preserve strings and backtick names');
+assert(normalization.includes("mode === 'comment'"), 'R source normalization must preserve comments');
+assert(normalization.includes("mode === 'single'") && normalization.includes("mode === 'double'") && normalization.includes("mode === 'backtick'"), 'R source normalization must preserve strings and backtick names');
 assert(runtime.includes('withAutoprint: true'), 'R console must autoprint bare expressions');
 assert(runtime.includes('throwJsException: true'), 'R errors must propagate to IDE error handling');
 assert(!runtime.includes('paste(capture.output'), 'legacy capture.output wrapper must not return');
