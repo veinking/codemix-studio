@@ -162,7 +162,7 @@ for (const migrationCapability of [
   "refreshDatasetRegistryFromSourceAssets",
   "strictRegistryAssetsIfPresent",
   "recordDerivedDatabaseGeneration",
-  "could not verify it safely for SQL migration",
+  "could not verify it safely",
   "rebuildDatabase(projectID: projectID)",
   "storedGeneration != Self.derivedDatabaseGeneration || !databaseExists",
   "id: existing.id",
@@ -170,9 +170,15 @@ for (const migrationCapability of [
   "columns: parsed.columns",
   "openProject(projectID)",
   "refreshedData.write(to: registryURL, options: .atomic)",
+  "registeredAssets = try strictRegistryAssetsIfPresent(at: registryURL)",
 ]) {
   assert.ok(migration.includes(migrationCapability), `Derived SQLite migration capability missing: ${migrationCapability}`);
 }
+assert.ok(
+  migration.indexOf("registeredAssets = try strictRegistryAssetsIfPresent(at: registryURL)") <
+    migration.indexOf("guard storedGeneration != Self.derivedDatabaseGeneration || !databaseExists else { return }"),
+  "Authoritative dataset registry validation must run before the current-generation SQLite early return."
+);
 
 const exportStore = read("ios/BideApp/Stores/DataWorkspaceStore+SQLExport.swift");
 for (const exportCapability of [
@@ -290,10 +296,15 @@ for (const regression of [
 const migrationFailureTests = read("ios/BideTests/DatabaseMigrationFailureTests.swift");
 for (const regression of [
   "testCorruptDatasetRegistryDoesNotGetMarkedAsMigrated",
+  "testCorruptRegistryIsRejectedEvenWhenDerivedDatabaseGenerationIsCurrent",
   "{not-valid-json",
+  "{not-valid-json-current-generation",
   "could not verify it safely",
+  "Strict registry validation must run before the current-generation early return",
+  "Fail-closed validation must not rewrite or reconcile over the damaged registry",
   "XCTAssertFalse(",
   ".bide-sqlite-generation",
+  ".bide.sqlite",
 ]) {
   assert.ok(migrationFailureTests.includes(regression), `Migration fail-closed regression missing: ${regression}`);
 }
@@ -342,8 +353,12 @@ assert.ok(app.includes("DatasetFormat.infer"), "Open in bIDE must route dataset 
 assert.ok(app.includes("reconcileProjectFiles"), "Project open must discover existing local datasets.");
 assert.ok(app.includes("migrateDerivedDatabaseIfNeeded"), "Project open must migrate stale derived SQLite state.");
 assert.ok(
-  app.indexOf("reconcileProjectFiles") < app.indexOf("migrateDerivedDatabaseIfNeeded"),
-  "Source reconciliation must finish before the derived SQLite migration runs."
+  app.indexOf("migrateDerivedDatabaseIfNeeded") < app.indexOf("reconcileProjectFiles"),
+  "Authoritative registry validation/migration must finish before source reconciliation can mutate dataset metadata."
+);
+assert.ok(
+  app.includes("dataWorkspace.dataError == nil"),
+  "Project reconciliation must be gated off when strict registry validation reports a data error."
 );
 
 const nativeSource = walk("ios/BideApp")
