@@ -11,6 +11,7 @@ const ide = read('src/pages/IDE.tsx');
 const explorer = read('src/components/FileExplorer.tsx');
 const docs = read('src/pages/docs/RDocs.tsx');
 const templates = read('src/components/RTemplateLibrary.tsx');
+const dataOperations = read('src/components/DataOperations.tsx');
 const dataOperationsR = read('src/utils/DataOperationsR.ts');
 
 assert(runtime.includes('captureR(executableCode'), 'R execution must use normalized source with webR captureR');
@@ -52,5 +53,12 @@ assert(templates.includes('column_classes[id_like] <- "character"'), 'safe R CSV
 assert(templates.includes('na.strings = c("", "NA")'), 'safe R CSV template must preserve blank values as R missing values');
 assert((dataOperationsR.match(/icon: createElement\(/g) || []).length === 4, 'all R Data Ops category icons must be React elements before rendering');
 assert(!/icon:\s*(Table2|Filter|ArrowUpDown|BarChart3)\s*,/.test(dataOperationsR), 'R Data Ops must not pass Lucide forwardRef component objects directly as React children');
+assert(dataOperationsR.includes('# Load a workspace CSV with base R (no packages required)'), 'R Data Ops Load CSV must be usable in a fresh session without installing readr');
+assert(!dataOperationsR.includes('library(readr)'), 'R Data Ops Load CSV must not require readr');
+assert(dataOperationsR.includes('column_classes[id_like] <- "character"'), 'R Data Ops Load CSV must preserve identifier-like columns such as leading-zero IDs');
+assert(dataOperationsR.includes('na.strings = c("", "NA")'), 'R Data Ops Load CSV must preserve blank values as R missing values');
+assert(dataOperations.includes('bide_data_ops_csv'), 'Data Ops must remember the last workspace CSV after returning to the scratch editor');
+assert(dataOperations.includes('Workspace CSV'), 'Data Ops must expose the remembered workspace CSV so users can change targets without editing generated code');
+assert(dataOperations.includes('file <- ${quotedFileName}'), 'R Data Ops must bind the remembered workspace CSV into generated Load CSV code');
 
 console.log('✓ R runtime workflow guard passed');
