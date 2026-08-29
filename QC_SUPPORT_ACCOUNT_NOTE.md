@@ -1,0 +1,1 @@
+This temporary branch note exists only to document the isolated QC change: the bIDE Account page support mailto must use support@pocketbi.app. No native iOS Phase-2 files are changed by this QC branch.
