@@ -24,7 +24,8 @@ type RSourceMode = 'code' | 'single' | 'double' | 'backtick' | 'comment';
 
 // R only treats ordinary source whitespace as safe parser boundaries. Rich-text
 // clipboards and mobile keyboards can also supply Unicode separators, format
-// marks, or controls that Monaco renders invisibly but R rejects as source.
+// marks, default-ignorable code points, or controls that Monaco renders
+// invisibly but R rejects as source.
 const R_SPACE_EQUIVALENTS = new Set([
   '\u00a0', '\u1680', '\u180e', '\u2000', '\u2001', '\u2002', '\u2003',
   '\u2004', '\u2005', '\u2006', '\u2007', '\u2008', '\u2009', '\u200a',
@@ -35,12 +36,14 @@ const R_ZERO_WIDTH_CLIPBOARD_CHARS = new Set(['\u200b', '\u200c', '\u200d', '\u2
 const R_UNICODE_SPACE_PATTERN = /^\p{Zs}$/u;
 const R_UNICODE_LINE_PATTERN = /^[\p{Zl}\p{Zp}]$/u;
 const R_UNICODE_FORMAT_OR_CONTROL_PATTERN = /^[\p{Cf}\p{Cc}]$/u;
+const R_DEFAULT_IGNORABLE_PATTERN = /^\p{Default_Ignorable_Code_Point}$/u;
 
 /**
- * Clipboard-rich text can carry non-breaking, zero-width, separator, format, or
- * control characters that look like ordinary whitespace but R does not parse
- * as source whitespace. Normalize only while lexically outside strings,
- * backtick names, and comments so literal user data is never changed.
+ * Clipboard-rich text can carry non-breaking, zero-width, separator, format,
+ * control, or default-ignorable characters that look like ordinary whitespace
+ * but R does not parse as source whitespace. Normalize only while lexically
+ * outside strings, backtick names, and comments so literal user data is never
+ * changed.
  */
 function normalizeRSourceForExecution(source: string): NormalizedRSource {
   let mode: RSourceMode = 'code';
@@ -110,9 +113,10 @@ function normalizeRSourceForExecution(source: string): NormalizedRSource {
       normalizedCount += 1;
       continue;
     }
-    // Catch the rest of Unicode separator/format/control characters that mobile
-    // keyboards and rich-text clipboards can insert invisibly. Preserve the
-    // ordinary ASCII source controls R expects; never touch literals/comments.
+    // Catch the rest of Unicode separator/format/control/default-ignorable
+    // characters that mobile keyboards and rich-text clipboards can insert
+    // invisibly. Preserve the ordinary ASCII source controls R expects; never
+    // touch literals/comments.
     if (R_UNICODE_SPACE_PATTERN.test(char)) {
       code += ' ';
       normalizedCount += 1;
@@ -124,8 +128,9 @@ function normalizeRSourceForExecution(source: string): NormalizedRSource {
       continue;
     }
     if (
-      R_UNICODE_FORMAT_OR_CONTROL_PATTERN.test(char) &&
-      char !== '\t' && char !== '\n' && char !== '\r'
+      R_DEFAULT_IGNORABLE_PATTERN.test(char) ||
+      (R_UNICODE_FORMAT_OR_CONTROL_PATTERN.test(char) &&
+        char !== '\t' && char !== '\n' && char !== '\r')
     ) {
       normalizedCount += 1;
       continue;
