@@ -17,7 +17,7 @@
     "build:dev": "npm run test:qc-identity && npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && npm run test:team-boundaries && npm run test:csv-workspace && npm run test:sql-analyst && npm run test:r-runtime && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:sql-analyst": "node scripts/check-sql-analyst-workflow.mjs",
+    "test:sql-analyst": "node scripts/check-sql-analyst-workflow.mjs && node scripts/check-sql-join-integrity.mjs",
     "test:r-runtime": "node scripts/check-r-source-normalization.mjs && node scripts/check-r-runtime-workflow.mjs"
   },
   "dependencies": {

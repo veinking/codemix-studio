@@ -1,0 +1,16 @@
+customer_id,customer_name,state,segment,signup_date
+C001,Avery Brooks,VA,Small Business,2026-01-08
+C002,Jordan Lee,MD,Consumer,2026-01-14
+C003,Morgan Reed,DC,Enterprise,2026-01-22
+C004,Cameron Diaz,VA,Consumer,2026-02-03
+C005,Riley Chen,NC,Small Business,2026-02-11
+C006,Taylor Morgan,VA,Enterprise,2026-02-19
+C007,Parker James,MD,Consumer,2026-03-01
+C008,Casey Patel,DC,Small Business,2026-03-12
+C009,Drew Wilson,VA,Consumer,2026-03-23
+C010,Quinn Davis,NC,Enterprise,2026-04-02
+C011,Skyler Adams,VA,Small Business,2026-04-14
+C012,Reese Thompson,MD,Consumer,2026-04-28
+C013,Emerson Clark,DC,Enterprise,2026-05-09
+C014,Rowan Lewis,VA,Consumer,2026-05-21
+C015,Finley Scott,NC,Small Business,2026-06-04
