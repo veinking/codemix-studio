@@ -94,11 +94,12 @@ final class JoinSavedResultTests: XCTestCase {
 
         let store = DataWorkspaceStore()
         store.openProject(projectID)
-        let savedURL = try XCTUnwrap(await store.exportSQLResult(
+        let exportedURL = await store.exportSQLResult(
             report,
             projectID: projectID,
             registerAsDataset: true
-        ))
+        )
+        let savedURL = try XCTUnwrap(exportedURL)
 
         XCTAssertNil(store.dataError)
         let savedAsset = try XCTUnwrap(store.datasets.first(where: { $0.fileName == savedURL.lastPathComponent }))
