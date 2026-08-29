@@ -163,7 +163,7 @@ const Account = () => {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">Never send passwords, API keys, or access tokens by email.</p>
-              <Button variant="outline" asChild><a href="mailto:support@bideide.com?subject=bIDE%20Account%20Request">Contact bIDE support</a></Button>
+              <Button variant="outline" asChild><a href="mailto:support@pocketbi.app?subject=bIDE%20Account%20Request">Contact bIDE support</a></Button>
             </CardContent>
           </Card>
         </div>
