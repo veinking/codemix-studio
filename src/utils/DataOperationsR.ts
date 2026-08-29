@@ -13,16 +13,16 @@ library(readr)
 
 df <- read_csv('data.csv')
 print(head(df))
-cat("\nShape:", dim(df), "\n")`,
+cat("\\nShape:", dim(df), "\\n")`,
         description: "Load and preview CSV data"
       },
       {
         name: "Show Structure",
         code: `# Display dataset structure
 str(df)
-cat("\nSummary:\n")
+cat("\\nSummary:\\n")
 summary(df)
-cat("\nColumn names:\n")
+cat("\\nColumn names:\\n")
 print(names(df))`,
         description: "Show dataset structure and info"
       },
@@ -30,9 +30,9 @@ print(names(df))`,
         name: "Basic Stats",
         code: `# Display basic statistics
 summary(df)
-cat("\nColumn statistics:\n")
+cat("\\nColumn statistics:\\n")
 for(col in names(df)) {
-  cat(col, ": ", length(unique(df[[col]])), " unique values\n")
+  cat(col, ": ", length(unique(df[[col]])), " unique values\\n")
 }`,
         description: "Show statistical summary"
       }
@@ -47,8 +47,8 @@ for(col in names(df)) {
         code: `# Remove rows with missing values
 df_clean <- na.omit(df)
 removed <- nrow(df) - nrow(df_clean)
-cat("Removed", removed, "rows with missing values\n")
-cat("New dimensions:", dim(df_clean), "\n")`,
+cat("Removed", removed, "rows with missing values\\n")
+cat("New dimensions:", dim(df_clean), "\\n")`,
         description: "Remove rows with NA values"
       },
       {
@@ -60,7 +60,7 @@ df <- df %>%
   mutate(across(where(is.numeric), ~ifelse(is.na(.), mean(., na.rm = TRUE), .))) %>%
   mutate(across(where(is.character), ~ifelse(is.na(.), names(sort(table(.), decreasing=TRUE))[1], .)))
 
-cat("Missing values filled\n")`,
+cat("Missing values filled\\n")`,
         description: "Fill missing values intelligently"
       },
       {
@@ -69,8 +69,8 @@ cat("Missing values filled\n")`,
 original_count <- nrow(df)
 df <- distinct(df)
 removed <- original_count - nrow(df)
-cat("Removed", removed, "duplicate rows\n")
-cat("New dimensions:", dim(df), "\n")`,
+cat("Removed", removed, "duplicate rows\\n")
+cat("New dimensions:", dim(df), "\\n")`,
         description: "Remove duplicate entries"
       }
     ]
@@ -94,7 +94,7 @@ print(head(df_sorted))`,
 
 # Filter rows based on condition (adjust as needed)
 filtered_df <- df %>% filter(column_name > 50)
-cat("Filtered to", nrow(filtered_df), "rows\n")
+cat("Filtered to", nrow(filtered_df), "rows\\n")
 print(head(filtered_df))`,
         description: "Filter rows by condition"
       },
