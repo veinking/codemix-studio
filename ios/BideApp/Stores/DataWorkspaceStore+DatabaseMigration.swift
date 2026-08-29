@@ -38,20 +38,27 @@ extension DataWorkspaceStore {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         let databaseExists = manager.fileExists(atPath: databaseURL.path)
 
-        guard storedGeneration != Self.derivedDatabaseGeneration || !databaseExists else { return }
-
+        // SQLite is derived state. If there are no authoritative registered datasets,
+        // an existing database is orphaned and must not remain queryable. Remove it before
+        // stamping the current generation; source-file reconciliation can rebuild only the
+        // tables that are actually present in the project afterward.
         if datasets.isEmpty {
             do {
+                if databaseExists {
+                    try manager.removeItem(at: databaseURL)
+                }
                 try recordDerivedDatabaseGeneration(
                     manager: manager,
                     dataDirectory: dataDirectory,
                     markerURL: markerURL
                 )
             } catch {
-                dataError = "bIDE could not finish its local SQL migration marker: \(error.localizedDescription)"
+                dataError = "bIDE could not clear stale local SQL state safely: \(error.localizedDescription)"
             }
             return
         }
+
+        guard storedGeneration != Self.derivedDatabaseGeneration || !databaseExists else { return }
 
         do {
             try await refreshDatasetRegistryFromSourceAssets(
