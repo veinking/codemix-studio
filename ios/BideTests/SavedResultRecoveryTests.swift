@@ -57,7 +57,9 @@ final class SavedResultRecoveryTests: XCTestCase {
             sqliteName: table.sqliteName,
             table: parsed
         )
-        try "2".write(to: generationURL, atomically: true, encoding: .utf8)
+        // This fixture models already-current derived SQL; stale-generation behavior is
+        // covered separately by the migration tests.
+        try "3".write(to: generationURL, atomically: true, encoding: .utf8)
         try markerState.write(to: verificationMarkerURL, atomically: true, encoding: .utf8)
 
         return (
@@ -99,7 +101,7 @@ final class SavedResultRecoveryTests: XCTestCase {
 
         let generation = try String(contentsOf: fixture.generationURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "2")
+        XCTAssertEqual(generation, "3")
     }
 
     @MainActor

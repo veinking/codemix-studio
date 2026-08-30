@@ -118,9 +118,11 @@ struct SQLResultsView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Done") { dismiss() }
+                        .disabled(isWorking)
                 }
             }
         }
+        .interactiveDismissDisabled(isWorking)
         .sheet(isPresented: Binding(
             get: { !shareURLs.isEmpty },
             set: { if !$0 { shareURLs = [] } }

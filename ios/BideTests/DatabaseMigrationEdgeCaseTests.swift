@@ -56,7 +56,7 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
 
         let generation = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "2")
+        XCTAssertEqual(generation, "3")
     }
 
     @MainActor
@@ -90,7 +90,7 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
         XCTAssertFalse(manager.fileExists(atPath: urls.databaseURL.path))
         let migratedGeneration = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(migratedGeneration, "2")
+        XCTAssertEqual(migratedGeneration, "3")
     }
 
     @MainActor
@@ -152,7 +152,7 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
 
         let generation = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "2")
+        XCTAssertEqual(generation, "3")
 
         let repairedRows = try SQLiteProjectEngine.execute(
             databaseURL: urls.databaseURL,

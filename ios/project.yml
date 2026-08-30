@@ -44,6 +44,16 @@ targets:
         LSApplicationCategoryType: public.app-category.developer-tools
         UIApplicationSupportsIndirectInputEvents: true
         UILaunchScreen: {}
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
         LSSupportsOpeningDocumentsInPlace: false
         CFBundleDocumentTypes:
           - CFBundleTypeName: bIDE Source Code
@@ -83,8 +93,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios
         PRODUCT_NAME: bIDE
-        MARKETING_VERSION: 0.2.5
-        CURRENT_PROJECT_VERSION: 7
+        MARKETING_VERSION: 0.2.6
+        CURRENT_PROJECT_VERSION: 11
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "6.0"
         SWIFT_STRICT_CONCURRENCY: complete
         TARGETED_DEVICE_FAMILY: "1,2"
@@ -95,6 +106,11 @@ targets:
     platform: iOS
     sources:
       - path: BideTests
+        excludes:
+          - Fixtures
+      - path: BideTests/Fixtures/bIDE-Phase2-Test-MultiSheet.xlsx
+        buildPhase: resources
+        group: BideTests/Fixtures
     dependencies:
       - target: bIDE
     settings:

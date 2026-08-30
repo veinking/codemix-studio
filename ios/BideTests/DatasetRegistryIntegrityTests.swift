@@ -34,7 +34,7 @@ final class DatasetRegistryIntegrityTests: XCTestCase {
         defer { try? manager.removeItem(at: urls.projectDirectory) }
 
         try "{ definitely-not-valid-json".write(to: urls.registryURL, atomically: true, encoding: .utf8)
-        try "2".write(to: urls.generationURL, atomically: true, encoding: .utf8)
+        try "3".write(to: urls.generationURL, atomically: true, encoding: .utf8)
         _ = try SQLiteProjectEngine.execute(
             databaseURL: urls.databaseURL,
             sql: "CREATE TABLE stale_table (value TEXT); INSERT INTO stale_table VALUES ('ghost');"
@@ -66,7 +66,7 @@ final class DatasetRegistryIntegrityTests: XCTestCase {
         try manager.createDirectory(at: urls.dataDirectory, withIntermediateDirectories: true)
         defer { try? manager.removeItem(at: urls.projectDirectory) }
 
-        try "2".write(to: urls.generationURL, atomically: true, encoding: .utf8)
+        try "3".write(to: urls.generationURL, atomically: true, encoding: .utf8)
         let stagedURL = urls.dataDirectory.appendingPathComponent(
             ".bide-delete-\(UUID().uuidString)-\(UUID().uuidString)"
         )
@@ -94,7 +94,7 @@ final class DatasetRegistryIntegrityTests: XCTestCase {
             databaseURL: urls.databaseURL,
             sql: "CREATE TABLE scratch (value TEXT); INSERT INTO scratch VALUES ('kept');"
         )
-        try "2".write(to: urls.generationURL, atomically: true, encoding: .utf8)
+        try "3".write(to: urls.generationURL, atomically: true, encoding: .utf8)
 
         let store = DataWorkspaceStore()
         store.openProject(projectID)
@@ -150,7 +150,7 @@ final class DatasetRegistryIntegrityTests: XCTestCase {
         XCTAssertNil(store.dataError)
         let generation = try String(contentsOf: urls.generationURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "2")
+        XCTAssertEqual(generation, "3")
 
         let report = try SQLiteProjectEngine.execute(
             databaseURL: urls.databaseURL,

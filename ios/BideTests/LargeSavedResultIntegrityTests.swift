@@ -34,7 +34,7 @@ final class LargeSavedResultIntegrityTests: XCTestCase {
             sqliteName: "large_export",
             table: table
         )
-        try "2".write(to: generationURL, atomically: true, encoding: .utf8)
+        try "3".write(to: generationURL, atomically: true, encoding: .utf8)
 
         let report = try SQLiteProjectEngine.execute(
             databaseURL: databaseURL,

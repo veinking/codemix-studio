@@ -19,6 +19,12 @@ struct WorkspaceView: View {
         horizontalSizeClass == .compact
     }
 
+    private var activeProjectHasDatabaseWork: Bool {
+        guard let projectID = workspace.activeProjectID else { return false }
+        return dataWorkspace.hasActiveDataOperation(projectID: projectID) ||
+            dataWorkspace.hasActiveSQLOperation(projectID: projectID)
+    }
+
     private var activeLanguage: CodeLanguage {
         workspace.activeFile?.language ?? workspace.documentLanguage
     }
@@ -86,7 +92,11 @@ struct WorkspaceView: View {
                 }
                 .keyboardShortcut("r", modifiers: .command)
                 .accessibilityLabel("Run selection or file")
-                .disabled(workspace.activeFile == nil || dataWorkspace.isRunningSQL)
+                .disabled(
+                    workspace.activeFile == nil ||
+                    dataWorkspace.isRunningSQL ||
+                    (activeLanguage == .sql && dataWorkspace.isImporting)
+                )
             }
         }
         .sheet(isPresented: $filesPresented) {
@@ -264,6 +274,7 @@ struct WorkspaceView: View {
             Image(systemName: "folder")
         }
         .accessibilityLabel("Switch project")
+        .disabled(activeProjectHasDatabaseWork)
     }
 
     @ViewBuilder

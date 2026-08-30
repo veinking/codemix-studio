@@ -28,6 +28,9 @@ const files = [
   "ios/BideApp/BideApp.swift",
   "ios/BideTests/DatasetRegistryIntegrityTests.swift",
   "ios/BideTests/DatabaseMigrationEdgeCaseTests.swift",
+  "ios/BideTests/CurrentGenerationDatabaseDriftTests.swift",
+  "ios/BideTests/CurrentGenerationSchemaDriftTests.swift",
+  "ios/BideTests/JoinSavedResultTests.swift",
   "ios/BideTests/RebuildDatabaseFailureTests.swift",
   "ios/BideTests/ProjectImportFormatTests.swift",
   "ios/BideTests/DatasetDeletionIntegrityTests.swift",
@@ -72,6 +75,10 @@ requireTokens("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift", [
   "refreshDatasetRegistryFromSourceAssets",
   "rebuildDatabaseWithinDataOperation",
   "Only failures from this migration attempt",
+  "PRAGMA table_info",
+  "actualColumns == table.columns",
+  "actualRowCount == table.rowCount",
+  "table schemas or row counts still do not match",
 ]);
 
 requireTokens("ios/BideApp/Stores/DataWorkspaceStore+DeletionRecovery.swift", [
@@ -168,6 +175,9 @@ const regressions = [
   ["ios/BideTests/DatasetRegistryIntegrityTests.swift", "testMissingRegistryWithoutRecoveryArtifactPreservesLegitimateSQLOnlyProject"],
   ["ios/BideTests/DatasetRegistryIntegrityTests.swift", "testMigrationClearsStaleErrorBeforeCommittingSuccessfulGeneration"],
   ["ios/BideTests/DatabaseMigrationEdgeCaseTests.swift", "testExecuteSQLRepairsStaleGenerationBeforeRunningQuery"],
+  ["ios/BideTests/CurrentGenerationDatabaseDriftTests.swift", "testCurrentGenerationEmptyTablesAreRebuiltBeforeLeftJoinRuns"],
+  ["ios/BideTests/CurrentGenerationSchemaDriftTests.swift", "testCurrentGenerationSchemaDriftIsRebuiltEvenWhenRowCountsMatch"],
+  ["ios/BideTests/JoinSavedResultTests.swift", "testCanonicalLeftJoinSaveResultCreatesVerifiedTwentySevenByTwelveDataset"],
   ["ios/BideTests/RebuildDatabaseFailureTests.swift", "testFailedRebuildDiscardsPartialDatabaseAndPreservesSources"],
   ["ios/BideTests/ProjectImportFormatTests.swift", "testProjectImportSkipsUnsupportedXLSAndParquetFiles"],
   ["ios/BideTests/DatasetDeletionIntegrityTests.swift", "testDeleteDatasetRollsBackWhenSQLCleanupFails"],

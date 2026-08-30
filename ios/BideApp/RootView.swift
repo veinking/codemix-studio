@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RootView: View {
     @EnvironmentObject private var session: AppSession
+    @EnvironmentObject private var workspace: WorkspaceStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
@@ -63,7 +64,11 @@ struct RootView: View {
         case .projects:
             ProjectsView()
         case .datasets:
+            // Dataset detail/navigation state belongs to the active project. Rebuild
+            // this root when the project changes so a detail from Project A cannot
+            // remain actionable after switching to Project B.
             DatasetsView()
+                .id(workspace.activeProjectID)
         case .account:
             AccountView()
         }
@@ -72,6 +77,13 @@ struct RootView: View {
 
 private struct AccountView: View {
     @EnvironmentObject private var session: AppSession
+
+    private enum ProductLinks {
+        static let supportEmail = URL(string: "mailto:support@pocketbi.app?subject=bIDE%20iOS%20Support")!
+        static let support = URL(string: "https://bideide.com/support")!
+        static let privacy = URL(string: "https://bideide.com/privacy")!
+        static let terms = URL(string: "https://bideide.com/terms")!
+    }
 
     var body: some View {
         List {
@@ -84,6 +96,26 @@ private struct AccountView: View {
                 Text("PocketBI ID and shared entitlements are intentionally deferred until the standalone editor/runtime path is stable.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
+            }
+
+            Section("Support & Legal") {
+                Link(destination: ProductLinks.supportEmail) {
+                    Label("Email Support", systemImage: "envelope")
+                }
+                Link(destination: ProductLinks.support) {
+                    Label("bIDE Support", systemImage: "questionmark.circle")
+                }
+                Link(destination: ProductLinks.privacy) {
+                    Label("Privacy Policy", systemImage: "hand.raised")
+                }
+                Link(destination: ProductLinks.terms) {
+                    Label("Terms of Use", systemImage: "doc.text")
+                }
+
+                Text("Support: support@pocketbi.app")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
         }
         .navigationTitle("Account")

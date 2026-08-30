@@ -1,8 +1,9 @@
 import Foundation
+import SQLite3
 
 @MainActor
 extension DataWorkspaceStore {
-    private static let derivedDatabaseGeneration = "2"
+    private static let derivedDatabaseGeneration = "3"
 
     func isDerivedDatabaseReadyForSQL(projectID: UUID) -> Bool {
         guard activeProjectID == projectID else { return false }
@@ -39,7 +40,40 @@ extension DataWorkspaceStore {
         guard validateDatasetRegistryBeforeRecovery(projectID: projectID) else {
             return false
         }
-        if isDerivedDatabaseReadyForSQL(projectID: projectID) { return true }
+
+        let manager = FileManager.default
+        let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let projectDirectory = documents
+            .appendingPathComponent("bIDE Projects", isDirectory: true)
+            .appendingPathComponent(projectID.uuidString, isDirectory: true)
+        let dataDirectory = projectDirectory.appendingPathComponent("data", isDirectory: true)
+        let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
+        let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
+
+        if isDerivedDatabaseReadyForSQL(projectID: projectID) {
+            let expectedTables = tables
+            let matchesRegistry = await Task.detached(priority: .userInitiated) {
+                Self.derivedDatabaseMatchesRegistry(
+                    databaseURL: databaseURL,
+                    expectedTables: expectedTables
+                )
+            }.value
+
+            guard activeProjectID == projectID else { return false }
+            if matchesRegistry { return true }
+
+            // A current generation marker is not enough if the actual SQLite tables have
+            // drifted from the authoritative registry. Invalidate the marker so migration
+            // must rebuild from the project source files before SQL can run.
+            do {
+                if manager.fileExists(atPath: markerURL.path) {
+                    try manager.removeItem(at: markerURL)
+                }
+            } catch {
+                dataError = "bIDE detected that the local SQL tables no longer match the project datasets, but could not invalidate the stale SQL state: \(error.localizedDescription)"
+                return false
+            }
+        }
 
         guard !hasActiveDataOperation(projectID: projectID),
               !hasActiveSQLOperation(projectID: projectID) else {
@@ -47,7 +81,21 @@ extension DataWorkspaceStore {
         }
 
         await migrateDerivedDatabaseIfNeeded(projectID: projectID)
-        return isDerivedDatabaseReadyForSQL(projectID: projectID)
+        guard isDerivedDatabaseReadyForSQL(projectID: projectID) else { return false }
+
+        let expectedTables = tables
+        let matchesRegistry = await Task.detached(priority: .userInitiated) {
+            Self.derivedDatabaseMatchesRegistry(
+                databaseURL: databaseURL,
+                expectedTables: expectedTables
+            )
+        }.value
+
+        guard activeProjectID == projectID else { return false }
+        if !matchesRegistry {
+            dataError = "bIDE rebuilt the local SQL database, but its table schemas or row counts still do not match the project datasets. SQL was blocked instead of returning an untrusted result."
+        }
+        return matchesRegistry
     }
 
     func migrateDerivedDatabaseIfNeeded(projectID: UUID) async {
@@ -191,5 +239,80 @@ extension DataWorkspaceStore {
         encoder.dateEncodingStrategy = .iso8601
         let refreshedData = try encoder.encode(refreshedAssets)
         try refreshedData.write(to: registryURL, options: .atomic)
+    }
+
+    nonisolated private static func derivedDatabaseMatchesRegistry(
+        databaseURL: URL,
+        expectedTables: [DatasetTableDescriptor]
+    ) -> Bool {
+        if expectedTables.isEmpty { return true }
+        guard FileManager.default.fileExists(atPath: databaseURL.path) else { return false }
+
+        var db: OpaquePointer?
+        let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
+        let openResult = databaseURL.path.withCString { pointer in
+            sqlite3_open_v2(pointer, &db, flags, nil)
+        }
+        guard openResult == SQLITE_OK, let db else {
+            if let db { sqlite3_close(db) }
+            return false
+        }
+        defer { sqlite3_close(db) }
+        sqlite3_busy_timeout(db, 3_000)
+
+        for table in expectedTables {
+            let schemaSQL = "PRAGMA table_info(\(SQLiteProjectEngine.quoteIdentifier(table.sqliteName)));"
+            var schemaStatement: OpaquePointer?
+            let schemaPrepareResult = schemaSQL.withCString { pointer in
+                sqlite3_prepare_v2(db, pointer, -1, &schemaStatement, nil)
+            }
+            guard schemaPrepareResult == SQLITE_OK, let schemaStatement else {
+                if let schemaStatement { sqlite3_finalize(schemaStatement) }
+                return false
+            }
+
+            var actualColumns: [DatasetColumn] = []
+            var schemaStep = sqlite3_step(schemaStatement)
+            while schemaStep == SQLITE_ROW {
+                guard let namePointer = sqlite3_column_text(schemaStatement, 1),
+                      let typePointer = sqlite3_column_text(schemaStatement, 2) else {
+                    sqlite3_finalize(schemaStatement)
+                    return false
+                }
+                let name = String(cString: namePointer)
+                let typeName = String(cString: typePointer).uppercased()
+                guard let type = DatasetColumnType(rawValue: typeName) else {
+                    sqlite3_finalize(schemaStatement)
+                    return false
+                }
+                actualColumns.append(DatasetColumn(name: name, type: type))
+                schemaStep = sqlite3_step(schemaStatement)
+            }
+            guard schemaStep == SQLITE_DONE else {
+                sqlite3_finalize(schemaStatement)
+                return false
+            }
+            sqlite3_finalize(schemaStatement)
+            guard actualColumns == table.columns else { return false }
+
+            let countSQL = "SELECT COUNT(*) FROM \(SQLiteProjectEngine.quoteIdentifier(table.sqliteName));"
+            var countStatement: OpaquePointer?
+            let countPrepareResult = countSQL.withCString { pointer in
+                sqlite3_prepare_v2(db, pointer, -1, &countStatement, nil)
+            }
+            guard countPrepareResult == SQLITE_OK, let countStatement else {
+                if let countStatement { sqlite3_finalize(countStatement) }
+                return false
+            }
+            guard sqlite3_step(countStatement) == SQLITE_ROW else {
+                sqlite3_finalize(countStatement)
+                return false
+            }
+            let actualRowCount = Int(sqlite3_column_int64(countStatement, 0))
+            sqlite3_finalize(countStatement)
+            guard actualRowCount == table.rowCount else { return false }
+        }
+
+        return true
     }
 }
