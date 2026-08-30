@@ -7,6 +7,7 @@ const app = read('src/App.tsx');
 const handoff = read('src/pages/PocketBIHandoff.tsx');
 const handoffContract = read('src/lib/pocketBIHandoffV1.ts');
 const outbound = read('src/lib/pocketBIOutboundHandoff.ts');
+const pocketBIOAuth = read('src/integrations/pocketbi/oauth.ts');
 const datasetViewer = read('src/components/DatasetViewer.tsx');
 const account = read('src/pages/Account.tsx');
 const mobile = read('src/pages/use-cases/MobileCoding.tsx');
@@ -41,6 +42,11 @@ assert.match(handoff, /The CSV was imported normally instead/);
 assert.match(handoff, /appendBIDELineage\(manifest, "bide\.open"/);
 assert.match(handoff, /manifestAccepted: Boolean\(manifestDecision\.manifest\)/);
 assert.match(handoff, /sessionStorage\.setItem\(CONTEXT_KEY/);
+
+// The OAuth callback must stay on the live canonical browser origin so PKCE transaction state remains same-origin.
+assert.match(pocketBIOAuth, /const PRODUCTION_REDIRECT_URI = 'https:\/\/www\.bideide\.com\/auth\/pocketbi\/callback'/);
+assert.match(pocketBIOAuth, /code_challenge_method: 'S256'/);
+assert.match(pocketBIOAuth, /response\.ok/);
 
 // bIDE -> PocketBI result handoff must also use exact-window/origin trust and never put data in URLs.
 assert.match(outbound, /const POCKETBI_ORIGIN = "https:\/\/pocketbi\.app"/);

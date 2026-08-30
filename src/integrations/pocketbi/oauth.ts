@@ -4,7 +4,7 @@ const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.
 // Public first-party OAuth client ID; environment overrides remain available for local/staging clients.
 const CLIENT_ID = (import.meta.env.VITE_POCKETBI_OAUTH_CLIENT_ID as string | undefined)?.trim() || '9bec3e2f-0984-47eb-8ea0-b3acf5d3b983';
 const CALLBACK_PATH = '/auth/pocketbi/callback';
-const PRODUCTION_REDIRECT_URI = 'https://bideide.com/auth/pocketbi/callback';
+const PRODUCTION_REDIRECT_URI = 'https://www.bideide.com/auth/pocketbi/callback';
 const TRANSACTION_KEY = 'bide.pocketbi.oauth.transaction.v1';
 const SESSION_KEY = 'bide.pocketbi.oauth.session.v1';
 const MAX_TRANSACTION_AGE_MS = 15 * 60 * 1000;
