@@ -8,6 +8,11 @@ on:
         required: true
         default: ""
         type: string
+      build_number:
+        description: Unique App Store build number greater than 11
+        required: true
+        default: "12"
+        type: string
       confirm:
         description: Type UPLOAD to run the paid native/sign/upload checkpoint
         required: true
@@ -18,7 +23,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: bide-testflight-checkpoint-${{ inputs.source_ref }}
+  group: bide-testflight-checkpoint-${{ inputs.source_ref }}-${{ inputs.build_number }}
   cancel-in-progress: false
 
 jobs:
@@ -30,10 +35,19 @@ jobs:
         shell: bash
         env:
           SOURCE_REF: ${{ inputs.source_ref }}
+          BUILD_NUMBER: ${{ inputs.build_number }}
         run: |
           set -euo pipefail
           if [[ ! "${SOURCE_REF}" =~ ^[0-9a-fA-F]{40}$ ]]; then
             echo "source_ref must be the exact 40-character RC commit SHA, not a branch or tag." >&2
+            exit 1
+          fi
+          if [[ ! "${BUILD_NUMBER}" =~ ^[1-9][0-9]*$ ]]; then
+            echo "build_number must be a positive integer." >&2
+            exit 1
+          fi
+          if (( 10#${BUILD_NUMBER} <= 11 )); then
+            echo "build_number must be greater than 11 because App Store Connect already has build 11." >&2
             exit 1
           fi
           if [[ "${GITHUB_RUN_ATTEMPT}" != "1" ]]; then
@@ -88,6 +102,7 @@ jobs:
       IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
       BIDE_IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.BIDE_IOS_PROVISIONING_PROFILE_BASE64 }}
       KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+      BIDE_REQUESTED_BUILD: ${{ inputs.build_number }}
       ARCHIVE_PATH: ${{ github.workspace }}/build/TestFlight/bIDE.xcarchive
       EXPORT_PATH: ${{ github.workspace }}/build/TestFlight/export
       LOG_PATH: ${{ github.workspace }}/build/TestFlight/logs
@@ -152,9 +167,10 @@ jobs:
         run: |
           set -euo pipefail
           VERSION="$(awk '/MARKETING_VERSION:/ {print $2; exit}' ios/project.yml)"
-          BUILD="$(awk '/CURRENT_PROJECT_VERSION:/ {print $2; exit}' ios/project.yml)"
+          BUILD="${BIDE_REQUESTED_BUILD}"
           [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          [[ "${BUILD}" =~ ^[0-9]+$ ]]
+          [[ "${BUILD}" =~ ^[1-9][0-9]*$ ]]
+          (( 10#${BUILD} > 11 ))
           echo "BIDE_VERSION=${VERSION}" >> "${GITHUB_ENV}"
           echo "BIDE_BUILD=${BUILD}" >> "${GITHUB_ENV}"
           echo "Candidate: ${VERSION} (${BUILD})"
@@ -227,17 +243,27 @@ jobs:
           if ! command -v xcodegen >/dev/null 2>&1; then brew install xcodegen; fi
           xcodegen --version
 
-      - name: Configure target-specific App Store signing
+      - name: Configure target-specific App Store signing and build number
         shell: bash
         run: |
           set -euo pipefail
           export PROJECT_YML="${GITHUB_WORKSPACE}/ios/project.yml"
           python3 - <<'PY'
           import os
+          import re
           from pathlib import Path
 
           path = Path(os.environ['PROJECT_YML'])
           text = path.read_text(encoding='utf-8')
+          build_pattern = re.compile(r'(?m)^        CURRENT_PROJECT_VERSION: [0-9]+$')
+          if len(build_pattern.findall(text)) != 1:
+              raise SystemExit('Could not uniquely locate the bIDE application build-number setting.')
+          text = build_pattern.sub(
+              f"        CURRENT_PROJECT_VERSION: {os.environ['BIDE_REQUESTED_BUILD']}",
+              text,
+              count=1,
+          )
+
           needle = '        PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios\n'
           if text.count(needle) != 1:
               raise SystemExit('Could not uniquely locate the bIDE application signing settings block.')
@@ -251,7 +277,7 @@ jobs:
           )
           path.write_text(text.replace(needle, signing, 1), encoding='utf-8')
           PY
-          echo "Configured manual signing only on the bIDE application target."
+          echo "Configured bIDE build ${BIDE_REQUESTED_BUILD} with manual App Store signing."
 
       - name: Generate Xcode project
         working-directory: ios
