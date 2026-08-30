@@ -57,8 +57,35 @@ if (process.env.GITHUB_ACTIONS === "true") {
     `Obsolete TestFlight workflow detected (${process.env.GITHUB_WORKFLOW ?? "unknown"}). Use only ${activeWorkflowName}.`
   );
 
+  const eventPath = process.env.GITHUB_EVENT_PATH ?? "";
+  assert.ok(eventPath && fs.existsSync(eventPath), "GitHub workflow event payload is unavailable.");
+  const event = JSON.parse(fs.readFileSync(eventPath, "utf8"));
+  const sourceRef = String(event.inputs?.source_ref ?? "");
+  const confirm = String(event.inputs?.confirm ?? "");
+
   const checkoutSHA = git(["rev-parse", "HEAD"]);
   assert.match(checkoutSHA, /^[0-9a-f]{40}$/i, "Could not resolve the checked-out release SHA.");
+
+  // Paid runs must be immutable first attempts. A branch name can move between the
+  // Ubuntu and macOS checkouts, and GitHub's rerun controls preserve old inputs.
+  // A fresh dispatch at an exact SHA avoids both classes of release ambiguity.
+  if (confirm === "UPLOAD") {
+    assert.match(
+      sourceRef,
+      /^[0-9a-f]{40}$/i,
+      "Paid TestFlight runs require source_ref to be the exact 40-character RC commit SHA, not a branch or tag."
+    );
+    assert.equal(
+      sourceRef.toLowerCase(),
+      checkoutSHA.toLowerCase(),
+      `Paid TestFlight source_ref ${sourceRef} does not match checked-out SHA ${checkoutSHA}.`
+    );
+    assert.equal(
+      process.env.GITHUB_RUN_ATTEMPT ?? "1",
+      "1",
+      "Paid TestFlight reruns are blocked. Start a fresh workflow dispatch at the current exact RC SHA instead."
+    );
+  }
 
   const remoteLine = git(["ls-remote", "--heads", "origin", `refs/heads/${releaseBranch}`]);
   const currentReleaseSHA = remoteLine.split(/\s+/)[0] ?? "";
