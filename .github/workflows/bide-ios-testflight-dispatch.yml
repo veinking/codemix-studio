@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: Exact bIDE release-candidate branch, tag, or commit
+        description: Exact 40-character commit SHA from agent/bide-ios-testflight-rc2
         required: true
-        default: agent/bide-ios-testflight-rc2
+        default: ""
         type: string
       confirm:
         description: Type UPLOAD to run the paid native/sign/upload checkpoint
@@ -26,6 +26,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Validate immutable release request
+        shell: bash
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
+        run: |
+          set -euo pipefail
+          if [[ ! "${SOURCE_REF}" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "source_ref must be the exact 40-character RC commit SHA, not a branch or tag." >&2
+            exit 1
+          fi
+          if [[ "${GITHUB_RUN_ATTEMPT}" != "1" ]]; then
+            echo "TestFlight reruns are blocked. Start a fresh dispatch at the current exact RC SHA." >&2
+            exit 1
+          fi
+
       - name: Check out exact release candidate
         uses: actions/checkout@v4
         with:
@@ -36,8 +51,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          RC_HEAD="$(git ls-remote --heads origin refs/heads/agent/bide-ios-testflight-rc2 | awk '{print $1}')"
           echo "Source ref: ${{ inputs.source_ref }}"
-          echo "Source SHA: $(git rev-parse HEAD)"
+          echo "Source SHA: ${ACTUAL_SHA}"
+          [[ "${ACTUAL_SHA}" == "${{ inputs.source_ref }}" ]]
+          [[ "${RC_HEAD}" == "${ACTUAL_SHA}" ]]
           test -z "$(git status --porcelain)"
 
       - name: Generate deterministic App Store icon
@@ -57,7 +76,7 @@ jobs:
 
   testflight:
     needs: source-preflight
-    if: ${{ inputs.confirm == 'UPLOAD' }}
+    if: ${{ inputs.confirm == 'UPLOAD' && github.run_attempt == 1 }}
     runs-on: macos-26
     timeout-minutes: 45
     env:
@@ -84,8 +103,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
           echo "Source ref: ${{ inputs.source_ref }}"
-          echo "Source SHA: $(git rev-parse HEAD)"
+          echo "Source SHA: ${ACTUAL_SHA}"
+          [[ "${ACTUAL_SHA}" == "${{ inputs.source_ref }}" ]]
           test -z "$(git status --porcelain)"
 
       - name: Generate deterministic App Store icon
