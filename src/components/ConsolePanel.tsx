@@ -152,6 +152,7 @@ export const ConsolePanel = ({
     if (!/execution completed\s*✓/i.test(message.text)) return true;
     return !list.slice(Math.max(0, index - 8), index).some(looksLikeError);
   });
+  const latestAccessibleMessage = displayedOutput.at(-1)?.text || "";
 
   const getOutputStyle = (message: ConsoleMessage) => {
     if (looksLikeError(message)) return "border-l-4 border-l-destructive bg-destructive/5 pl-3 py-2";
@@ -168,13 +169,14 @@ export const ConsolePanel = ({
     return (
       <div className={`h-full bg-console border-t flex items-center justify-between px-4 transition-colors ${hasNewOutput ? "border-primary" : "border-border"}`}>
         <div className="flex items-center gap-2 min-w-0">
-          <Terminal className="w-4 h-4 text-primary shrink-0" />
+          <Terminal className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
           <span className="text-sm font-semibold text-foreground">Console</span>
           {output.length > 0 && <span className="text-xs text-muted-foreground">({output.length})</span>}
+          {latestAccessibleMessage && <span className="sr-only" role="status" aria-live="polite">Latest console output: {latestAccessibleMessage}</span>}
         </div>
         {onToggleCollapse && (
-          <Button variant="ghost" size="icon" onClick={onToggleCollapse} title="Expand console">
-            <ChevronUp className="w-4 h-4" />
+          <Button variant="ghost" size="icon" onClick={onToggleCollapse} title="Expand console" aria-label="Expand console">
+            <ChevronUp className="w-4 h-4" aria-hidden="true" />
           </Button>
         )}
       </div>
@@ -185,11 +187,11 @@ export const ConsolePanel = ({
     <div className={`h-full bg-console border-t flex flex-col transition-colors ${hasNewOutput ? "border-primary" : "border-border"}`}>
       <div className="flex items-center justify-between p-2 border-b border-border shrink-0">
         <div className="flex items-center gap-2 min-w-0">
-          <Terminal className="w-4 h-4 text-primary shrink-0" />
-          <h3 className="text-sm font-semibold text-foreground">Console</h3>
+          <Terminal className="w-4 h-4 text-primary shrink-0" aria-hidden="true" />
+          <h3 className="text-sm font-semibold text-foreground" id="console-heading">Console</h3>
           {plainEnglishMode && (
             <Badge variant="secondary" className="text-xs">
-              <Lightbulb className="w-3 h-3 mr-1" />
+              <Lightbulb className="w-3 h-3 mr-1" aria-hidden="true" />
               Plain English
             </Badge>
           )}
@@ -200,98 +202,109 @@ export const ConsolePanel = ({
             size="icon"
             onClick={onTogglePlainEnglish}
             title={plainEnglishMode ? "Show raw errors" : "Explain errors in plain English"}
+            aria-label={plainEnglishMode ? "Show raw console errors" : "Explain console errors in plain English"}
           >
-            {plainEnglishMode ? <Code className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}
+            {plainEnglishMode ? <Code className="w-4 h-4" aria-hidden="true" /> : <Lightbulb className="w-4 h-4" aria-hidden="true" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={onClear} title="Clear console">
-            <Trash2 className="w-4 h-4" />
+          <Button variant="ghost" size="icon" onClick={onClear} title="Clear console" aria-label="Clear console">
+            <Trash2 className="w-4 h-4" aria-hidden="true" />
           </Button>
           {onToggleCollapse && (
-            <Button variant="ghost" size="icon" onClick={onToggleCollapse} title="Collapse console">
-              <ChevronDown className="w-4 h-4" />
+            <Button variant="ghost" size="icon" onClick={onToggleCollapse} title="Collapse console" aria-label="Collapse console">
+              <ChevronDown className="w-4 h-4" aria-hidden="true" />
             </Button>
           )}
         </div>
       </div>
 
       <ScrollArea className="flex-1 p-3">
-        {output.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No output yet. Run your code to see results.</p>
-        ) : (
-          <>
-            {output.length > maxMessages && (
-              <div className="mb-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-                Showing the newest {maxMessages.toLocaleString()} of {output.length.toLocaleString()} messages.
-              </div>
-            )}
-            <div className="space-y-2">
-              {displayedOutput.map((message, localIndex) => {
-                const stableIndex = startIndex + localIndex;
-                const effectiveError = looksLikeError(message);
-                const explanation = message.explanation || (effectiveError ? localExplanation(message.text) : undefined);
-                const explainedError = effectiveError && explanation && plainEnglishMode;
-                const showingRaw = showRawError === stableIndex;
+        <div
+          role="log"
+          aria-labelledby="console-heading"
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-atomic="false"
+          tabIndex={0}
+          className="min-h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
+        >
+          {output.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No output yet. Run your code to see results.</p>
+          ) : (
+            <>
+              {output.length > maxMessages && (
+                <div className="mb-2 text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+                  Showing the newest {maxMessages.toLocaleString()} of {output.length.toLocaleString()} messages.
+                </div>
+              )}
+              <div className="space-y-2">
+                {displayedOutput.map((message, localIndex) => {
+                  const stableIndex = startIndex + localIndex;
+                  const effectiveError = looksLikeError(message);
+                  const explanation = message.explanation || (effectiveError ? localExplanation(message.text) : undefined);
+                  const explainedError = effectiveError && explanation && plainEnglishMode;
+                  const showingRaw = showRawError === stableIndex;
 
-                if (explainedError && !showingRaw) {
-                  return (
-                    <div key={`${stableIndex}-${message.text}`} className="border border-primary/20 rounded-lg p-3 bg-card/50 space-y-2">
-                      <div className="flex items-start gap-2">
-                        <Lightbulb className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                        <div className="flex-1 min-w-0 space-y-2">
-                          <div>
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">What happened</p>
-                            <p className="text-sm text-foreground">{explanation.what}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Why</p>
-                            <p className="text-sm text-foreground">{explanation.why}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Try this</p>
-                            <p className="text-sm text-foreground whitespace-pre-wrap">{explanation.fix}</p>
-                          </div>
-                          {explanation.concepts.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                              {explanation.concepts.map((concept) => (
-                                <Badge key={concept} variant="outline" className="text-xs">{concept}</Badge>
-                              ))}
+                  if (explainedError && !showingRaw) {
+                    return (
+                      <div key={`${stableIndex}-${message.text}`} className="border border-primary/20 rounded-lg p-3 bg-card/50 space-y-2">
+                        <div className="flex items-start gap-2">
+                          <Lightbulb className="w-4 h-4 text-primary mt-0.5 shrink-0" aria-hidden="true" />
+                          <div className="flex-1 min-w-0 space-y-2">
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">What happened</p>
+                              <p className="text-sm text-foreground">{explanation.what}</p>
                             </div>
-                          )}
-                          <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowRawError(stableIndex)}>
-                            <Code className="w-3 h-3 mr-1" />
-                            View raw error
-                          </Button>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Why</p>
+                              <p className="text-sm text-foreground">{explanation.why}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Try this</p>
+                              <p className="text-sm text-foreground whitespace-pre-wrap">{explanation.fix}</p>
+                            </div>
+                            {explanation.concepts.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {explanation.concepts.map((concept) => (
+                                  <Badge key={concept} variant="outline" className="text-xs">{concept}</Badge>
+                                ))}
+                              </div>
+                            )}
+                            <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowRawError(stableIndex)}>
+                              <Code className="w-3 h-3 mr-1" aria-hidden="true" />
+                              View raw error
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                }
+                    );
+                  }
 
-                if (explainedError && showingRaw) {
+                  if (explainedError && showingRaw) {
+                    return (
+                      <div key={`${stableIndex}-${message.text}`} className="space-y-1">
+                        <div className="font-mono text-sm text-destructive whitespace-pre-wrap break-words">{message.text}</div>
+                        <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowRawError(null)}>
+                          <Lightbulb className="w-3 h-3 mr-1" aria-hidden="true" />
+                          View explanation
+                        </Button>
+                      </div>
+                    );
+                  }
+
                   return (
-                    <div key={`${stableIndex}-${message.text}`} className="space-y-1">
-                      <div className="font-mono text-sm text-destructive whitespace-pre-wrap break-words">{message.text}</div>
-                      <Button variant="ghost" size="sm" className="text-xs h-7" onClick={() => setShowRawError(null)}>
-                        <Lightbulb className="w-3 h-3 mr-1" />
-                        View explanation
-                      </Button>
+                    <div
+                      key={`${stableIndex}-${message.text}`}
+                      className={`font-mono text-sm whitespace-pre-wrap break-words ${getOutputStyle(message)} ${effectiveError ? "text-destructive" : "text-foreground"}`}
+                    >
+                      {message.text}
                     </div>
                   );
-                }
-
-                return (
-                  <div
-                    key={`${stableIndex}-${message.text}`}
-                    className={`font-mono text-sm whitespace-pre-wrap break-words ${getOutputStyle(message)} ${effectiveError ? "text-destructive" : "text-foreground"}`}
-                  >
-                    {message.text}
-                  </div>
-                );
-              })}
-              <div ref={scrollRef} />
-            </div>
-          </>
-        )}
+                })}
+                <div ref={scrollRef} />
+              </div>
+            </>
+          )}
+        </div>
       </ScrollArea>
     </div>
   );
