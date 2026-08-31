@@ -129,7 +129,7 @@ const Landing = () => {
 
       <footer className="relative z-10 border-t border-border/60">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between text-sm text-muted-foreground">
-          <span>bIDE by CodeMix · browser coding workspace</span>
+          <span>bIDE · A PocketBI product · browser coding workspace</span>
           <div className="flex flex-wrap gap-4">
             <button onClick={() => navigate("/docs")} className="hover:text-foreground"><BookOpen className="w-3.5 h-3.5 inline mr-1" />Docs</button>
             <button onClick={() => navigate("/support")} className="hover:text-foreground">Support</button>
