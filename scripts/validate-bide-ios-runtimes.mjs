@@ -19,12 +19,15 @@ assert.match(project, /NSAllowsLocalNetworking: true/);
 
 assert.match(app, /@StateObject private var codeRuntime = CodeRuntimeStore\(\)/);
 assert.match(app, /\.environmentObject\(codeRuntime\)/);
+assert.match(app, /\.onChange\(of: workspace\.activeProjectID\)[\s\S]*codeRuntime\.resetSession\(\)/);
 
 assert.ok(!workspace.includes('Runtime comes next'), 'Python/R placeholder alert must stay removed.');
 assert.ok(!workspace.includes('intentionally deferred'), 'Python/R deferred copy must stay removed.');
 assert.match(workspace, /await codeRuntime\.execute\(code, language: activeLanguage\)/);
 assert.match(workspace, /CodeRuntimeResultsView\(report: report\)/);
 
+assert.match(runtimeStore, /func resetSession\(\)/);
+assert.match(runtimeStore, /webView = nil/);
 assert.match(runtimeStore, /window\.bideRuntime\.execute\(language, code\)/);
 assert.match(runtimeStore, /requiredInterfaceType = \.loopback/);
 assert.match(runtimeStore, /http:\/\/127\.0\.0\.1:/);
