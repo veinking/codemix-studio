@@ -26,6 +26,9 @@ assert.match(main, /if \(typeof window !== "undefined" && !window\.name\)/, 'bID
 assert.match(main, /window\.name = "BIDEWorkbench"/, 'Direct bIDE sessions must use the ecosystem BIDEWorkbench name');
 assert.match(toolbar, /window\.open\("https:\/\/pocketbi\.app\/account", "PocketBIAccount"\)/, 'Toolbar must reuse the purpose-named PocketBI Account browsing context');
 assert.doesNotMatch(toolbar, /window\.open\("https:\/\/pocketbi\.app\/account", "_blank"/, 'Toolbar must not spawn a fresh PocketBI Account tab on every visit');
+assert.match(account, /target="PocketBIAccount"/, 'bIDE Account must reuse the PocketBI Account browsing context');
+assert.match(account, /href="https:\/\/pocketbi\.app\/app" target="PocketBIWorkspace"/, 'bIDE Account must reuse the PocketBI Workspace browsing context');
+assert.doesNotMatch(account, /target="_blank"/, 'bIDE Account must not create disposable PocketBI ecosystem tabs');
 
 // PocketBI browser-to-browser handoff must trust both the origin and the exact opener.
 assert.match(handoff, /event\.source !== window\.opener/, 'PocketBI dataset handoff must reject messages from non-opener windows');
