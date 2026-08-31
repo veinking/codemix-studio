@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>bIDE Runtime Host</title>
+</head>
+<body>
+<script type="module">
+  import { loadPyodide } from './pyodide/pyodide.mjs';
+  import { WebR, ChannelType } from './webr/webr.mjs';
+
+  const PYODIDE_VERSION = '314.0.6';
+  const WEBR_VERSION = '0.6.0';
+
+  let pythonPromise = null;
+  let rPromise = null;
+
+  function assetBase(folder) {
+    return new URL(`./${folder}/`, window.location.href).href;
+  }
+
+  async function pythonRuntime() {
+    if (!pythonPromise) {
+      pythonPromise = loadPyodide({ indexURL: assetBase('pyodide') });
+    }
+    return pythonPromise;
+  }
+
+  async function rRuntime() {
+    if (!rPromise) {
+      rPromise = (async () => {
+        const runtime = new WebR({
+          baseUrl: assetBase('webr'),
+          channelType: ChannelType.PostMessage,
+          interactive: false,
+        });
+        await runtime.init();
+        return runtime;
+      })();
+    }
+    return rPromise;
+  }
+
+  async function runPython(code) {
+    const runtime = await pythonRuntime();
+    const stdout = [];
+    const stderr = [];
+
+    runtime.setStdout({ batched: (line) => stdout.push(String(line)) });
+    runtime.setStderr({ batched: (line) => stderr.push(String(line)) });
+
+    let value = '';
+    try {
+      const result = await runtime.runPythonAsync(code);
+      if (result !== undefined && result !== null) {
+        value = String(result);
+        if (typeof result.destroy === 'function') result.destroy();
+      }
+      return {
+        ok: true,
+        stdout: stdout.join('\n'),
+        stderr: stderr.join('\n'),
+        value,
+        runtime: `Python ${runtime.version ?? ''} / Pyodide ${PYODIDE_VERSION}`.trim(),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        stdout: stdout.join('\n'),
+        stderr: stderr.join('\n'),
+        value: '',
+        error: String(error?.stack ?? error),
+        runtime: `Pyodide ${PYODIDE_VERSION}`,
+      };
+    }
+  }
+
+  async function runR(code) {
+    const runtime = await rRuntime();
+    const sourcePath = '/tmp/bide-run.R';
+    await runtime.FS.writeFile(sourcePath, new TextEncoder().encode(code));
+
+    try {
+      const output = await runtime.evalRString(
+        "paste(capture.output(source('/tmp/bide-run.R', echo=FALSE, print.eval=TRUE)), collapse='\\n')"
+      );
+      return {
+        ok: true,
+        stdout: String(output ?? ''),
+        stderr: '',
+        value: '',
+        runtime: `R ${runtime.versionR ?? ''} / webR ${WEBR_VERSION}`.trim(),
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        stdout: '',
+        stderr: '',
+        value: '',
+        error: String(error?.stack ?? error),
+        runtime: `webR ${WEBR_VERSION}`,
+      };
+    }
+  }
+
+  window.bideRuntime = {
+    async execute(language, code) {
+      if (language === 'python') return runPython(code);
+      if (language === 'r') return runR(code);
+      throw new Error(`Unsupported runtime language: ${language}`);
+    },
+    versions() {
+      return { python: PYODIDE_VERSION, r: WEBR_VERSION };
+    },
+  };
+</script>
+</body>
+</html>
