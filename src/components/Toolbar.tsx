@@ -58,6 +58,14 @@ interface ToolbarProps {
   showScratchLanguageSelector?: boolean;
 }
 
+const LAST_RUN_CONTEXT_KEY = "bide.last-run-context.v1";
+const LANGUAGE_LABELS: Record<string, string> = {
+  python: "Python",
+  r: "R",
+  javascript: "JavaScript",
+  sql: "SQL",
+};
+
 export const Toolbar = ({
   onRun,
   onSaveScratchAsFile,
@@ -83,9 +91,29 @@ export const Toolbar = ({
   const navigate = useNavigate();
   const { user, isGuest, signOut } = useAuth();
 
+  // Keep the named PocketBI account workbench introduced by PR #63 so repeated
+  // account visits reuse one tab instead of creating a new tab each time.
   const openPocketBIAccount = () => window.open("https://pocketbi.app/account", "PocketBIAccount");
 
   const shouldShowLanguageSelector = !currentFile || showScratchLanguageSelector;
+  const activeLanguage = currentFile ? currentLanguage : scratchLanguage;
+  const languageLabel = LANGUAGE_LABELS[activeLanguage] || activeLanguage;
+  const runtimeLoading = isRunning && loadingRuntimes.has(activeLanguage);
+  const runLabel = runtimeLoading
+    ? `Loading ${languageLabel} runtime…`
+    : isRunning
+      ? `Running ${languageLabel}…`
+      : "Run";
+
+  const runWithContext = () => {
+    sessionStorage.setItem(LAST_RUN_CONTEXT_KEY, JSON.stringify({
+      version: 1,
+      fileId: currentFile,
+      language: activeLanguage,
+      startedAt: new Date().toISOString(),
+    }));
+    onRun();
+  };
 
   const accountControl = isGuest ? (
     <Button
@@ -94,14 +122,15 @@ export const Toolbar = ({
       onClick={onAuthClick}
       className={isMobile ? "h-9 w-9" : "h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"}
       title="Connect PocketBI ID to bIDE"
+      aria-label="Connect PocketBI ID to bIDE"
     >
-      <User className="h-4 w-4" />
+      <User className="h-4 w-4" aria-hidden="true" />
       {!isMobile && <span className="ml-1.5">Connect PocketBI ID</span>}
     </Button>
   ) : (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : "h-8 px-2"} title="PocketBI ID in bIDE">
+        <Button variant="ghost" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : "h-8 px-2"} title="PocketBI ID in bIDE" aria-label="PocketBI ID account menu">
           <Avatar className="h-6 w-6">
             <AvatarFallback className="bg-primary/15 text-primary text-xs">{user?.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
           </Avatar>
@@ -132,11 +161,11 @@ export const Toolbar = ({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")} className="h-9 w-9" title="Language reference">
-            <Book className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")} className="h-9 w-9" title="Language reference" aria-label="Open language reference">
+            <Book className="h-4 w-4" aria-hidden="true" />
           </Button>
           {onOpenFeatures && (
-            <Button variant="ghost" size="icon" onClick={onOpenFeatures} className="h-9 w-9" title="Workspace tools"><Settings2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={onOpenFeatures} className="h-9 w-9" title="Workspace tools" aria-label="Open workspace tools"><Settings2 className="h-4 w-4" aria-hidden="true" /></Button>
           )}
           {accountControl}
         </div>
@@ -160,8 +189,8 @@ export const Toolbar = ({
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
-        <Button variant="default" size="sm" onClick={onRun} disabled={isRunning} className="h-8 px-3 text-xs shadow-none">
-          <Play className="mr-1.5 h-3.5 w-3.5" />{isRunning ? "Running…" : "Run"}
+        <Button variant="default" size="sm" onClick={runWithContext} disabled={isRunning} className="h-8 px-3 text-xs shadow-none" aria-live="polite" aria-label={runLabel}>
+          <Play className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />{runLabel}
         </Button>
 
         {!currentFile && (
@@ -182,7 +211,7 @@ export const Toolbar = ({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title="More editor actions"><MoreHorizontal className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title="More editor actions" aria-label="More editor actions"><MoreHorizontal className="h-4 w-4" aria-hidden="true" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
             {onToggleNotebook && !currentFile && (
