@@ -1,4 +1,4 @@
-import { File, Folder, Upload, Trash2, Save, FilePlus, ChevronDown, ChevronUp, Beaker } from "lucide-react";
+import { File, Folder, Upload, Trash2, Save, FilePlus, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PackageManager } from "@/components/PackageManager";
@@ -44,6 +44,8 @@ interface FileExplorerProps {
 const FILE_TEMPLATES = {
   python: { extension: '.py', template: '# Python Script\n\nprint("Hello, World!")\n' },
   r: { extension: '.r', template: '# R Script\n\nprint("Hello, World!")\n' },
+  javascript: { extension: '.js', template: '// JavaScript\n\nconsole.log("Hello, World!");\n' },
+  sql: { extension: '.sql', template: '-- SQL\n\nSELECT 1 AS hello;\n' },
   text: { extension: '.txt', template: '' },
 };
 
@@ -89,7 +91,7 @@ export const FileExplorer = ({
         <div className="space-y-2">
           <Collapsible open={newFileOpen} onOpenChange={setNewFileOpen}>
             <CollapsibleTrigger asChild>
-              <Button variant="secondary" className="w-full justify-between">
+              <Button variant="secondary" className="w-full justify-between" aria-label="Create a new file">
                 <span className="flex items-center">
                   <FilePlus className="w-4 h-4 mr-2" />
                   New File
@@ -101,12 +103,14 @@ export const FileExplorer = ({
               <div className="grid gap-2">
                 <Label htmlFor="file-type" className="text-xs">File Type</Label>
                 <Select value={fileType} onValueChange={(value) => setFileType(value as keyof typeof FILE_TEMPLATES)}>
-                  <SelectTrigger id="file-type" className="h-9">
+                  <SelectTrigger id="file-type" className="h-9" aria-label="New file type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="python">Python (.py)</SelectItem>
                     <SelectItem value="r">R Script (.r)</SelectItem>
+                    <SelectItem value="javascript">JavaScript (.js)</SelectItem>
+                    <SelectItem value="sql">SQL (.sql)</SelectItem>
                     <SelectItem value="text">Text File (.txt)</SelectItem>
                   </SelectContent>
                 </Select>
@@ -130,7 +134,7 @@ export const FileExplorer = ({
           
           <label htmlFor="file-upload">
             <Button variant="secondary" className="w-full" asChild>
-              <span className="cursor-pointer">
+              <span className="cursor-pointer" role="button" tabIndex={0} aria-label="Upload files to Explorer">
                 <Upload className="w-4 h-4 mr-2" />
                 Upload Files
               </span>
@@ -140,12 +144,13 @@ export const FileExplorer = ({
             id="file-upload"
             type="file"
             multiple
-            accept=".py,.r,.csv,.txt"
+            accept=".py,.r,.js,.sql,.csv,.txt"
             className="hidden"
+            aria-label="Choose files to upload"
             onChange={handleFileInput}
           />
           
-          <Button variant="secondary" className="w-full" onClick={onSaveAll}>
+          <Button variant="secondary" className="w-full" onClick={onSaveAll} aria-label="Save all workspace files">
             <Save className="w-4 h-4 mr-2" />
             Save All
           </Button>
@@ -161,10 +166,20 @@ export const FileExplorer = ({
               <div
                 key={file.id}
                 className={cn(
-                  "flex items-center justify-between p-2 rounded hover:bg-secondary cursor-pointer group",
+                  "flex items-center justify-between p-2 rounded hover:bg-secondary cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeFile === file.id && "bg-secondary"
                 )}
+                role="button"
+                tabIndex={0}
+                aria-label={`Open ${file.name}`}
+                aria-current={activeFile === file.id ? "true" : undefined}
                 onClick={() => onFileSelect(file.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onFileSelect(file.id);
+                  }
+                }}
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {file.type === 'folder' ? (
@@ -177,7 +192,9 @@ export const FileExplorer = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                  aria-label={`Delete ${file.name}`}
+                  title={`Delete ${file.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onFileDelete(file.id);
