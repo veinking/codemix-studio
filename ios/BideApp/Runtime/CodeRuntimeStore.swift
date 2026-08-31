@@ -65,6 +65,17 @@ final class CodeRuntimeStore: NSObject, ObservableObject, WKNavigationDelegate {
         }
     }
 
+    func resetSession() {
+        guard !isRunning else { return }
+        navigationContinuation?.resume(throwing: CancellationError())
+        navigationContinuation = nil
+        webView?.navigationDelegate = nil
+        webView?.stopLoading()
+        webView = nil
+        lastRun = nil
+        runtimeError = nil
+    }
+
     private func preparedWebView() async throws -> WKWebView {
         if let webView { return webView }
 
@@ -72,9 +83,15 @@ final class CodeRuntimeStore: NSObject, ObservableObject, WKNavigationDelegate {
             throw RuntimeBridgeError.missingRuntimeBundle
         }
 
-        let server = RuntimeHTTPServer(rootURL: runtimeRoot)
-        let port = try await server.start()
-        self.server = server
+        let runtimeServer: RuntimeHTTPServer
+        if let server {
+            runtimeServer = server
+        } else {
+            let nextServer = RuntimeHTTPServer(rootURL: runtimeRoot)
+            server = nextServer
+            runtimeServer = nextServer
+        }
+        let port = try await runtimeServer.start()
 
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
