@@ -6,6 +6,7 @@ struct BideApp: App {
     @StateObject private var session = AppSession()
     @StateObject private var workspace = WorkspaceStore()
     @StateObject private var dataWorkspace = DataWorkspaceStore()
+    @StateObject private var codeRuntime = CodeRuntimeStore()
 
     var body: some Scene {
         WindowGroup {
@@ -13,6 +14,7 @@ struct BideApp: App {
                 .environmentObject(session)
                 .environmentObject(workspace)
                 .environmentObject(dataWorkspace)
+                .environmentObject(codeRuntime)
                 .onAppear {
                     synchronizeDataProject(workspace.activeProjectID)
                 }
