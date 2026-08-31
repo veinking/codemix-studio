@@ -30,6 +30,9 @@ jobs:
       - name: Validate Phase 2 data + SQL
         run: node scripts/validate-bide-ios-phase2.mjs
 
+      - name: Validate Python and R runtime wiring
+        run: node scripts/validate-bide-ios-runtimes.mjs
+
       - name: Select Xcode 16.4
         shell: bash
         run: |
@@ -48,7 +51,7 @@ jobs:
           fi
           xcodegen --version
 
-      - name: Generate project
+      - name: Generate project and bundled runtimes
         working-directory: ios
         run: xcodegen generate
 
@@ -88,7 +91,7 @@ jobs:
       - name: Upload bIDE physical-device package
         uses: actions/upload-artifact@v4
         with:
-          name: bIDE-Phase2-Audited-${{ github.run_attempt }}
+          name: bIDE-Phase3-Runtimes-${{ github.run_attempt }}
           path: |
             build/bIDE-Sideloadly.ipa
             build/BideSideloadlyLogs/
@@ -99,7 +102,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: bide-ios-phase2-build-diagnostics
+          name: bide-ios-phase3-build-diagnostics
           path: |
             /tmp/bide-ios-build.log
             /tmp/bide-ios-tests.log
