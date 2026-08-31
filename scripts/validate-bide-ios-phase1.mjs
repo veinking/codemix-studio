@@ -139,19 +139,22 @@ for (const capability of [
   assert.ok(store.includes(capability), `Project core capability missing: ${capability}`);
 }
 
-const nativeFiles = walk("ios/BideApp")
-  .filter((filePath) => filePath.endsWith(".swift"))
+const swiftFiles = walk("ios/BideApp").filter((filePath) => filePath.endsWith(".swift"));
+const allNativeFiles = swiftFiles.map(read).join("\n");
+const nonRuntimeFiles = swiftFiles
+  .filter((filePath) => !filePath.split(path.sep).includes("Runtime"))
   .map(read)
   .join("\n");
 
-for (const forbidden of [
-  "import StoreKit",
-  "import Supabase",
-  "WKWebView",
-  "Pyodide",
-  "webR",
-]) {
-  assert.ok(!nativeFiles.includes(forbidden), `Phase 1 scope leak detected: ${forbidden}`);
+for (const forbidden of ["import StoreKit", "import Supabase"]) {
+  assert.ok(!allNativeFiles.includes(forbidden), `Phase 1 scope leak detected: ${forbidden}`);
 }
 
-console.log("bIDE iOS Phase 1 scope validation passed.");
+for (const runtimeBoundary of ["WKWebView", "Pyodide", "webR"]) {
+  assert.ok(
+    !nonRuntimeFiles.includes(runtimeBoundary),
+    `Runtime implementation leaked outside BideApp/Runtime: ${runtimeBoundary}`
+  );
+}
+
+console.log("bIDE iOS Phase 1 structural validation passed.");
