@@ -10,6 +10,7 @@ const handoffContract = read('src/lib/pocketBIHandoffV1.ts');
 const outbound = read('src/lib/pocketBIOutboundHandoff.ts');
 const pocketBIOAuth = read('src/integrations/pocketbi/oauth.ts');
 const datasetViewer = read('src/components/DatasetViewer.tsx');
+const toolbar = read('src/components/Toolbar.tsx');
 const account = read('src/pages/Account.tsx');
 const mobile = read('src/pages/use-cases/MobileCoding.tsx');
 const docs = read('src/pages/docs/DocsIndex.tsx');
@@ -23,6 +24,8 @@ const support = read('src/pages/Support.tsx');
 // overwriting purpose-specific OAuth or handoff browsing-context names.
 assert.match(main, /if \(typeof window !== "undefined" && !window\.name\)/, 'bIDE must only name an otherwise unnamed browsing context');
 assert.match(main, /window\.name = "BIDEWorkbench"/, 'Direct bIDE sessions must use the ecosystem BIDEWorkbench name');
+assert.match(toolbar, /window\.open\("https:\/\/pocketbi\.app\/account", "PocketBIAccount"\)/, 'Toolbar must reuse the purpose-named PocketBI Account browsing context');
+assert.doesNotMatch(toolbar, /window\.open\("https:\/\/pocketbi\.app\/account", "_blank"/, 'Toolbar must not spawn a fresh PocketBI Account tab on every visit');
 
 // PocketBI browser-to-browser handoff must trust both the origin and the exact opener.
 assert.match(handoff, /event\.source !== window\.opener/, 'PocketBI dataset handoff must reject messages from non-opener windows');
@@ -91,4 +94,4 @@ assert.doesNotMatch(sitemap, /16 Programming Languages|12 more languages/i, 'Cra
 assert.match(focusedSeo, /unlisted bIDE code link/, 'Shared-code metadata must describe unlisted handoff truthfully');
 assert.doesNotMatch(support, /navigate\("\/tutorials"\)/, 'Support must link to current docs rather than the retired tutorial implementation');
 
-console.log('✓ Team handoff + PocketBI V1 + named bIDE workbench + public runtime boundary regression guard passed');
+console.log('✓ Team handoff + PocketBI V1 + named bIDE/PocketBI workbenches + public runtime boundary regression guard passed');
