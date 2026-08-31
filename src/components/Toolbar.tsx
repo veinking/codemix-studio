@@ -83,7 +83,7 @@ export const Toolbar = ({
   const navigate = useNavigate();
   const { user, isGuest, signOut } = useAuth();
 
-  const openPocketBIAccount = () => window.open("https://pocketbi.app/account", "_blank", "noopener,noreferrer");
+  const openPocketBIAccount = () => window.open("https://pocketbi.app/account", "PocketBIAccount");
 
   const shouldShowLanguageSelector = !currentFile || showScratchLanguageSelector;
 
