@@ -1,4 +1,4 @@
-import { File, Folder, Upload, Trash2, Save, FilePlus, ChevronDown, ChevronUp, Beaker } from "lucide-react";
+import { File, Folder, Upload, Trash2, Save, FilePlus, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PackageManager } from "@/components/PackageManager";
@@ -84,24 +84,24 @@ export const FileExplorer = ({
   return (
     <div className="h-full bg-sidebar-custom border-r border-border flex flex-col">
       <div className="p-3 border-b border-border">
-        <h2 className="text-sm font-semibold text-foreground mb-3">Explorer</h2>
-        
+        <h2 className="text-sm font-semibold text-foreground mb-3" id="explorer-heading">Explorer</h2>
+
         <div className="space-y-2">
           <Collapsible open={newFileOpen} onOpenChange={setNewFileOpen}>
             <CollapsibleTrigger asChild>
-              <Button variant="secondary" className="w-full justify-between">
+              <Button variant="secondary" className="w-full justify-between" aria-expanded={newFileOpen}>
                 <span className="flex items-center">
-                  <FilePlus className="w-4 h-4 mr-2" />
+                  <FilePlus className="w-4 h-4 mr-2" aria-hidden="true" />
                   New File
                 </span>
-                {newFileOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                {newFileOpen ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
               </Button>
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-2 space-y-2 p-3 bg-background/50 rounded-md border border-border">
               <div className="grid gap-2">
                 <Label htmlFor="file-type" className="text-xs">File Type</Label>
                 <Select value={fileType} onValueChange={(value) => setFileType(value as keyof typeof FILE_TEMPLATES)}>
-                  <SelectTrigger id="file-type" className="h-9">
+                  <SelectTrigger id="file-type" className="h-9" aria-label="New file type">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -127,11 +127,11 @@ export const FileExplorer = ({
               </Button>
             </CollapsibleContent>
           </Collapsible>
-          
+
           <label htmlFor="file-upload">
             <Button variant="secondary" className="w-full" asChild>
               <span className="cursor-pointer">
-                <Upload className="w-4 h-4 mr-2" />
+                <Upload className="w-4 h-4 mr-2" aria-hidden="true" />
                 Upload Files
               </span>
             </Button>
@@ -142,18 +142,19 @@ export const FileExplorer = ({
             multiple
             accept=".py,.r,.csv,.txt"
             className="hidden"
+            aria-label="Upload files to Explorer"
             onChange={handleFileInput}
           />
-          
+
           <Button variant="secondary" className="w-full" onClick={onSaveAll}>
-            <Save className="w-4 h-4 mr-2" />
+            <Save className="w-4 h-4 mr-2" aria-hidden="true" />
             Save All
           </Button>
         </div>
       </div>
-      
-      <ScrollArea className="flex-1">
-        <div className="p-2">
+
+      <ScrollArea className="flex-1" aria-labelledby="explorer-heading">
+        <div className="p-2" role="list" aria-label="Workspace files">
           {files.length === 0 ? (
             <p className="text-sm text-muted-foreground p-2">No files yet</p>
           ) : (
@@ -161,36 +162,49 @@ export const FileExplorer = ({
               <div
                 key={file.id}
                 className={cn(
-                  "flex items-center justify-between p-2 rounded hover:bg-secondary cursor-pointer group",
+                  "flex items-center justify-between p-2 rounded hover:bg-secondary cursor-pointer group focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   activeFile === file.id && "bg-secondary"
                 )}
+                role="button"
+                tabIndex={0}
+                aria-label={`${file.type === 'folder' ? 'Open folder' : 'Open file'} ${file.name}`}
+                aria-current={activeFile === file.id ? "true" : undefined}
                 onClick={() => onFileSelect(file.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    onFileSelect(file.id);
+                  }
+                }}
               >
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                   {file.type === 'folder' ? (
-                    <Folder className="w-4 h-4 text-primary flex-shrink-0" />
+                    <Folder className="w-4 h-4 text-primary flex-shrink-0" aria-hidden="true" />
                   ) : (
-                    <File className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <File className="w-4 h-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
                   )}
                   <span className="text-sm text-foreground truncate">{file.name}</span>
                 </div>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 focus:opacity-100 group-focus-within:opacity-100"
+                  aria-label={`Delete ${file.name}`}
+                  title={`Delete ${file.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onFileDelete(file.id);
                   }}
+                  onKeyDown={(e) => e.stopPropagation()}
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-3 h-3" aria-hidden="true" />
                 </Button>
               </div>
             ))
           )}
         </div>
       </ScrollArea>
-      
+
       <PackageManager
         installedPackages={installedPackages}
         onInstallPackage={onInstallPackage}
