@@ -17,6 +17,9 @@ interface DatasetViewerProps {
   onClose?: () => void;
 }
 
+const LAST_RUN_CONTEXT_KEY = "bide.last-run-context.v1";
+const RESTORE_SOURCE_EVENT = "bide:restore-source-file";
+
 export const DatasetViewer = ({
   data,
   headers,
@@ -53,6 +56,29 @@ export const DatasetViewer = ({
     }
   };
 
+  const returnToCode = () => {
+    onClose?.();
+    if (!/^SQL Result(?:\s+\d+)?$/i.test(String(title || "").trim())) return;
+
+    try {
+      const raw = sessionStorage.getItem(LAST_RUN_CONTEXT_KEY);
+      if (!raw) return;
+      const context = JSON.parse(raw) as { version?: number; fileId?: string | null; language?: string };
+      if (context.version !== 1) return;
+      if (context.language && ["python", "r", "javascript", "sql"].includes(context.language)) {
+        sessionStorage.setItem("scratchLanguage", context.language);
+      }
+      if (context.fileId) {
+        window.dispatchEvent(new CustomEvent(RESTORE_SOURCE_EVENT, {
+          detail: { fileId: context.fileId },
+        }));
+      }
+      sessionStorage.removeItem(LAST_RUN_CONTEXT_KEY);
+    } catch {
+      sessionStorage.removeItem(LAST_RUN_CONTEXT_KEY);
+    }
+  };
+
   return (
     <div className="h-full bg-editor border rounded flex flex-col">
       <div className="px-3 py-2 border-b border-border bg-toolbar flex flex-wrap items-center gap-2">
@@ -65,7 +91,7 @@ export const DatasetViewer = ({
         </div>
 
         {onClose && (
-          <Button size="sm" variant="outline" onClick={onClose}>
+          <Button size="sm" variant="outline" onClick={returnToCode}>
             <Code2 className="w-4 h-4 mr-2" />
             Back to Code
           </Button>
