@@ -18,6 +18,7 @@ type Analysis = {
   missingPct: number;
   numeric: boolean;
   uniqueCount: number;
+  presentCount: number;
 };
 
 interface Props {
@@ -25,7 +26,12 @@ interface Props {
   onInsertCode?: (code: string) => void;
   onOpenPlotBuilder?: () => void;
   language: 'python' | 'r';
-  preloadedData?: { rows: Row[]; filename: string }; // Accept already-loaded CSV
+  preloadedData?: { rows: Row[]; filename: string };
+}
+
+function looksLikeHighCardinalityIdentityField(column: string) {
+  const normalized = column.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+  return /(^|_)(id|uuid|guid|name|first_name|last_name|full_name|customer_name|account_name|email|phone|mobile|address|street|invoice_number|account_number|customer_number)($|_)/.test(normalized);
 }
 
 export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpenPlotBuilder, language, preloadedData }: Props) {
@@ -41,7 +47,6 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
 
   const columns = useMemo(() => (rows[0] ? Object.keys(rows[0]) : []), [rows]);
 
-  // Load preloaded data once per filename change to avoid loops
   useEffect(() => {
     if (!preloadedData || preloadedData.rows.length === 0) return;
     if (preloadedData.filename !== filename) {
@@ -55,8 +60,6 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
     setFilename(file.name);
     Papa.parse<Row>(file, {
       header: true,
-      // Keep CSV values as source strings. DataLab may infer numeric columns for
-      // recommendations, but opening a dataset must never normalize identifiers.
       dynamicTyping: false,
       skipEmptyLines: true,
       complete: (res) => {
@@ -78,8 +81,6 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
       if (typeof value !== 'string') return false;
       const text = value.trim();
       if (!text) return false;
-      // Reject integer-like identifiers with leading zeroes (00123) while still
-      // accepting normal decimals such as 0.5 and scientific notation.
       return /^[-+]?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][-+]?\d+)?$/.test(text);
     };
 
@@ -89,8 +90,8 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
       const missingPct = data.length ? nulls / data.length : 0;
       const present = vals.filter(v => v !== '' && v != null);
       const numeric = present.length > 0 && present.every(looksNumeric);
-      const uniqueCount = new Set(present).size;
-      return { col, nulls, missingPct, numeric, uniqueCount };
+      const uniqueCount = new Set(present.map(value => String(value).trim()).filter(Boolean)).size;
+      return { col, nulls, missingPct, numeric, uniqueCount, presentCount: present.length };
     });
   };
 
@@ -99,7 +100,14 @@ export default function DataLab({ onLoadDataset, onInsertCode = () => {}, onOpen
     analysis.forEach(a => {
       if (a.missingPct > 0.1) s.push(`Consider imputing or dropping "${a.col}" (missing ${(a.missingPct*100).toFixed(1)}%)`);
       if (a.numeric) s.push(`Plot histogram/boxplot for "${a.col}"`);
-      if (!a.numeric && a.uniqueCount < 30) s.push(`Categorical bar chart for "${a.col}"`);
+
+      const uniqueRatio = a.presentCount ? a.uniqueCount / a.presentCount : 1;
+      const usefulCategory = !a.numeric
+        && a.uniqueCount >= 2
+        && a.uniqueCount <= 30
+        && uniqueRatio <= 0.6
+        && !looksLikeHighCardinalityIdentityField(a.col);
+      if (usefulCategory) s.push(`Categorical bar chart for "${a.col}"`);
     });
     if (target) s.push(`Try correlation/feature importance vs target "${target}"`);
     return Array.from(new Set(s));
@@ -170,10 +178,9 @@ if (length(num_cols) > 0) {
 
   const askAI = async () => {
     if (rows.length === 0) return;
-    
     setIsLoadingAI(true);
     setShowAiSection(true);
-    
+
     try {
       const { data, error } = await supabase.functions.invoke('data-advisor', {
         body: {
@@ -212,6 +219,7 @@ if (length(num_cols) > 0) {
             <input
               type="file"
               accept=".csv,text/csv"
+              aria-label="Upload CSV to DataLab"
               onChange={(e) => e.target.files && handleFile(e.target.files[0])}
             />
           )}
@@ -220,7 +228,7 @@ if (length(num_cols) > 0) {
               <div className="flex items-center gap-2">
                 <span className="text-sm">Target (optional)</span>
                 <Select value={target || "none"} onValueChange={(val) => setTarget(val === "none" ? "" : val)}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-48" aria-label="Choose optional target column">
                     <SelectValue placeholder="Pick column" />
                   </SelectTrigger>
                   <SelectContent>
@@ -266,11 +274,10 @@ if (length(num_cols) > 0) {
           <Alert>
             <Sparkles className="h-4 w-4" />
             <AlertDescription>
-              AI data recommendations require a free account.{" "}
+              AI data recommendations use the same PocketBI ID as the rest of bIDE. Connect a free PocketBI ID to use the included AI requests.{" "}
               <Link to="/auth" className="font-semibold underline">
-                Sign up
-              </Link>{" "}
-              to get 3 free AI requests every 5 days!
+                Connect PocketBI ID
+              </Link>
             </AlertDescription>
           </Alert>
         )}
@@ -305,9 +312,9 @@ if (length(num_cols) > 0) {
                       <pre className="bg-muted p-3 rounded text-xs overflow-x-auto">
                         {aiCode}
                       </pre>
-                      <Button 
-                        variant="secondary" 
-                        size="sm" 
+                      <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={() => {
                           onInsertCode(aiCode);
                           toast.success('AI code inserted into editor');
