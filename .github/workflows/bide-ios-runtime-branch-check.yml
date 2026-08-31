@@ -1,0 +1,43 @@
+name: bIDE iOS Runtime Branch Check
+
+on:
+  push:
+    branches:
+      - agent/bide-ios-python-r-runtime
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-ios-runtime-branch-check
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Validate existing native baselines
+        run: |
+          node scripts/validate-bide-ios-phase1.mjs
+          node scripts/validate-bide-ios-phase2.mjs
+          node scripts/validate-bide-ios-phase2-integrity.mjs
+
+      - name: Validate Python and R source wiring
+        run: node scripts/validate-bide-ios-runtimes.mjs
+
+      - name: Prepare pinned runtime payloads
+        run: node scripts/prepare-bide-ios-runtimes.mjs
+
+      - name: Verify prepared runtime bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ios/BideApp/RuntimeAssets/runtime-host.html
+          test -f ios/BideApp/RuntimeAssets/runtime-manifest.json
+          test -f ios/BideApp/RuntimeAssets/pyodide/pyodide.mjs
+          test -f ios/BideApp/RuntimeAssets/webr/webr.mjs
+          du -sh ios/BideApp/RuntimeAssets
