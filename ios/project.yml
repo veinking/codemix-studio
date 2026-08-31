@@ -119,6 +119,10 @@ targets:
       - path: BideTests/Fixtures/bIDE-Phase2-Test-MultiSheet.xlsx
         buildPhase: resources
         group: BideTests/Fixtures
+      - path: BideApp/RuntimeAssets
+        type: folder
+        buildPhase: resources
+        group: RuntimeAssets
     dependencies:
       - target: bIDE
     settings:
