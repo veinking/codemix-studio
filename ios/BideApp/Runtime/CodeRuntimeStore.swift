@@ -21,6 +21,10 @@ final class CodeRuntimeStore: NSObject, ObservableObject, WKNavigationDelegate {
     @Published var lastRun: CodeRuntimeExecutionReport?
     @Published var runtimeError: String?
 
+    // Internal-only seam used by the native simulator smoke tests so the same
+    // runtime bundle can be loaded from the test bundle. Production leaves this nil.
+    var runtimeRootOverride: URL?
+
     private var server: RuntimeHTTPServer?
     private var webView: WKWebView?
     private var navigationContinuation: CheckedContinuation<Void, Error>?
@@ -79,7 +83,7 @@ final class CodeRuntimeStore: NSObject, ObservableObject, WKNavigationDelegate {
     private func preparedWebView() async throws -> WKWebView {
         if let webView { return webView }
 
-        guard let runtimeRoot = Bundle.main.url(forResource: "RuntimeAssets", withExtension: nil) else {
+        guard let runtimeRoot = runtimeRootOverride ?? Bundle.main.url(forResource: "RuntimeAssets", withExtension: nil) else {
             throw RuntimeBridgeError.missingRuntimeBundle
         }
 
