@@ -139,8 +139,8 @@ const Account = () => {
                 Use bIDE for code-first work. Use the PocketBI Account Home when you want to see the rest of the ecosystem or manage shared access. Product files are not automatically shared just because the account is shared.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button asChild><a href={POCKETBI_ACCOUNT_HOME} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4 mr-2" />PocketBI Account Home</a></Button>
-                <Button variant="outline" asChild><a href="https://pocketbi.app/app" target="_blank" rel="noreferrer">Open PocketBI Workspace</a></Button>
+                <Button asChild><a href={POCKETBI_ACCOUNT_HOME} target="PocketBIAccount"><ExternalLink className="h-4 w-4 mr-2" />PocketBI Account Home</a></Button>
+                <Button variant="outline" asChild><a href="https://pocketbi.app/app" target="PocketBIWorkspace">Open PocketBI Workspace</a></Button>
               </div>
             </CardContent>
           </Card>
