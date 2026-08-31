@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PackageManager } from "@/components/PackageManager";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -41,6 +41,9 @@ interface FileExplorerProps {
   onOpenLabTrainer?: () => void;
 }
 
+const PENDING_OPEN_FILE_KEY = "bide.pending-open-file.v1";
+const RESTORE_SOURCE_EVENT = "bide:restore-source-file";
+
 const FILE_TEMPLATES = {
   python: { extension: '.py', template: '# Python Script\n\nprint("Hello, World!")\n' },
   r: { extension: '.r', template: '# R Script\n\nprint("Hello, World!")\n' },
@@ -67,6 +70,31 @@ export const FileExplorer = ({
   const [fileName, setFileName] = useState("");
   const [fileType, setFileType] = useState<keyof typeof FILE_TEMPLATES>("python");
 
+  useEffect(() => {
+    const raw = sessionStorage.getItem(PENDING_OPEN_FILE_KEY);
+    if (!raw) return;
+    try {
+      const pending = JSON.parse(raw) as { version?: number; fileId?: string };
+      if (pending.version !== 1 || !pending.fileId) return;
+      if (!files.some((file) => file.id === pending.fileId)) return;
+      sessionStorage.removeItem(PENDING_OPEN_FILE_KEY);
+      onFileSelect(pending.fileId);
+    } catch {
+      sessionStorage.removeItem(PENDING_OPEN_FILE_KEY);
+    }
+  }, [files, onFileSelect]);
+
+  useEffect(() => {
+    const restore = (event: Event) => {
+      const detail = (event as CustomEvent<{ fileId?: string }>).detail;
+      const fileId = detail?.fileId;
+      if (!fileId || !files.some((file) => file.id === fileId)) return;
+      onFileSelect(fileId);
+    };
+    window.addEventListener(RESTORE_SOURCE_EVENT, restore);
+    return () => window.removeEventListener(RESTORE_SOURCE_EVENT, restore);
+  }, [files, onFileSelect]);
+
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       onFileUpload(e.target.files);
@@ -87,7 +115,6 @@ export const FileExplorer = ({
     <div className="h-full bg-sidebar-custom border-r border-border flex flex-col">
       <div className="p-3 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground mb-3">Explorer</h2>
-        
         <div className="space-y-2">
           <Collapsible open={newFileOpen} onOpenChange={setNewFileOpen}>
             <CollapsibleTrigger asChild>
@@ -126,17 +153,14 @@ export const FileExplorer = ({
                   className="h-9"
                 />
               </div>
-              <Button onClick={handleCreateFile} disabled={!fileName.trim()} className="w-full" size="sm">
-                Create File
-              </Button>
+              <Button onClick={handleCreateFile} disabled={!fileName.trim()} className="w-full" size="sm">Create File</Button>
             </CollapsibleContent>
           </Collapsible>
-          
+
           <label htmlFor="file-upload">
             <Button variant="secondary" className="w-full" asChild>
               <span className="cursor-pointer" role="button" tabIndex={0} aria-label="Upload files to Explorer">
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Files
+                <Upload className="w-4 h-4 mr-2" />Upload Files
               </span>
             </Button>
           </label>
@@ -149,14 +173,13 @@ export const FileExplorer = ({
             aria-label="Choose files to upload"
             onChange={handleFileInput}
           />
-          
+
           <Button variant="secondary" className="w-full" onClick={onSaveAll} aria-label="Save all workspace files">
-            <Save className="w-4 h-4 mr-2" />
-            Save All
+            <Save className="w-4 h-4 mr-2" />Save All
           </Button>
         </div>
       </div>
-      
+
       <ScrollArea className="flex-1">
         <div className="p-2">
           {files.length === 0 ? (
@@ -207,7 +230,7 @@ export const FileExplorer = ({
           )}
         </div>
       </ScrollArea>
-      
+
       <PackageManager
         installedPackages={installedPackages}
         onInstallPackage={onInstallPackage}
