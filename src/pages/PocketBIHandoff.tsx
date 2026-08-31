@@ -10,6 +10,7 @@ import {
 } from "@/lib/pocketBIHandoffV1";
 
 const CONTEXT_KEY = "bide.pocketbi.dataset.v1";
+const PENDING_OPEN_FILE_KEY = "bide.pending-open-file.v1";
 const MAX_BYTES = 20 * 1024 * 1024;
 const MAX_COLUMNS = 2_000;
 const ALLOWED_ORIGINS = new Set([
@@ -212,6 +213,12 @@ export default function PocketBIHandoff() {
           manifest: manifestDecision.manifest,
           receivedAt: new Date().toISOString(),
         }));
+        sessionStorage.setItem(PENDING_OPEN_FILE_KEY, JSON.stringify({
+          version: 1,
+          fileId: id,
+          fileName: name,
+          requestedView: "data",
+        }));
         localStorage.setItem("bide_visited", "true");
 
         window.opener.postMessage({
@@ -230,7 +237,7 @@ export default function PocketBIHandoff() {
         const identity = manifestDecision.manifest?.dataset.id
           ? ` Dataset ${manifestDecision.manifest.dataset.id} lineage is attached.`
           : "";
-        setStatus(`${name} is ready in BIDE.${identity}`);
+        setStatus(`${name} is ready in BIDE.${identity} Opening the CSV now…`);
         window.setTimeout(() => navigate(`/ide?source=pocketbi&file=${encodeURIComponent(name)}`, { replace: true }), 450);
       } catch (caught) {
         const message = caught instanceof Error ? caught.message : "BIDE could not accept this PocketBI dataset.";
