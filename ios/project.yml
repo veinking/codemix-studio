@@ -4,6 +4,7 @@ options:
   developmentLanguage: en
   deploymentTarget:
     iOS: "17.0"
+  preGenCommand: node ../scripts/prepare-bide-ios-runtimes.mjs
 
 packages:
   Runestone:
@@ -22,6 +23,11 @@ targets:
     platform: iOS
     sources:
       - path: BideApp
+        excludes:
+          - RuntimeAssets
+      - path: BideApp/RuntimeAssets
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: Runestone
         product: Runestone
@@ -44,6 +50,8 @@ targets:
         LSApplicationCategoryType: public.app-category.developer-tools
         UIApplicationSupportsIndirectInputEvents: true
         UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
