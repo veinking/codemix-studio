@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
+const main = read('src/main.tsx');
 const app = read('src/App.tsx');
 const handoff = read('src/pages/PocketBIHandoff.tsx');
 const handoffContract = read('src/lib/pocketBIHandoffV1.ts');
@@ -17,6 +18,11 @@ const features = read('src/pages/Features.tsx');
 const focusedSeo = read('src/utils/focusedSeo.ts');
 const sitemap = read('public/sitemap.xml');
 const support = read('src/pages/Support.tsx');
+
+// A directly opened bIDE session must be reusable from PocketBI Business without
+// overwriting purpose-specific OAuth or handoff browsing-context names.
+assert.match(main, /if \(typeof window !== "undefined" && !window\.name\)/, 'bIDE must only name an otherwise unnamed browsing context');
+assert.match(main, /window\.name = "BIDEWorkbench"/, 'Direct bIDE sessions must use the ecosystem BIDEWorkbench name');
 
 // PocketBI browser-to-browser handoff must trust both the origin and the exact opener.
 assert.match(handoff, /event\.source !== window\.opener/, 'PocketBI dataset handoff must reject messages from non-opener windows');
@@ -85,4 +91,4 @@ assert.doesNotMatch(sitemap, /16 Programming Languages|12 more languages/i, 'Cra
 assert.match(focusedSeo, /unlisted bIDE code link/, 'Shared-code metadata must describe unlisted handoff truthfully');
 assert.doesNotMatch(support, /navigate\("\/tutorials"\)/, 'Support must link to current docs rather than the retired tutorial implementation');
 
-console.log('✓ Team handoff + PocketBI V1 + public runtime boundary regression guard passed');
+console.log('✓ Team handoff + PocketBI V1 + named bIDE workbench + public runtime boundary regression guard passed');
