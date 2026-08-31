@@ -204,7 +204,7 @@ const Features = () => {
 
       <footer className="border-t border-border/70 py-8">
         <div className="container mx-auto px-4 flex flex-wrap gap-4 items-center justify-between text-sm text-muted-foreground">
-          <p>bIDE by CodeMix · browser coding workspace</p>
+          <p>bIDE · A PocketBI product · browser coding workspace</p>
           <div className="flex gap-4">
             <button onClick={() => navigate("/docs")} className="hover:text-foreground">Docs</button>
             <button onClick={() => navigate("/support")} className="hover:text-foreground">Support</button>
