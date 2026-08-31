@@ -19,6 +19,7 @@ struct BideApp: App {
                     synchronizeDataProject(workspace.activeProjectID)
                 }
                 .onChange(of: workspace.activeProjectID) { _, projectID in
+                    codeRuntime.resetSession()
                     synchronizeDataProject(projectID)
                 }
                 .onOpenURL { url in
