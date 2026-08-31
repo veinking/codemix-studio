@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import {
   Book,
   Cloud,
@@ -12,6 +13,8 @@ import {
   BarChart3,
   BookOpen,
   ExternalLink,
+  Loader2,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LanguageSelector } from "@/components/LanguageSelector";
@@ -58,6 +61,13 @@ interface ToolbarProps {
   showScratchLanguageSelector?: boolean;
 }
 
+const RUNTIME_LABELS: Record<string, string> = {
+  python: "Python",
+  r: "R",
+  javascript: "JavaScript",
+  sql: "SQL",
+};
+
 export const Toolbar = ({
   onRun,
   onSaveScratchAsFile,
@@ -82,6 +92,33 @@ export const Toolbar = ({
 }: ToolbarProps) => {
   const navigate = useNavigate();
   const { user, isGuest, signOut } = useAuth();
+  const wasRunning = useRef(false);
+  const [showComplete, setShowComplete] = useState(false);
+
+  const activeRuntime = currentFile ? currentLanguage : scratchLanguage;
+  const runtimeLabel = RUNTIME_LABELS[activeRuntime] || activeRuntime;
+  const runtimeLoading = loadingRuntimes.has(activeRuntime);
+
+  useEffect(() => {
+    let timer: number | undefined;
+    if (wasRunning.current && !isRunning) {
+      setShowComplete(true);
+      timer = window.setTimeout(() => setShowComplete(false), 2200);
+    }
+    if (isRunning) setShowComplete(false);
+    wasRunning.current = isRunning;
+    return () => {
+      if (timer) window.clearTimeout(timer);
+    };
+  }, [isRunning]);
+
+  const runStatus = runtimeLoading && isRunning
+    ? `Loading ${runtimeLabel} runtime…`
+    : isRunning
+      ? `Running ${runtimeLabel}…`
+      : showComplete
+        ? "Complete ✓"
+        : "Run";
 
   const openPocketBIAccount = () => window.open("https://pocketbi.app/account", "_blank", "noopener,noreferrer");
 
@@ -94,14 +131,15 @@ export const Toolbar = ({
       onClick={onAuthClick}
       className={isMobile ? "h-9 w-9" : "h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground"}
       title="Connect PocketBI ID to bIDE"
+      aria-label="Connect PocketBI ID to bIDE"
     >
-      <User className="h-4 w-4" />
+      <User className="h-4 w-4" aria-hidden="true" />
       {!isMobile && <span className="ml-1.5">Connect PocketBI ID</span>}
     </Button>
   ) : (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : "h-8 px-2"} title="PocketBI ID in bIDE">
+        <Button variant="ghost" size={isMobile ? "icon" : "sm"} className={isMobile ? "h-9 w-9" : "h-8 px-2"} title="PocketBI ID in bIDE" aria-label="PocketBI ID account menu">
           <Avatar className="h-6 w-6">
             <AvatarFallback className="bg-primary/15 text-primary text-xs">{user?.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
           </Avatar>
@@ -109,10 +147,10 @@ export const Toolbar = ({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={() => navigate("/account")}><User className="mr-2 h-4 w-4" /> bIDE sign-in & access</DropdownMenuItem>
-        <DropdownMenuItem onClick={openPocketBIAccount}><ExternalLink className="mr-2 h-4 w-4" /> PocketBI Account Home</DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/account")}><User className="mr-2 h-4 w-4" aria-hidden="true" /> bIDE sign-in & access</DropdownMenuItem>
+        <DropdownMenuItem onClick={openPocketBIAccount}><ExternalLink className="mr-2 h-4 w-4" aria-hidden="true" /> PocketBI Account Home</DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" /> Sign out of bIDE</DropdownMenuItem>
+        <DropdownMenuItem onClick={signOut}><LogOut className="mr-2 h-4 w-4" aria-hidden="true" /> Sign out of bIDE</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -132,11 +170,11 @@ export const Toolbar = ({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <Button variant="ghost" size="icon" onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")} className="h-9 w-9" title="Language reference">
-            <Book className="h-4 w-4" />
+          <Button variant="ghost" size="icon" onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")} className="h-9 w-9" title="Language reference" aria-label="Open language reference">
+            <Book className="h-4 w-4" aria-hidden="true" />
           </Button>
           {onOpenFeatures && (
-            <Button variant="ghost" size="icon" onClick={onOpenFeatures} className="h-9 w-9" title="Workspace tools"><Settings2 className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" onClick={onOpenFeatures} className="h-9 w-9" title="Workspace tools" aria-label="Open workspace tools"><Settings2 className="h-4 w-4" aria-hidden="true" /></Button>
           )}
           {accountControl}
         </div>
@@ -160,42 +198,57 @@ export const Toolbar = ({
       </div>
 
       <div className="flex shrink-0 items-center gap-1">
-        <Button variant="default" size="sm" onClick={onRun} disabled={isRunning} className="h-8 px-3 text-xs shadow-none">
-          <Play className="mr-1.5 h-3.5 w-3.5" />{isRunning ? "Running…" : "Run"}
+        <Button
+          variant="default"
+          size="sm"
+          onClick={onRun}
+          disabled={isRunning}
+          className="h-8 px-3 text-xs shadow-none"
+          aria-live="polite"
+          aria-label={runStatus === "Run" ? `Run ${runtimeLabel} code` : runStatus}
+        >
+          {runtimeLoading && isRunning ? (
+            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+          ) : showComplete && !isRunning ? (
+            <Check className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+          ) : (
+            <Play className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+          )}
+          {runStatus}
         </Button>
 
         {!currentFile && (
-          <Button variant="ghost" size="sm" onClick={onSaveScratchAsFile} className="h-8 px-2.5 text-xs"><Save className="mr-1.5 h-3.5 w-3.5" /> Save</Button>
+          <Button variant="ghost" size="sm" onClick={onSaveScratchAsFile} className="h-8 px-2.5 text-xs"><Save className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" /> Save</Button>
         )}
 
         {onShare && (
-          <Button variant="ghost" size="sm" onClick={onShare} className="h-8 px-2.5 text-xs"><Share2 className="mr-1.5 h-3.5 w-3.5" /> Share</Button>
+          <Button variant="ghost" size="sm" onClick={onShare} className="h-8 px-2.5 text-xs"><Share2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" /> Share</Button>
         )}
 
         <Button variant="ghost" size="sm" onClick={() => window.open(`/docs/${currentLanguage}`, "_blank")} className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
-          <Book className="mr-1.5 h-3.5 w-3.5" /> Docs
+          <Book className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" /> Docs
         </Button>
 
         {onOpenTools && (
-          <Button variant="ghost" size="sm" onClick={onOpenTools} className="h-8 px-2.5 text-xs"><Settings2 className="mr-1.5 h-3.5 w-3.5" /> Tools</Button>
+          <Button variant="ghost" size="sm" onClick={onOpenTools} className="h-8 px-2.5 text-xs"><Settings2 className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" /> Tools</Button>
         )}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title="More editor actions"><MoreHorizontal className="h-4 w-4" /></Button>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" title="More editor actions" aria-label="More editor actions"><MoreHorizontal className="h-4 w-4" aria-hidden="true" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-52">
             {onToggleNotebook && !currentFile && (
-              <DropdownMenuItem onClick={onToggleNotebook}><BookOpen className="mr-2 h-4 w-4" /> {isNotebookMode ? "Exit notebook" : "Notebook mode"}</DropdownMenuItem>
+              <DropdownMenuItem onClick={onToggleNotebook}><BookOpen className="mr-2 h-4 w-4" aria-hidden="true" /> {isNotebookMode ? "Exit notebook" : "Notebook mode"}</DropdownMenuItem>
             )}
             {onOpenPlotBuilder && (
-              <DropdownMenuItem onClick={onOpenPlotBuilder}><BarChart3 className="mr-2 h-4 w-4" /> Plot builder</DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenPlotBuilder}><BarChart3 className="mr-2 h-4 w-4" aria-hidden="true" /> Plot builder</DropdownMenuItem>
             )}
             {onOpenTemplates && (
-              <DropdownMenuItem onClick={onOpenTemplates}><Library className="mr-2 h-4 w-4" /> Templates</DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenTemplates}><Library className="mr-2 h-4 w-4" aria-hidden="true" /> Templates</DropdownMenuItem>
             )}
             {onOpenWorkspaceManager && (
-              <DropdownMenuItem onClick={onOpenWorkspaceManager}><Cloud className="mr-2 h-4 w-4" /> Cloud workspace</DropdownMenuItem>
+              <DropdownMenuItem onClick={onOpenWorkspaceManager}><Cloud className="mr-2 h-4 w-4" aria-hidden="true" /> Cloud workspace</DropdownMenuItem>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
