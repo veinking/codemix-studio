@@ -10,6 +10,8 @@ const account = read("src/pages/Account.tsx");
 const support = read("src/pages/Support.tsx");
 const terms = read("src/pages/Terms.tsx");
 const privacy = read("src/pages/Privacy.tsx");
+const dataScience = read("src/pages/use-cases/DataScienceStudents.tsx");
+const statisticsR = read("src/pages/use-cases/StatisticsR.tsx");
 const app = read("src/App.tsx");
 const main = read("src/main.tsx");
 const seo = read("src/utils/focusedSeo.ts");
@@ -52,6 +54,23 @@ assert.ok(app.includes('<Route path="/upgrade" element={<Navigate to="/account" 
 assert.ok(app.includes('path="/pocketbi-handoff"') && app.includes("PocketBIHandoff"), "PocketBI handoff must survive public cleanup.");
 assert.ok(!app.includes('import Testimonials from'), "Synthetic testimonial content must not remain mounted in the public app router.");
 assert.ok(app.includes('<Route path="/testimonials" element={<Navigate to="/features" replace />} />'), "Legacy testimonial URLs must resolve to a truthful product surface instead of fabricated social proof.");
+assert.ok(!app.includes('import VsGoogleColab from'), "The stale third-party comparison must not remain mounted in the public router.");
+assert.ok(app.includes('<Route path="/comparisons/bide-vs-google-colab" element={<Navigate to="/features" replace />} />'), "Legacy comparison URLs must resolve to a current first-party feature surface.");
+assert.ok(app.includes('<Route path="/comparisons/openide-vs-google-colab" element={<Navigate to="/features" replace />} />'), "Legacy OpenIDE comparison URLs must resolve safely too.");
+
+for (const stale of ["completely free", "no limits", "All your work syncs automatically", "Join thousands of students", "AI-powered help to debug, explain, and optimize"] ) {
+  assert.ok(!dataScience.toLowerCase().includes(stale.toLowerCase()), `Data Science use case must not restore stale promise: ${stale}`);
+}
+assert.ok(dataScience.includes("supported browser-compatible Python packages"), "Data Science use case must state the browser package-compatibility boundary.");
+assert.ok(dataScience.includes("No AI key is required for normal coding"), "Data Science use case must keep Code Assist optional.");
+assert.ok(dataScience.includes("explicit signed-in workspace snapshot"), "Data Science use case must describe deliberate snapshots instead of silent sync.");
+
+for (const stale of ["Everything RStudio offers", "Free forever", "All your favorite R packages", "Get instant help with R syntax"] ) {
+  assert.ok(!statisticsR.toLowerCase().includes(stale.toLowerCase()), `Statistics/R use case must not restore stale promise: ${stale}`);
+}
+assert.ok(statisticsR.includes("not a claim to replace every desktop RStudio capability"), "R use case must avoid false desktop-equivalence claims.");
+assert.ok(statisticsR.includes("Package and native-dependency compatibility can differ from desktop R"), "R use case must state browser-runtime package boundaries.");
+assert.ok(statisticsR.includes("Normal R execution does not require an AI key"), "R use case must keep Code Assist optional.");
 
 for (const removed of [
   "src/pages/Upgrade.tsx",
@@ -107,4 +126,4 @@ assert.match(seo, /SEO_CONFIGS\.notFound[\s\S]*Python, R, JavaScript and SQL/,
 assert.doesNotMatch(seo, /SEO_CONFIGS\.notFound[\s\S]*16 programming languages/,
   "404 metadata must not restore the retired 16-runtime promise.");
 
-console.log("bIDE Public Cleanup V1 focused positioning, truthful routing/social proof, reachable Support/SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");
+console.log("bIDE Public Cleanup V1 focused positioning, truthful routing/use cases/social proof, reachable Support/SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");

@@ -11,10 +11,10 @@ const DataScienceStudents = () => {
 
   useEffect(() => {
     updatePageSEO({
-      title: 'Free Python IDE for Data Science Students | bIDE',
-      description: 'Perfect Python IDE for data science students. Run pandas, numpy, matplotlib in your browser. Free Jupyter notebook alternative with AI assistance. Works on any device - no installation required.',
-      keywords: 'python ide for students, data science ide, free jupyter alternative, pandas online, numpy browser, learn data science, student coding tools',
-      canonical: 'https://bideide.com/use-cases/data-science-students'
+      title: "Browser Python Workspace for Data Science Students | bIDE",
+      description: "Use bIDE for browser-based Python and SQL coursework with CSV data, supported packages, plot tools, files, output, and optional bring-your-own-key Code Assist.",
+      keywords: "python ide for students, data science browser ide, csv analysis, python coursework, sql coursework, browser coding workspace",
+      canonical: "https://bideide.com/use-cases/data-science-students",
     });
   }, []);
 
@@ -23,7 +23,7 @@ const DataScienceStudents = () => {
       <BreadcrumbSchema items={[
         { name: "Home", url: "https://bideide.com/" },
         { name: "Use Cases", url: "https://bideide.com/use-cases/data-science-students" },
-        { name: "Data Science Students", url: "https://bideide.com/use-cases/data-science-students" }
+        { name: "Data Science Students", url: "https://bideide.com/use-cases/data-science-students" },
       ]} />
 
       <div className="container mx-auto px-4 py-8 max-w-4xl">
@@ -34,9 +34,9 @@ const DataScienceStudents = () => {
 
         <div className="space-y-8">
           <div>
-            <h1 className="text-4xl font-bold mb-4">Free Python IDE for Data Science Students</h1>
+            <h1 className="text-4xl font-bold mb-4">Browser Python Workspace for Data Science Students</h1>
             <p className="text-xl text-muted-foreground">
-              Everything you need to learn data science, run in your browser, completely free.
+              Keep code, CSV data, files, output, and optional assistance in one browser workspace without requiring a local Python setup.
             </p>
           </div>
 
@@ -44,10 +44,10 @@ const DataScienceStudents = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Code2 className="h-6 w-6" />
-                Why bIDE is Perfect for Data Science Students
+                A focused path for coursework
               </CardTitle>
               <CardDescription>
-                Built by a student, for students. No installation, no credit card, no limits.
+                bIDE centers the editor and runtime first. Data utilities and Code Assist stay optional.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -55,50 +55,48 @@ const DataScienceStudents = () => {
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">Run Pandas & NumPy Instantly</h3>
-                    <p className="text-sm text-muted-foreground">
-                      No setup required. Start analyzing data with pandas, numpy, and scipy right in your browser.
-                    </p>
+                    <h3 className="font-semibold mb-1">Run Python in the browser</h3>
+                    <p className="text-sm text-muted-foreground">Write and execute Python without installing a local toolchain first.</p>
                   </div>
                 </div>
 
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">Data Visualization Built-In</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Create charts with matplotlib, seaborn, and plotly. Export visualizations for your assignments.
-                    </p>
+                    <h3 className="font-semibold mb-1">Work with CSV data</h3>
+                    <p className="text-sm text-muted-foreground">Upload CSV files and use them from Python, SQL, or the built-in data workspace.</p>
                   </div>
                 </div>
 
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">AI Code Assistant</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Stuck on homework? Get AI-powered help to debug, explain, and optimize your code.
-                    </p>
+                    <h3 className="font-semibold mb-1">Use guided data operations</h3>
+                    <p className="text-sm text-muted-foreground">Filter, sort, group, and transform data when you do not want to hand-write every operation.</p>
                   </div>
                 </div>
 
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">Works on iPhone & Android</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Code between classes on your phone. All your work syncs automatically.
-                    </p>
+                    <h3 className="font-semibold mb-1">Load supported packages</h3>
+                    <p className="text-sm text-muted-foreground">Use supported browser-compatible Python packages when your assignment needs more than the base runtime.</p>
                   </div>
                 </div>
 
                 <div className="flex gap-3">
                   <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
                   <div>
-                    <h3 className="font-semibold mb-1">CSV Upload & Analysis</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Upload datasets from your courses and analyze them with built-in data operations.
-                    </p>
+                    <h3 className="font-semibold mb-1">Plot when the task needs it</h3>
+                    <p className="text-sm text-muted-foreground">Create or inspect charts with the available plot tools while keeping visualization secondary to the coding workflow.</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold mb-1">Optional Code Assist</h3>
+                    <p className="text-sm text-muted-foreground">Bring your own Gemini API key when you want Ask, Review, or Complete. No AI key is required for normal coding.</p>
                   </div>
                 </div>
               </div>
@@ -109,17 +107,17 @@ const DataScienceStudents = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database className="h-6 w-6" />
-                Perfect for These Data Science Courses
+                Useful for common student workflows
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-muted-foreground">
-                <li>• Introduction to Data Science</li>
-                <li>• Statistical Analysis & Probability</li>
-                <li>• Machine Learning Fundamentals</li>
-                <li>• Data Visualization</li>
-                <li>• Business Analytics</li>
-                <li>• Research Methods</li>
+                <li>• Explore and clean CSV coursework data</li>
+                <li>• Practice Python and SQL side by side</li>
+                <li>• Run descriptive analysis with supported packages</li>
+                <li>• Create plots for assignments and reports</li>
+                <li>• Keep code files and output together in one browser session</li>
+                <li>• Share an unlisted code link when collaboration calls for it</li>
               </ul>
             </CardContent>
           </Card>
@@ -128,18 +126,12 @@ const DataScienceStudents = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-6 w-6" />
-                Example Student Projects You Can Build
+                Know the browser-runtime boundary
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-muted-foreground">
-                <li>• Analyze campus survey data with pandas</li>
-                <li>• Build linear regression models for predictions</li>
-                <li>• Create interactive data dashboards</li>
-                <li>• Clean and visualize real-world datasets</li>
-                <li>• Perform hypothesis testing and statistical analysis</li>
-                <li>• Build classification models with scikit-learn</li>
-              </ul>
+            <CardContent className="space-y-3 text-muted-foreground">
+              <p>bIDE is a browser workspace, not a promise that every desktop Python package, GPU workload, or native dependency will run unchanged.</p>
+              <p>Package compatibility varies by browser runtime. Keep important work downloaded or use an explicit signed-in workspace snapshot when you want a deliberate cloud restore point.</p>
             </CardContent>
           </Card>
 
@@ -147,19 +139,15 @@ const DataScienceStudents = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Sparkles className="h-6 w-6" />
-                Start Learning Data Science Today
+                Start with the editor
               </CardTitle>
               <CardDescription>
-                Join thousands of students using bIDE for their data science courses
+                Open bIDE and add secondary tools only when your assignment needs them.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button 
-                onClick={() => navigate("/ide")} 
-                size="lg"
-                className="w-full sm:w-auto"
-              >
-                Launch IDE - It's Free
+              <Button onClick={() => navigate("/ide")} size="lg" className="w-full sm:w-auto">
+                Open bIDE
               </Button>
             </CardContent>
           </Card>
