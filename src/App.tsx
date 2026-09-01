@@ -23,7 +23,6 @@ import Support from "./pages/Support";
 import DataScienceStudents from "./pages/use-cases/DataScienceStudents";
 import StatisticsR from "./pages/use-cases/StatisticsR";
 import MobileCoding from "./pages/use-cases/MobileCoding";
-import VsGoogleColab from "./pages/comparisons/VsGoogleColab";
 import BlogIndex from "./pages/blog/BlogIndex";
 import DocsIndex from "./pages/docs/DocsIndex";
 import PythonDocs from "./pages/docs/PythonDocs";
@@ -62,8 +61,8 @@ const App = () => {
                 <Route path="/use-cases/data-science-students" element={<DataScienceStudents />} />
                 <Route path="/use-cases/statistics-r-programming" element={<StatisticsR />} />
                 <Route path="/use-cases/mobile-coding" element={<MobileCoding />} />
-                <Route path="/comparisons/bide-vs-google-colab" element={<VsGoogleColab />} />
-                <Route path="/comparisons/openide-vs-google-colab" element={<VsGoogleColab />} />
+                <Route path="/comparisons/bide-vs-google-colab" element={<Navigate to="/features" replace />} />
+                <Route path="/comparisons/openide-vs-google-colab" element={<Navigate to="/features" replace />} />
                 <Route path="/blog" element={<BlogIndex />} />
                 <Route path="/docs" element={<DocsIndex />} />
                 <Route path="/docs/python" element={<PythonDocs />} />
