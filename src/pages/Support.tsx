@@ -26,10 +26,10 @@ const Support = () => {
       },
       {
         "@type": "Question",
-        "name": "What is the expected response time for support?",
+        "name": "Does bIDE guarantee a support response time?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Support inquiries are generally reviewed within 24-48 hours during business days, but response times can vary."
+          "text": "Response times vary. bIDE does not currently publish a guaranteed response-time SLA."
         }
       },
       {
@@ -86,9 +86,9 @@ const Support = () => {
             </div>
 
             <div className="space-y-4">
-              <h2 className="text-xl font-semibold">Expected Response Time</h2>
+              <h2 className="text-xl font-semibold">Response Times</h2>
               <p className="text-muted-foreground">
-                Inquiries are generally reviewed within 24-48 hours during business days, although response times can vary.
+                Response times vary. bIDE does not currently publish a guaranteed response-time SLA.
               </p>
             </div>
           </CardContent>
