@@ -128,20 +128,22 @@ export const FileExplorer = ({
             </CollapsibleContent>
           </Collapsible>
           
-          <label htmlFor="file-upload">
-            <Button variant="secondary" className="w-full" asChild>
-              <span className="cursor-pointer">
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Files
-              </span>
-            </Button>
-          </label>
+          <Button
+            variant="secondary"
+            className="w-full"
+            type="button"
+            onClick={() => document.getElementById("file-upload")?.click()}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Upload Files
+          </Button>
           <input
             id="file-upload"
             type="file"
             multiple
             accept=".py,.r,.csv,.txt"
             className="hidden"
+            aria-label="Upload files"
             onChange={handleFileInput}
           />
           
@@ -177,7 +179,9 @@ export const FileExplorer = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                  aria-label={`Delete ${file.name}`}
+                  title={`Delete ${file.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onFileDelete(file.id);
