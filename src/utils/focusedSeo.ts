@@ -53,3 +53,15 @@ Object.assign(SEO_CONFIGS.sharedCode, {
   description: "Open an unlisted bIDE code link, review the source before using it, then copy, download, or fork it into your own editor session.",
   keywords: "bide shared code, unlisted code link, code snippet sharing, browser ide",
 });
+
+Object.assign(SEO_CONFIGS.support, {
+  title: "Support | bIDE",
+  description: "Get help with bIDE browser coding, PocketBI ID access, data workflows, and account questions through the current support resources.",
+  keywords: "bide support, pocketbi support, browser ide help, account help",
+});
+
+Object.assign(SEO_CONFIGS.notFound, {
+  title: "404 Not Found | bIDE",
+  description: "That page is not available. Return to bIDE's focused browser workspace for Python, R, JavaScript and SQL.",
+  keywords: "bide 404, page not found, browser ide",
+});

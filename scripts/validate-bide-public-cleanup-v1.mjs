@@ -80,8 +80,23 @@ assert.ok(!account.includes("AI usage") && !account.includes("Used today") && !a
 assert.ok(account.includes("AI is optional and bring-your-own-key"), "Account must explain the new Code Assist boundary.");
 
 assert.ok(main.includes('import "./utils/focusedSeo"'), "Focused SEO overrides must load before the app.");
-for (const key of ["SEO_CONFIGS.landing", "SEO_CONFIGS.ide", "SEO_CONFIGS.features", "SEO_CONFIGS.account"]) {
+for (const key of [
+  "SEO_CONFIGS.landing",
+  "SEO_CONFIGS.ide",
+  "SEO_CONFIGS.features",
+  "SEO_CONFIGS.account",
+  "SEO_CONFIGS.support",
+  "SEO_CONFIGS.notFound",
+]) {
   assert.ok(seo.includes(key), `Focused SEO override must cover ${key}.`);
 }
+assert.match(seo, /SEO_CONFIGS\.support[\s\S]*PocketBI ID access[\s\S]*current support resources/,
+  "Reachable Support metadata must describe current PocketBI-connected support without invented SLA promises.");
+assert.doesNotMatch(seo, /24-48 hours|respond within/i,
+  "Focused Support metadata must not promise a response-time SLA that the product does not guarantee.");
+assert.match(seo, /SEO_CONFIGS\.notFound[\s\S]*Python, R, JavaScript and SQL/,
+  "404 metadata must point users back to the four current executable V1 runtimes.");
+assert.doesNotMatch(seo, /SEO_CONFIGS\.notFound[\s\S]*16 programming languages/,
+  "404 metadata must not restore the retired 16-runtime promise.");
 
-console.log("bIDE Public Cleanup V1 focused positioning, BYOK truth, dead-AI removal, legal copy, and PocketBI handoff boundaries passed.");
+console.log("bIDE Public Cleanup V1 focused positioning, reachable SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");
