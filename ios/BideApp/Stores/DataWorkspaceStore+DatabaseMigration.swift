@@ -415,9 +415,9 @@ extension DataWorkspaceStore {
         guard let value else { return nil }
         switch type {
         case .integer:
-            return Int64(value).map(String.init) ?? value
+            return Int64(value).map { String($0) } ?? value
         case .real:
-            return Double(value).map(String.init) ?? value
+            return Double(value).map { String($0) } ?? value
         case .text:
             return value
         }
