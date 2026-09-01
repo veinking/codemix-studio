@@ -50,6 +50,8 @@ assert.ok(!guestPrompt.includes("AI Power") && !guestPrompt.includes("Unlimited"
 assert.ok(!app.includes('import Upgrade from'), "The obsolete bIDE Upgrade page must stay removed.");
 assert.ok(app.includes('<Route path="/upgrade" element={<Navigate to="/account" replace />} />'), "Legacy /upgrade links must safely resolve to Account.");
 assert.ok(app.includes('path="/pocketbi-handoff"') && app.includes("PocketBIHandoff"), "PocketBI handoff must survive public cleanup.");
+assert.ok(!app.includes('import Testimonials from'), "Synthetic testimonial content must not remain mounted in the public app router.");
+assert.ok(app.includes('<Route path="/testimonials" element={<Navigate to="/features" replace />} />'), "Legacy testimonial URLs must resolve to a truthful product surface instead of fabricated social proof.");
 
 for (const removed of [
   "src/pages/Upgrade.tsx",
@@ -105,4 +107,4 @@ assert.match(seo, /SEO_CONFIGS\.notFound[\s\S]*Python, R, JavaScript and SQL/,
 assert.doesNotMatch(seo, /SEO_CONFIGS\.notFound[\s\S]*16 programming languages/,
   "404 metadata must not restore the retired 16-runtime promise.");
 
-console.log("bIDE Public Cleanup V1 focused positioning, reachable Support/SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");
+console.log("bIDE Public Cleanup V1 focused positioning, truthful routing/social proof, reachable Support/SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");
