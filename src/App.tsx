@@ -20,7 +20,6 @@ import Account from "./pages/Account";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
 import Support from "./pages/Support";
-import Testimonials from "./pages/Testimonials";
 import DataScienceStudents from "./pages/use-cases/DataScienceStudents";
 import StatisticsR from "./pages/use-cases/StatisticsR";
 import MobileCoding from "./pages/use-cases/MobileCoding";
@@ -58,7 +57,7 @@ const App = () => {
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/support" element={<Support />} />
-                <Route path="/testimonials" element={<Testimonials />} />
+                <Route path="/testimonials" element={<Navigate to="/features" replace />} />
                 <Route path="/share/:shortId" element={<SharedCode />} />
                 <Route path="/use-cases/data-science-students" element={<DataScienceStudents />} />
                 <Route path="/use-cases/statistics-r-programming" element={<StatisticsR />} />
