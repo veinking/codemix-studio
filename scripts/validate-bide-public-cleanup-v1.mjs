@@ -7,6 +7,7 @@ const exists = (path) => fs.existsSync(path);
 const landing = read("src/pages/Landing.tsx");
 const features = read("src/pages/Features.tsx");
 const account = read("src/pages/Account.tsx");
+const support = read("src/pages/Support.tsx");
 const terms = read("src/pages/Terms.tsx");
 const privacy = read("src/pages/Privacy.tsx");
 const app = read("src/App.tsx");
@@ -79,6 +80,11 @@ assert.ok(privacy.includes("does not currently operate a separate Stripe checkou
 assert.ok(!account.includes("AI usage") && !account.includes("Used today") && !account.includes("Remaining"), "Account must not show obsolete AI quotas.");
 assert.ok(account.includes("AI is optional and bring-your-own-key"), "Account must explain the new Code Assist boundary.");
 
+assert.ok(support.includes("support@pocketbi.app"), "Visible bIDE Support must retain the canonical PocketBI support address.");
+assert.ok(support.includes("Response times vary. bIDE does not currently publish a guaranteed response-time SLA."), "Visible Support and its FAQ contract must avoid promising an unguaranteed response window.");
+assert.ok(!support.includes("24-48 hours"), "Visible Support and structured FAQ data must not publish the retired 24–48 hour expectation.");
+assert.ok(support.includes("Python, R, JavaScript, and SQL runtime scope"), "Support must point users to the current four-runtime documentation scope.");
+
 assert.ok(main.includes('import "./utils/focusedSeo"'), "Focused SEO overrides must load before the app.");
 for (const key of [
   "SEO_CONFIGS.landing",
@@ -99,4 +105,4 @@ assert.match(seo, /SEO_CONFIGS\.notFound[\s\S]*Python, R, JavaScript and SQL/,
 assert.doesNotMatch(seo, /SEO_CONFIGS\.notFound[\s\S]*16 programming languages/,
   "404 metadata must not restore the retired 16-runtime promise.");
 
-console.log("bIDE Public Cleanup V1 focused positioning, reachable SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");
+console.log("bIDE Public Cleanup V1 focused positioning, reachable Support/SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");
