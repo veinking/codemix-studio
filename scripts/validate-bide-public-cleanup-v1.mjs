@@ -57,6 +57,9 @@ assert.ok(app.includes('<Route path="/testimonials" element={<Navigate to="/feat
 assert.ok(!app.includes('import VsGoogleColab from'), "The stale third-party comparison must not remain mounted in the public router.");
 assert.ok(app.includes('<Route path="/comparisons/bide-vs-google-colab" element={<Navigate to="/features" replace />} />'), "Legacy comparison URLs must resolve to a current first-party feature surface.");
 assert.ok(app.includes('<Route path="/comparisons/openide-vs-google-colab" element={<Navigate to="/features" replace />} />'), "Legacy OpenIDE comparison URLs must resolve safely too.");
+assert.ok(!app.includes('import BlogIndex from'), "Placeholder blog cards must not remain mounted as a public content surface.");
+assert.ok(app.includes('<Route path="/blog" element={<Navigate to="/docs" replace />} />'), "Legacy blog entry must route to maintained documentation.");
+assert.ok(app.includes('<Route path="/blog/*" element={<Navigate to="/docs" replace />} />'), "Legacy article-looking blog URLs must not fall through to 404 while placeholder posts are retired.");
 
 for (const stale of ["completely free", "no limits", "All your work syncs automatically", "Join thousands of students", "AI-powered help to debug, explain, and optimize"] ) {
   assert.ok(!dataScience.toLowerCase().includes(stale.toLowerCase()), `Data Science use case must not restore stale promise: ${stale}`);
@@ -126,4 +129,4 @@ assert.match(seo, /SEO_CONFIGS\.notFound[\s\S]*Python, R, JavaScript and SQL/,
 assert.doesNotMatch(seo, /SEO_CONFIGS\.notFound[\s\S]*16 programming languages/,
   "404 metadata must not restore the retired 16-runtime promise.");
 
-console.log("bIDE Public Cleanup V1 focused positioning, truthful routing/use cases/social proof, reachable Support/SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");
+console.log("bIDE Public Cleanup V1 focused positioning, truthful routing/use cases/social proof/resources, reachable Support/SEO truth, BYOK behavior, legal copy, and PocketBI handoff boundaries passed.");
