@@ -31,7 +31,7 @@ interface FileExplorerProps {
   activeFile: string | null;
   onFileSelect: (fileId: string) => void;
   onFileUpload: (files: FileList) => void;
-  onFileDelete: (fileId: string) => void;
+  onFileDelete: (fileId: string) => void | Promise<void>;
   onCreateFile: (name: string, content: string) => void;
   onSaveAll: () => void;
   installedPackages: string[];
@@ -64,6 +64,7 @@ export const FileExplorer = ({
   const [newFileOpen, setNewFileOpen] = useState(false);
   const [fileName, setFileName] = useState("");
   const [fileType, setFileType] = useState<keyof typeof FILE_TEMPLATES>("python");
+  const [isClearingFiles, setIsClearingFiles] = useState(false);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -79,6 +80,24 @@ export const FileExplorer = ({
     setFileName("");
     setFileType("python");
     setNewFileOpen(false);
+  };
+
+  const handleClearLocalFiles = async () => {
+    if (files.length === 0 || isClearingFiles) return;
+
+    const confirmed = window.confirm(
+      `Delete all ${files.length} local file(s) from this browser? Cloud workspace snapshots are not affected.`,
+    );
+    if (!confirmed) return;
+
+    setIsClearingFiles(true);
+    try {
+      for (const file of [...files]) {
+        await Promise.resolve(onFileDelete(file.id));
+      }
+    } finally {
+      setIsClearingFiles(false);
+    }
   };
 
   return (
@@ -151,6 +170,21 @@ export const FileExplorer = ({
             <Save className="w-4 h-4 mr-2" />
             Save All
           </Button>
+
+          <Button
+            variant="outline"
+            className="w-full text-destructive hover:text-destructive"
+            type="button"
+            onClick={handleClearLocalFiles}
+            disabled={files.length === 0 || isClearingFiles}
+            aria-label="Delete all local files"
+          >
+            <Trash2 className="w-4 h-4 mr-2" />
+            {isClearingFiles ? 'Deleting local files…' : 'Delete All Local Files'}
+          </Button>
+          <p className="text-[11px] leading-4 text-muted-foreground">
+            Removes files stored by this browser. Cloud workspace snapshots are not affected.
+          </p>
         </div>
       </div>
       
