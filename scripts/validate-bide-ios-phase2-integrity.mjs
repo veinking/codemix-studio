@@ -190,7 +190,7 @@ const regressions = [
   ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testRecoveryDoesNotTouchStagedFileOwnedByLiveDataOperation"],
   ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testMalformedDeleteArtifactInvalidatesDerivedDatabaseBeforeFailing"],
   ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testDuplicateDeleteArtifactsStopBeforeMovingFilesAndInvalidateSQL"],
-  ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testSourceAndStagedConflictStopsBeforeMutationAndInvalidateSQL"],
+  ["ios/BideTests/InterruptedDeletionRecoveryTests.swift", "testSourceAndStagedConflictStopsBeforeMutationAndInvalidatesSQL"],
   ["ios/BideTests/SavedResultRecoveryTests.swift", "testPendingSavedResultIsRemovedAndDerivedDatabaseIsRebuiltFromRemainingRegistry"],
   ["ios/BideTests/SavedResultRecoveryTests.swift", "testVerifiedSavedResultSurvivesRecoveryAndOnlyMarkerIsRemoved"],
   ["ios/BideTests/SavedResultRecoveryTests.swift", "testRecoveryDoesNotDeleteManualFileThatOnlySharesTokenPrefix"],
