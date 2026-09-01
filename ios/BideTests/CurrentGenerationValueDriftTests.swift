@@ -185,9 +185,12 @@ final class CurrentGenerationValueDriftTests: XCTestCase {
         XCTAssertTrue(flattened.contains("VA"))
         XCTAssertTrue(flattened.contains("Starter Plan"))
 
-        let exportURL = try XCTUnwrap(
-            await store.exportSQLResult(report, projectID: projectID, registerAsDataset: false)
+        let exportCandidate = await store.exportSQLResult(
+            report,
+            projectID: projectID,
+            registerAsDataset: false
         )
+        let exportURL = try XCTUnwrap(exportCandidate)
         defer { try? manager.removeItem(at: exportURL) }
 
         let exported = try XCTUnwrap(DatasetParser.parse(url: exportURL, format: .csv).first)
