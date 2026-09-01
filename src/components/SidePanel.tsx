@@ -51,7 +51,7 @@ export const SidePanel = ({
               <p className="text-sm font-semibold">Workspace tools</p>
               <p className="text-[11px] text-muted-foreground">Useful context, kept out of the editor.</p>
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onOpenChange(false)}>
+            <Button variant="ghost" size="icon" className="h-8 w-8" aria-label="Close workspace tools" title="Close workspace tools" onClick={() => onOpenChange(false)}>
               <X className="h-4 w-4" />
             </Button>
           </div>

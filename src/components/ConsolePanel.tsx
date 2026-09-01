@@ -167,6 +167,11 @@ export const ConsolePanel = ({
   if (isCollapsed) {
     return (
       <div className={`h-full bg-console border-t flex items-center justify-between px-4 transition-colors ${hasNewOutput ? "border-primary" : "border-border"}`}>
+        <div className="sr-only" role="log" aria-live="polite" aria-relevant="additions text" aria-label="Console output">
+          {displayedOutput.slice(-20).map((message, index) => (
+            <div key={`accessible-${startIndex + index}-${message.text}`}>{message.text}</div>
+          ))}
+        </div>
         <div className="flex items-center gap-2 min-w-0">
           <Terminal className="w-4 h-4 text-primary shrink-0" />
           <span className="text-sm font-semibold text-foreground">Console</span>
@@ -215,6 +220,7 @@ export const ConsolePanel = ({
       </div>
 
       <ScrollArea className="flex-1 p-3">
+        <div role="log" aria-live="polite" aria-relevant="additions text" aria-label="Console output" tabIndex={0}>
         {output.length === 0 ? (
           <p className="text-sm text-muted-foreground">No output yet. Run your code to see results.</p>
         ) : (
@@ -292,6 +298,7 @@ export const ConsolePanel = ({
             </div>
           </>
         )}
+        </div>
       </ScrollArea>
     </div>
   );
