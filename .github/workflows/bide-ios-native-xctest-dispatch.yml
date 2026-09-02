@@ -6,7 +6,7 @@ on:
       source_ref:
         description: Exact 40-character PR #70 candidate SHA
         required: true
-        default: "34e6789f239144fd009bd53e2b7241349d3045c3"
+        default: "0da0141d93b9dcc050619266d2e429a33f2543e3"
         type: string
 
 permissions:
