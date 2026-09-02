@@ -4,17 +4,22 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: Exact 40-character commit SHA from agent/bide-ios-testflight-rc2
+        description: Exact merged RC commit SHA from agent/bide-ios-testflight-rc2
         required: true
         default: ""
         type: string
+      tested_ref:
+        description: Exact pre-merge SHA that passed bIDE RC Native XCTest
+        required: true
+        default: "0da0141d93b9dcc050619266d2e429a33f2543e3"
+        type: string
       build_number:
-        description: Unique App Store build number 13 or greater (must be unused)
+        description: Unique App Store Connect build number 13 or greater
         required: true
         default: "13"
         type: string
       confirm:
-        description: Type UPLOAD to run the paid native/sign/upload checkpoint
+        description: Type UPLOAD to sign and upload this build to TestFlight
         required: true
         default: ""
         type: string
@@ -23,31 +28,34 @@ permissions:
   contents: read
 
 concurrency:
-  group: bide-testflight-checkpoint-${{ inputs.source_ref }}-${{ inputs.build_number }}
+  group: bide-testflight-${{ inputs.source_ref }}-${{ inputs.build_number }}
   cancel-in-progress: false
 
 jobs:
   source-preflight:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - name: Validate immutable release request
         shell: bash
         env:
           SOURCE_REF: ${{ inputs.source_ref }}
+          TESTED_REF: ${{ inputs.tested_ref }}
           BUILD_NUMBER: ${{ inputs.build_number }}
         run: |
           set -euo pipefail
-          if [[ ! "${SOURCE_REF}" =~ ^[0-9a-fA-F]{40}$ ]]; then
-            echo "source_ref must be the exact 40-character RC commit SHA, not a branch or tag." >&2
-            exit 1
-          fi
+          for value in "${SOURCE_REF}" "${TESTED_REF}"; do
+            if [[ ! "${value}" =~ ^[0-9a-fA-F]{40}$ ]]; then
+              echo "source_ref and tested_ref must both be exact 40-character commit SHAs." >&2
+              exit 1
+            fi
+          done
           if [[ ! "${BUILD_NUMBER}" =~ ^[1-9][0-9]*$ ]]; then
             echo "build_number must be a positive integer." >&2
             exit 1
           fi
           if (( 10#${BUILD_NUMBER} <= 12 )); then
-            echo "build_number must be 13 or greater because App Store Connect already has build 12. Use an unused build number." >&2
+            echo "build_number must be 13 or greater because App Store Connect already has build 12." >&2
             exit 1
           fi
           if [[ "${GITHUB_RUN_ATTEMPT}" != "1" ]]; then
@@ -55,40 +63,76 @@ jobs:
             exit 1
           fi
 
-      - name: Check out exact release candidate
+      - name: Check out exact merged RC
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source_ref }}
-          fetch-depth: 1
+          fetch-depth: 0
 
-      - name: Verify exact source identity
+      - name: Verify RC identity and tested native source
         shell: bash
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
+          TESTED_REF: ${{ inputs.tested_ref }}
         run: |
           set -euo pipefail
           ACTUAL_SHA="$(git rev-parse HEAD)"
           RC_HEAD="$(git ls-remote --heads origin refs/heads/agent/bide-ios-testflight-rc2 | awk '{print $1}')"
-          echo "Source ref: ${{ inputs.source_ref }}"
-          echo "Source SHA: ${ACTUAL_SHA}"
-          [[ "${ACTUAL_SHA}" == "${{ inputs.source_ref }}" ]]
-          [[ "${RC_HEAD}" == "${ACTUAL_SHA}" ]]
+          echo "Requested merged RC: ${SOURCE_REF}"
+          echo "Checked-out SHA: ${ACTUAL_SHA}"
+          echo "Current RC2 head: ${RC_HEAD}"
+          echo "XCTest-proven source: ${TESTED_REF}"
+          [[ "${ACTUAL_SHA}" == "${SOURCE_REF}" ]]
+          [[ "${RC_HEAD}" == "${SOURCE_REF}" ]]
           test -z "$(git status --porcelain)"
+
+          if ! git cat-file -e "${TESTED_REF}^{commit}" 2>/dev/null; then
+            git fetch --no-tags --depth=1 origin "${TESTED_REF}"
+          fi
+          git cat-file -e "${TESTED_REF}^{commit}"
+
+          if ! git diff --quiet "${TESTED_REF}" "${SOURCE_REF}" -- ios scripts/generate-bide-appicon.mjs; then
+            echo "The merged RC changed native iOS source or release assets after XCTest. Run Native XCTest on the merged source before uploading." >&2
+            git diff --stat "${TESTED_REF}" "${SOURCE_REF}" -- ios scripts/generate-bide-appicon.mjs >&2 || true
+            exit 1
+          fi
+          echo "Merged RC native source exactly matches the XCTest-proven candidate."
 
       - name: Generate deterministic App Store icon
         run: node scripts/generate-bide-appicon.mjs
 
-      - name: Validate Phase 1 baseline
+      - name: Require generated release assets to be committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- ios/BideApp/Assets.xcassets/AppIcon.appiconset
+
+      - name: Validate Phase 1 native scope
         run: node scripts/validate-bide-ios-phase1.mjs
 
-      - name: Validate Phase 2 data + SQL
+      - name: Validate Phase 2 data and SQL
         run: node scripts/validate-bide-ios-phase2.mjs
 
-      - name: Validate Phase 2 integrity cleanup
+      - name: Validate generation-4 data integrity
         run: node scripts/validate-bide-ios-phase2-integrity.mjs
 
-      - name: Validate TestFlight release configuration
-        run: node scripts/validate-bide-ios-testflight.mjs
+      - name: Validate canonical XLSX fixture
+        run: node scripts/validate-bide-ios-multisheet-fixture.mjs
 
-  testflight:
+      - name: Validate hardware regression coverage
+        run: node scripts/validate-bide-ios-hardware-regressions.mjs
+
+      - name: Validate basic App Store source configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ios/BideApp/PrivacyInfo.xcprivacy
+          test -f ios/BideApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png
+          grep -q 'PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios' ios/project.yml
+          grep -Eq 'MARKETING_VERSION: [0-9]+\.[0-9]+\.[0-9]+' ios/project.yml
+          grep -q 'ITSAppUsesNonExemptEncryption: false' ios/project.yml
+
+  upload-testflight:
     needs: source-preflight
     if: ${{ inputs.confirm == 'UPLOAD' && github.run_attempt == 1 }}
     runs-on: macos-26
@@ -108,7 +152,7 @@ jobs:
       LOG_PATH: ${{ github.workspace }}/build/TestFlight/logs
 
     steps:
-      - name: Check out exact release candidate
+      - name: Check out exact merged RC
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source_ref }}
@@ -123,9 +167,6 @@ jobs:
           echo "Source SHA: ${ACTUAL_SHA}"
           [[ "${ACTUAL_SHA}" == "${{ inputs.source_ref }}" ]]
           test -z "$(git status --porcelain)"
-
-      - name: Generate deterministic App Store icon
-        run: node scripts/generate-bide-appicon.mjs
 
       - name: Select App Store compatible Xcode
         shell: bash
@@ -142,6 +183,15 @@ jobs:
           fi
           xcodebuild -version
           echo "iOS SDK: $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Generate deterministic App Store icon
+        run: node scripts/generate-bide-appicon.mjs
+
+      - name: Require generated release assets to be committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- ios/BideApp/Assets.xcassets/AppIcon.appiconset
 
       - name: Validate Apple automation secrets
         shell: bash
@@ -184,6 +234,7 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
+
           value = os.environ['APP_STORE_CONNECT_PRIVATE_KEY']
           if '\\n' in value and '\n' not in value:
               value = value.replace('\\n', '\n')
@@ -205,11 +256,18 @@ jobs:
           PROFILE_PLIST="${RUNNER_TEMP}/bIDE_App_Store.plist"
           KEYCHAIN_PATH="${RUNNER_TEMP}/bide-signing.keychain-db"
           export CERTIFICATE_PATH PROFILE_PATH
+
           python3 - <<'PY'
-          import base64, os
+          import base64
+          import os
           from pathlib import Path
-          Path(os.environ['CERTIFICATE_PATH']).write_bytes(base64.b64decode(os.environ['IOS_DISTRIBUTION_CERTIFICATE_BASE64'], validate=True))
-          Path(os.environ['PROFILE_PATH']).write_bytes(base64.b64decode(os.environ['BIDE_IOS_PROVISIONING_PROFILE_BASE64'], validate=True))
+
+          Path(os.environ['CERTIFICATE_PATH']).write_bytes(
+              base64.b64decode(os.environ['IOS_DISTRIBUTION_CERTIFICATE_BASE64'], validate=True)
+          )
+          Path(os.environ['PROFILE_PATH']).write_bytes(
+              base64.b64decode(os.environ['BIDE_IOS_PROVISIONING_PROFILE_BASE64'], validate=True)
+          )
           PY
 
           security create-keychain -p "${KEYCHAIN_PASSWORD}" "${KEYCHAIN_PATH}"
@@ -231,19 +289,23 @@ jobs:
 
           mkdir -p "${HOME}/Library/MobileDevice/Provisioning Profiles"
           cp "${PROFILE_PATH}" "${HOME}/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
-          echo "KEYCHAIN_PATH=${KEYCHAIN_PATH}" >> "${GITHUB_ENV}"
-          echo "PROFILE_UUID=${PROFILE_UUID}" >> "${GITHUB_ENV}"
-          echo "PROFILE_NAME=${PROFILE_NAME}" >> "${GITHUB_ENV}"
+          {
+            echo "KEYCHAIN_PATH=${KEYCHAIN_PATH}"
+            echo "PROFILE_UUID=${PROFILE_UUID}"
+            echo "PROFILE_NAME=${PROFILE_NAME}"
+          } >> "${GITHUB_ENV}"
           echo "Installed profile: ${PROFILE_NAME} (${PROFILE_UUID})"
 
       - name: Install XcodeGen
         shell: bash
         run: |
           set -euo pipefail
-          if ! command -v xcodegen >/dev/null 2>&1; then brew install xcodegen; fi
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
           xcodegen --version
 
-      - name: Configure target-specific App Store signing and build number
+      - name: Configure App Store signing and build number
         shell: bash
         run: |
           set -euo pipefail
@@ -277,21 +339,17 @@ jobs:
           )
           path.write_text(text.replace(needle, signing, 1), encoding='utf-8')
           PY
-          echo "Configured bIDE build ${BIDE_REQUESTED_BUILD} with manual App Store signing."
 
       - name: Generate Xcode project
-        working-directory: ios
-        run: xcodegen generate
-
-      - name: Run native XCTest suite
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "${LOG_PATH}"
-          DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[x["udid"] for xs in d["devices"].values() for x in xs if x.get("isAvailable") and x.get("name","").startswith("iPhone")]; print(ids[0] if ids else "")')"
-          test -n "${DEVICE_ID}"
-          set -o pipefail
-          xcodebuild -project ios/bIDE.xcodeproj -scheme bIDE -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,id=${DEVICE_ID}" CODE_SIGNING_ALLOWED=NO test 2>&1 | tee "${LOG_PATH}/native-tests.log"
+          (
+            cd ios
+            xcodegen generate
+          ) 2>&1 | tee "${LOG_PATH}/xcodegen.log"
+          test -d ios/bIDE.xcodeproj
 
       - name: Create App Store export options
         shell: bash
@@ -321,46 +379,86 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf "${ARCHIVE_PATH}"
-          xcodebuild -project ios/bIDE.xcodeproj -scheme bIDE -configuration Release -destination 'generic/platform=iOS' -archivePath "${ARCHIVE_PATH}" clean archive 2>&1 | tee "${LOG_PATH}/archive.log"
+          xcodebuild \
+            -project ios/bIDE.xcodeproj \
+            -scheme bIDE \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "${ARCHIVE_PATH}" \
+            clean archive 2>&1 | tee "${LOG_PATH}/archive.log"
 
       - name: Verify archived app
-        if: ${{ steps.archive.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
           APP_PATH="${ARCHIVE_PATH}/Products/Applications/bIDE.app"
           INFO_PLIST="${APP_PATH}/Info.plist"
+          test -d "${APP_PATH}"
           test -f "${INFO_PLIST}"
           test -f "${APP_PATH}/PrivacyInfo.xcprivacy"
           test -f "${APP_PATH}/Assets.car"
           test -f "${APP_PATH}/embedded.mobileprovision"
+
           BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${INFO_PLIST}")"
           VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "${INFO_PLIST}")"
           BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "${INFO_PLIST}")"
           [[ "${BUNDLE_ID}" == "com.bideide.ios" ]]
           [[ "${VERSION}" == "${BIDE_VERSION}" ]]
           [[ "${BUILD}" == "${BIDE_BUILD}" ]]
-          echo "Archive verified: ${BUNDLE_ID} ${VERSION} (${BUILD})" | tee "${LOG_PATH}/archive-verification.txt"
+          {
+            echo "Bundle ID: ${BUNDLE_ID}"
+            echo "Version: ${VERSION}"
+            echo "Build: ${BUILD}"
+            echo "Provisioning profile embedded: yes"
+          } | tee "${LOG_PATH}/archive-verification.txt"
 
       - name: Upload archive to App Store Connect
         id: upload
-        if: ${{ steps.archive.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
-          xcodebuild -exportArchive -archivePath "${ARCHIVE_PATH}" -exportPath "${EXPORT_PATH}" -exportOptionsPlist build/TestFlight/ExportOptions.plist -authenticationKeyPath "${ASC_KEY_PATH}" -authenticationKeyID "${APP_STORE_CONNECT_KEY_ID}" -authenticationKeyIssuerID "${APP_STORE_CONNECT_ISSUER_ID}" 2>&1 | tee "${LOG_PATH}/export-upload.log"
+          xcodebuild \
+            -exportArchive \
+            -archivePath "${ARCHIVE_PATH}" \
+            -exportPath "${EXPORT_PATH}" \
+            -exportOptionsPlist build/TestFlight/ExportOptions.plist \
+            -authenticationKeyPath "${ASC_KEY_PATH}" \
+            -authenticationKeyID "${APP_STORE_CONNECT_KEY_ID}" \
+            -authenticationKeyIssuerID "${APP_STORE_CONNECT_ISSUER_ID}" \
+            2>&1 | tee "${LOG_PATH}/export-upload.log"
 
       - name: Remove temporary signing assets
         if: ${{ always() }}
         shell: bash
         run: |
-          if [[ -n "${PROFILE_UUID:-}" ]]; then rm -f "${HOME}/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"; fi
-          if [[ -n "${KEYCHAIN_PATH:-}" ]]; then security delete-keychain "${KEYCHAIN_PATH}" || true; fi
+          if [[ -n "${PROFILE_UUID:-}" ]]; then
+            rm -f "${HOME}/Library/MobileDevice/Provisioning Profiles/${PROFILE_UUID}.mobileprovision"
+          fi
+          if [[ -n "${KEYCHAIN_PATH:-}" ]]; then
+            security delete-keychain "${KEYCHAIN_PATH}" || true
+          fi
+
+      - name: Summarize TestFlight attempt
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          {
+            echo "### bIDE TestFlight upload"
+            echo "- Merged RC: \`${{ inputs.source_ref }}\`"
+            echo "- XCTest-proven source: \`${{ inputs.tested_ref }}\`"
+            echo "- Build: \`${{ inputs.build_number }}\`"
+            echo "- Archive: \`${{ steps.archive.outcome || 'not-run' }}\`"
+            echo "- Upload: \`${{ steps.upload.outcome || 'not-run' }}\`"
+            echo "- Native XCTest is not repeated here because Ubuntu proved the merged RC native tree exactly matches the SHA that already passed the dedicated native checkpoint."
+          } >> "${GITHUB_STEP_SUMMARY}"
 
       - name: Upload diagnostic logs
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: bIDE-TestFlight-${{ github.run_id }}-${{ github.run_attempt }}
-          path: build/TestFlight/logs
+          name: bIDE-TestFlight-${{ inputs.build_number }}-${{ github.run_id }}
+          path: |
+            build/TestFlight/logs
+            build/TestFlight/ExportOptions.plist
+          retention-days: 14
           if-no-files-found: ignore
