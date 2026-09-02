@@ -19,7 +19,7 @@ concurrency:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Validate immutable candidate request
         shell: bash
@@ -31,34 +31,64 @@ jobs:
             echo "source_ref must be the exact 40-character PR #70 candidate SHA." >&2
             exit 1
           fi
+          if [[ "${GITHUB_RUN_ATTEMPT}" != "1" ]]; then
+            echo "Do not rerun an old preflight. Start a fresh dispatch at the current exact candidate SHA." >&2
+            exit 1
+          fi
 
-      - name: Check out exact release candidate
+      - name: Check out exact PR #70 candidate
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source_ref }}
           fetch-depth: 1
 
-      - name: Verify exact source identity
+      - name: Verify exact candidate identity
         shell: bash
         run: |
           set -euo pipefail
           ACTUAL_SHA="$(git rev-parse HEAD)"
-          echo "Source ref: ${{ inputs.source_ref }}"
-          echo "Source SHA: ${ACTUAL_SHA}"
+          PR70_HEAD="$(git ls-remote --heads origin refs/heads/hotfix/ios-rc2-value-integrity-build12 | awk '{print $1}')"
+          echo "Requested SHA: ${{ inputs.source_ref }}"
+          echo "Checked-out SHA: ${ACTUAL_SHA}"
+          echo "PR #70 head: ${PR70_HEAD}"
           [[ "${ACTUAL_SHA}" == "${{ inputs.source_ref }}" ]]
+          [[ "${PR70_HEAD}" == "${ACTUAL_SHA}" ]]
           test -z "$(git status --porcelain)"
 
       - name: Generate deterministic App Store icon
         run: node scripts/generate-bide-appicon.mjs
 
-      - name: Validate Phase 1 baseline
+      - name: Require generated release assets to be committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- ios/BideApp/Assets.xcassets/AppIcon.appiconset
+
+      - name: Validate Phase 1 native scope
         run: node scripts/validate-bide-ios-phase1.mjs
 
-      - name: Validate Phase 2 data + SQL
+      - name: Validate Phase 2 data and SQL
         run: node scripts/validate-bide-ios-phase2.mjs
 
-      - name: Validate Phase 2 integrity cleanup
+      - name: Validate generation-4 data integrity
         run: node scripts/validate-bide-ios-phase2-integrity.mjs
 
-      - name: Validate TestFlight release configuration
-        run: node scripts/validate-bide-ios-testflight.mjs
+      - name: Validate canonical XLSX fixture
+        run: node scripts/validate-bide-ios-multisheet-fixture.mjs
+
+      - name: Validate hardware regression coverage
+        run: node scripts/validate-bide-ios-hardware-regressions.mjs
+
+      - name: Summarize source checkpoint
+        shell: bash
+        run: |
+          {
+            echo "### bIDE RC source preflight"
+            echo "- Candidate: \`${{ inputs.source_ref }}\`"
+            echo "- Phase 1: passed"
+            echo "- Phase 2: passed"
+            echo "- Generation-4 integrity: passed"
+            echo "- Canonical XLSX fixture: passed"
+            echo "- Hardware regression source guards: passed"
+            echo "- Legacy TestFlight workflow validators: intentionally not part of this checkpoint"
+          } >> "${GITHUB_STEP_SUMMARY}"
