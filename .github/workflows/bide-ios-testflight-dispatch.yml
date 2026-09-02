@@ -9,9 +9,9 @@ on:
         default: ""
         type: string
       build_number:
-        description: Unique App Store build number greater than 11
+        description: Unique App Store build number 13 or greater (must be unused)
         required: true
-        default: "12"
+        default: "13"
         type: string
       confirm:
         description: Type UPLOAD to run the paid native/sign/upload checkpoint
@@ -46,8 +46,8 @@ jobs:
             echo "build_number must be a positive integer." >&2
             exit 1
           fi
-          if (( 10#${BUILD_NUMBER} <= 11 )); then
-            echo "build_number must be greater than 11 because App Store Connect already has build 11." >&2
+          if (( 10#${BUILD_NUMBER} <= 12 )); then
+            echo "build_number must be 13 or greater because App Store Connect already has build 12. Use an unused build number." >&2
             exit 1
           fi
           if [[ "${GITHUB_RUN_ATTEMPT}" != "1" ]]; then
@@ -170,7 +170,7 @@ jobs:
           BUILD="${BIDE_REQUESTED_BUILD}"
           [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
           [[ "${BUILD}" =~ ^[1-9][0-9]*$ ]]
-          (( 10#${BUILD} > 11 ))
+          (( 10#${BUILD} > 12 ))
           echo "BIDE_VERSION=${VERSION}" >> "${GITHUB_ENV}"
           echo "BIDE_BUILD=${BUILD}" >> "${GITHUB_ENV}"
           echo "Candidate: ${VERSION} (${BUILD})"
