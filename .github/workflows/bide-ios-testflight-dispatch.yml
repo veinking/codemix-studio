@@ -317,10 +317,9 @@ jobs:
 
       - name: Archive signed bIDE candidate
         id: archive
-        continue-on-error: true
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           rm -rf "${ARCHIVE_PATH}"
           xcodebuild -project ios/bIDE.xcodeproj -scheme bIDE -configuration Release -destination 'generic/platform=iOS' -archivePath "${ARCHIVE_PATH}" clean archive 2>&1 | tee "${LOG_PATH}/archive.log"
 
@@ -346,10 +345,9 @@ jobs:
       - name: Upload archive to App Store Connect
         id: upload
         if: ${{ steps.archive.outcome == 'success' }}
-        continue-on-error: true
         shell: bash
         run: |
-          set -o pipefail
+          set -euo pipefail
           xcodebuild -exportArchive -archivePath "${ARCHIVE_PATH}" -exportPath "${EXPORT_PATH}" -exportOptionsPlist build/TestFlight/ExportOptions.plist -authenticationKeyPath "${ASC_KEY_PATH}" -authenticationKeyID "${APP_STORE_CONNECT_KEY_ID}" -authenticationKeyIssuerID "${APP_STORE_CONNECT_ISSUER_ID}" 2>&1 | tee "${LOG_PATH}/export-upload.log"
 
       - name: Remove temporary signing assets
@@ -366,17 +364,3 @@ jobs:
           name: bIDE-TestFlight-${{ github.run_id }}-${{ github.run_attempt }}
           path: build/TestFlight/logs
           if-no-files-found: ignore
-
-      - name: Enforce checkpoint result
-        if: ${{ always() }}
-        shell: bash
-        run: |
-          if [[ "${{ steps.archive.outcome }}" != "success" ]]; then
-            echo "Signed archive failed." >&2
-            exit 1
-          fi
-          if [[ "${{ steps.upload.outcome }}" != "success" ]]; then
-            echo "App Store Connect upload failed." >&2
-            exit 1
-          fi
-          echo "bIDE archive and App Store Connect upload succeeded."
