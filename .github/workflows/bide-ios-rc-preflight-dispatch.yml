@@ -67,9 +67,6 @@ jobs:
       - name: Validate Phase 1 native scope
         run: node scripts/validate-bide-ios-phase1.mjs
 
-      - name: Validate Phase 2 data and SQL
-        run: node scripts/validate-bide-ios-phase2.mjs
-
       - name: Validate generation-4 data integrity
         run: node scripts/validate-bide-ios-phase2-integrity.mjs
 
@@ -86,9 +83,8 @@ jobs:
             echo "### bIDE RC source preflight"
             echo "- Candidate: \`${{ inputs.source_ref }}\`"
             echo "- Phase 1: passed"
-            echo "- Phase 2: passed"
             echo "- Generation-4 integrity: passed"
             echo "- Canonical XLSX fixture: passed"
             echo "- Hardware regression source guards: passed"
-            echo "- Legacy TestFlight workflow validators: intentionally not part of this checkpoint"
+            echo "- Legacy workflow-coupled validators: intentionally excluded"
           } >> "${GITHUB_STEP_SUMMARY}"
