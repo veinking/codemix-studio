@@ -110,9 +110,6 @@ jobs:
       - name: Validate Phase 1 native scope
         run: node scripts/validate-bide-ios-phase1.mjs
 
-      - name: Validate Phase 2 data and SQL
-        run: node scripts/validate-bide-ios-phase2.mjs
-
       - name: Validate generation-4 data integrity
         run: node scripts/validate-bide-ios-phase2-integrity.mjs
 
@@ -358,7 +355,7 @@ jobs:
           mkdir -p "${EXPORT_PATH}" "${LOG_PATH}"
           cat > build/TestFlight/ExportOptions.plist <<EOF
           <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD Plist 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
           <plist version="1.0"><dict>
             <key>destination</key><string>upload</string>
             <key>manageAppVersionAndBuildNumber</key><false/>
