@@ -30,6 +30,15 @@ assert.match(explorer, /Delete All Local Files/, 'Explorer must expose one obvio
 assert.match(explorer, /Cloud workspace snapshots are not affected/, 'Delete-all copy must distinguish local files from cloud snapshots');
 assert.match(explorer, /for \(const file of \[\.\.\.files\]\)[\s\S]*?await Promise\.resolve\(onFileDelete\(file\.id\)\)/, 'Delete-all must reuse the canonical per-file deletion path so pending IndexedDB writes cannot resurrect files');
 assert.match(explorer, /aria-label="Delete all local files"/, 'Delete-all action must have an explicit accessible name');
+assert.match(explorer, /Upload or Drop Files/, 'Primary Explorer import must advertise both picker and drop behavior');
+assert.match(explorer, /onDragEnter=\{handleFileDragOver\}/, 'Explorer must handle dragged files');
+assert.match(explorer, /onDragOver=\{handleFileDragOver\}/, 'Explorer must prevent browser navigation while dragging files');
+assert.match(explorer, /onDrop=\{handleFileDrop\}/, 'Explorer must expose a real drop handler');
+assert.match(explorer, /event\.dataTransfer\.files\.length > 0[\s\S]*?onFileUpload\(event\.dataTransfer\.files\)/, 'Dropped files must reuse the canonical onFileUpload FileList path');
+assert.match(explorer, /event\.dataTransfer\.dropEffect = 'copy'/, 'Explorer must communicate copy semantics during a file drag');
+assert.match(explorer, /isDraggingFiles && "ring-2 ring-primary\/60 ring-inset"/, 'Explorer must visibly identify the active file-drop target');
+assert.match(explorer, /accept="\.py,\.r,\.csv,\.txt"/, 'Explorer drag/drop must not change supported file types');
+assert.match(explorer, /onChange=\{handleFileInput\}/, 'Click/file-picker upload must remain available');
 
 assert.match(ide, /replaceFiles\(restoredFiles\)/, 'IDE restore must persist the cloud snapshot to IndexedDB');
 assert.match(ide, /setActiveFile\(restoredActiveFile\)/, 'IDE restore must clear or restore active-file state exactly');
@@ -47,4 +56,4 @@ assert.match(migration, /octet_length\(files::text\) <= 5242880/, 'Database must
 assert.match(migration, /octet_length\(scratch_code\) <= 1048576/, 'Database must enforce scratch-size limit');
 assert.match(migration, /language IN \('python', 'r', 'javascript', 'sql'\)/, 'Database must enforce supported workspace language');
 
-console.log('✓ Cloud workspace persistence regression guard passed');
+console.log('✓ Cloud workspace persistence and primary Explorer import regression guard passed');
