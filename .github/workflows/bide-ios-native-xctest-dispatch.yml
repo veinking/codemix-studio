@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       source_ref:
-        description: Exact 40-character PR #70 candidate SHA
+        description: Exact 40-character PR #70 candidate SHA that passed RC Source Preflight
         required: true
         default: "0da0141d93b9dcc050619266d2e429a33f2543e3"
         type: string
@@ -19,7 +19,10 @@ concurrency:
 jobs:
   native-xctest:
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 30
+    env:
+      LOG_PATH: ${{ github.workspace }}/build/NativeXCTest
+
     steps:
       - name: Validate immutable candidate request
         shell: bash
@@ -32,7 +35,7 @@ jobs:
             exit 1
           fi
           if [[ "${GITHUB_RUN_ATTEMPT}" != "1" ]]; then
-            echo "Native XCTest reruns are blocked. Start a fresh dispatch at the exact candidate SHA." >&2
+            echo "Native XCTest reruns are blocked. Start a fresh dispatch at the current exact candidate SHA." >&2
             exit 1
           fi
 
@@ -42,7 +45,7 @@ jobs:
           ref: ${{ inputs.source_ref }}
           fetch-depth: 1
 
-      - name: Verify exact PR #70 source identity
+      - name: Verify exact candidate identity
         shell: bash
         run: |
           set -euo pipefail
@@ -55,21 +58,6 @@ jobs:
           [[ "${PR70_HEAD}" == "${ACTUAL_SHA}" ]]
           test -z "$(git status --porcelain)"
 
-      - name: Generate deterministic App Store icon
-        run: node scripts/generate-bide-appicon.mjs
-
-      - name: Validate Phase 1 baseline
-        run: node scripts/validate-bide-ios-phase1.mjs
-
-      - name: Validate Phase 2 data + SQL
-        run: node scripts/validate-bide-ios-phase2.mjs
-
-      - name: Validate Phase 2 integrity cleanup
-        run: node scripts/validate-bide-ios-phase2-integrity.mjs
-
-      - name: Validate TestFlight release configuration
-        run: node scripts/validate-bide-ios-testflight.mjs
-
       - name: Select Xcode
         shell: bash
         run: |
@@ -77,24 +65,95 @@ jobs:
           XCODE_PATH="/Applications/Xcode.app/Contents/Developer"
           test -d "${XCODE_PATH}"
           sudo xcode-select --switch "${XCODE_PATH}"
+          XCODE_VERSION="$(xcodebuild -version | awk 'NR == 1 { print $2}')"
+          XCODE_MAJOR="${XCODE_VERSION%%.*}"
+          if (( XCODE_MAJOR < 26 )); then
+            echo "Xcode 26 or later is required; found ${XCODE_VERSION}." >&2
+            exit 1
+          fi
           xcodebuild -version
           echo "iOS SDK: $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Generate deterministic App Store icon
+        run: node scripts/generate-bide-appicon.mjs
+
+      - name: Require generated release assets to be committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- ios/BideApp/Assets.xcassets/AppIcon.appiconset
+
+      - name: Validate Phase 1 native scope
+        run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Validate Phase 2 data and SQL
+        run: node scripts/validate-bide-ios-phase2.mjs
+
+      - name: Validate generation-4 data integrity
+        run: node scripts/validate-bide-ios-phase2-integrity.mjs
+
+      - name: Validate canonical XLSX fixture
+        run: node scripts/validate-bide-ios-multisheet-fixture.mjs
+
+      - name: Validate hardware regression coverage
+        run: node scripts/validate-bide-ios-hardware-regressions.mjs
 
       - name: Install XcodeGen
         shell: bash
         run: |
           set -euo pipefail
-          if ! command -v xcodegen >/dev/null 2>&1; then brew install xcodegen; fi
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
           xcodegen --version
 
       - name: Generate Xcode project
-        working-directory: ios
-        run: xcodegen generate
-
-      - name: Run native XCTest suite
         shell: bash
         run: |
           set -euo pipefail
+          mkdir -p "${LOG_PATH}"
+          (
+            cd ios
+            xcodegen generate
+          ) 2>&1 | tee "${LOG_PATH}/xcodegen.log"
+          test -d ios/bIDE.xcodeproj
+
+      - name: Run full native XCTest suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${LOG_PATH}"
           DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[x["udid"] for xs in d["devices"].values() for x in xs if x.get("isAvailable") and x.get("name","").startswith("iPhone")]; print(ids[0] if ids else "")')"
-          test -n "${DEVICE_ID}"
-          xcodebuild -project ios/bIDE.xcodeproj -scheme bIDE -configuration Debug -sdk iphonesimulator -destination "platform=iOS Simulator,id=${DEVICE_ID}" CODE_SIGNING_ALLOWED=NO test
+          if [[ -z "${DEVICE_ID}" ]]; then
+            echo "No available iPhone simulator was found." >&2
+            exit 1
+          fi
+          echo "Using simulator: ${DEVICE_ID}"
+          xcodebuild \
+            -project ios/bIDE.xcodeproj \
+            -scheme bIDE \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=${DEVICE_ID}" \
+            CODE_SIGNING_ALLOWED=NO \
+            test 2>&1 | tee "${LOG_PATH}/native-tests.log"
+
+      - name: Summarize native checkpoint
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          {
+            echo "### bIDE native XCTest checkpoint"
+            echo "- Candidate: \`${{ inputs.source_ref }}\`"
+            echo "- Full bIDETests suite: passed"
+            echo "- Candidate remains unmerged until this checkpoint is green"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload native diagnostic logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bIDE-Native-XCTest-${{ github.run_id }}
+          path: build/NativeXCTest
+          retention-days: 14
+          if-no-files-found: ignore
