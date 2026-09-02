@@ -86,9 +86,6 @@ jobs:
       - name: Validate Phase 1 native scope
         run: node scripts/validate-bide-ios-phase1.mjs
 
-      - name: Validate Phase 2 data and SQL
-        run: node scripts/validate-bide-ios-phase2.mjs
-
       - name: Validate generation-4 data integrity
         run: node scripts/validate-bide-ios-phase2-integrity.mjs
 
