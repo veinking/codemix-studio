@@ -65,10 +65,35 @@ export const FileExplorer = ({
   const [fileName, setFileName] = useState("");
   const [fileType, setFileType] = useState<keyof typeof FILE_TEMPLATES>("python");
   const [isClearingFiles, setIsClearingFiles] = useState(false);
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       onFileUpload(e.target.files);
+    }
+  };
+
+  const handleFileDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!event.dataTransfer.types.includes('Files')) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'copy';
+    setIsDraggingFiles(true);
+  };
+
+  const handleFileDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+    setIsDraggingFiles(false);
+  };
+
+  const handleFileDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDraggingFiles(false);
+    if (event.dataTransfer.files.length > 0) {
+      onFileUpload(event.dataTransfer.files);
     }
   };
 
@@ -101,7 +126,16 @@ export const FileExplorer = ({
   };
 
   return (
-    <div className="h-full bg-sidebar-custom border-r border-border flex flex-col">
+    <div
+      className={cn(
+        "h-full bg-sidebar-custom border-r border-border flex flex-col transition-shadow",
+        isDraggingFiles && "ring-2 ring-primary/60 ring-inset",
+      )}
+      onDragEnter={handleFileDragOver}
+      onDragOver={handleFileDragOver}
+      onDragLeave={handleFileDragLeave}
+      onDrop={handleFileDrop}
+    >
       <div className="p-3 border-b border-border">
         <h2 className="text-sm font-semibold text-foreground mb-3">Explorer</h2>
         
@@ -154,7 +188,7 @@ export const FileExplorer = ({
             onClick={() => document.getElementById("file-upload")?.click()}
           >
             <Upload className="w-4 h-4 mr-2" />
-            Upload Files
+            Upload or Drop Files
           </Button>
           <input
             id="file-upload"
