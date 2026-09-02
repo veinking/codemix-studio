@@ -98,6 +98,39 @@ extension DataWorkspaceStore {
             return nil
         }
 
+        // Verify the actual bytes that will leave the app, not only the in-memory writer
+        // summary. Build 12 hardware produced a variable-width Customers+Orders artifact that
+        // could not be explained by the fixed-width exporter. A generated CSV must round-trip
+        // through bIDE's parser as exactly one rectangular table before it can be shared or
+        // registered as a dataset.
+        let serializedTables: [ParsedDatasetTable]
+        do {
+            serializedTables = try await Task.detached(priority: .userInitiated) {
+                try DatasetParser.parse(url: outputURL, format: .csv)
+            }.value
+        } catch {
+            try? manager.removeItem(at: outputURL)
+            dataError = "Export verification failed because the generated CSV bytes are structurally invalid: \(error.localizedDescription) bIDE did not share or save the file."
+            return nil
+        }
+
+        guard serializedTables.count == 1,
+              let serializedTable = serializedTables.first,
+              serializedTable.columns.count == exportSummary.columns.count,
+              serializedTable.rows.count == exportSummary.rowCount,
+              serializedTable.rows.allSatisfy({ $0.count == exportSummary.columns.count }) else {
+            try? manager.removeItem(at: outputURL)
+            dataError = "Export verification failed because the generated CSV bytes do not form one rectangular table with the expected row and column counts. bIDE did not share or save the file."
+            return nil
+        }
+
+        let serializedSample = Array(serializedTable.rows.prefix(exportSummary.sampleRows.count))
+        guard serializedSample == exportSummary.sampleRows else {
+            try? manager.removeItem(at: outputURL)
+            dataError = "Export verification failed because the generated CSV bytes do not preserve the expected result values. bIDE did not share or save the file."
+            return nil
+        }
+
         let exportedRowCount = exportSummary.rowCount
         guard registerAsDataset else { return outputURL }
 
