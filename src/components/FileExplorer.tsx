@@ -68,9 +68,13 @@ export const FileExplorer = ({
   const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      onFileUpload(e.target.files);
+    const selectedFiles = e.target.files;
+    if (selectedFiles) {
+      onFileUpload(selectedFiles);
     }
+
+    // Let choosing the identical local file again emit another change event.
+    e.target.value = "";
   };
 
   const handleFileDragOver = (event: React.DragEvent<HTMLDivElement>) => {
