@@ -40,6 +40,7 @@ import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { toast } from "sonner";
 import { saveAs } from "file-saver";
 import { getCompatibilityMessage } from "@/utils/libraryCompatibility";
+import { createUniqueFileName } from "@/utils/uniqueFileName.js";
 import { RuntimeRegistry } from "@/runtimes/RuntimeRegistry";
 import { PythonRuntime } from "@/runtimes/PythonRuntime";
 import { RRuntime } from "@/runtimes/RRuntime";
@@ -577,6 +578,7 @@ Jack,30,Miami,86`,
 
   const handleFileUpload = async (fileList: FileList) => {
     const newFiles: FileItem[] = [];
+    const usedNames = new Set(files.map((file) => file.name));
     
     // Check file size on mobile (warn if >5MB)
     const maxSize = isMobile ? 5 * 1024 * 1024 : 20 * 1024 * 1024; // 5MB mobile, 20MB desktop
@@ -590,11 +592,13 @@ Jack,30,Miami,86`,
       }
       
       const content = await file.text();
-      const language = getLanguageFromFileName(file.name);
+      const uniqueName = createUniqueFileName(file.name, usedNames);
+      usedNames.add(uniqueName);
+      const language = getLanguageFromFileName(uniqueName);
       
       const fileItem: FileItem = {
         id: `${Date.now()}-${i}`,
-        name: file.name,
+        name: uniqueName,
         type: 'file',
         content,
         language,
@@ -602,11 +606,14 @@ Jack,30,Miami,86`,
       
       // If CSV, parse and store as dataset
       if (language === 'csv') {
-        await parseCSV(content, file.name);
-        addToConsole(`✓ Dataset loaded: ${file.name}`);
+        await parseCSV(content, uniqueName);
+        addToConsole(`✓ Dataset loaded: ${uniqueName}`);
       }
       
       newFiles.push(fileItem);
+      if (uniqueName !== file.name) {
+        toast.info(`Imported "${file.name}" as "${uniqueName}" to keep both files.`);
+      }
       
       // Save to IndexedDB with quota handling
       if (dbReady) {
