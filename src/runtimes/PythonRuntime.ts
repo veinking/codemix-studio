@@ -111,7 +111,8 @@ export class PythonRuntime implements RuntimeExecutor {
         } else if (msg.type === 'error') {
           result.error = msg.error;
           result.output += `Error: ${msg.error}\n`;
-          onOutput(`Error: ${msg.error}`);
+          // RuntimeRegistry converts result.error into the single user-facing
+          // execution error. Do not stream the same traceback a second time.
           this.worker?.removeEventListener('message', listener);
           resolve(result);
         } else if (msg.type === 'log') {

@@ -34,6 +34,11 @@ assert.doesNotMatch(
 
 assert.match(runtimeSource, /msg\.type\s*===\s*['"]plot['"]/, 'PythonRuntime must consume plot worker messages');
 assert.match(runtimeSource, /result\.plotUrl\s*=\s*msg\.dataUrl/, 'PythonRuntime must return the plot through ExecutionResult.plotUrl');
+assert.doesNotMatch(
+  runtimeSource,
+  /msg\.type\s*===\s*['"]error['"][\s\S]{0,320}onOutput/,
+  'Python runtime errors must not be streamed before RuntimeRegistry reports them',
+);
 
 assert.match(plotViewerSource, /<img[\s\S]*src=\{plotData\}/, 'Plot Viewer must render captured image data directly');
 assert.match(plotViewerSource, /onLoad=\{\(\) => setIsLoading\(false\)\}/, 'Plot Viewer must clear loading when the image loads');
