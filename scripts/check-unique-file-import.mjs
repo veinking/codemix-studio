@@ -15,8 +15,10 @@ assert.equal(
 );
 
 const ide = fs.readFileSync(new URL('../src/pages/IDE.tsx', import.meta.url), 'utf8');
+const explorer = fs.readFileSync(new URL('../src/components/FileExplorer.tsx', import.meta.url), 'utf8');
 assert.match(ide, /const usedNames = new Set\(files\.map\(\(file\) => file\.name\)\)/);
 assert.match(ide, /createUniqueFileName\(file\.name, usedNames\)/);
 assert.match(ide, /Imported.*to keep both files/);
+assert.match(explorer, /e\.target\.value\s*=\s*["']{2}/, 'File input must reset so the same file can be selected twice');
 
 console.log('Duplicate bIDE imports receive deterministic, customer-visible unique names.');
