@@ -11,7 +11,7 @@
     "test:solo-data-integrity": "node scripts/check-solo-data-integrity.mjs",
     "test:plot-builder-runtime": "node scripts/check-plot-builder-runtime.mjs",
     "test:share-hardening": "node scripts/check-share-hardening.mjs",
-    "test:workspace-persistence": "node scripts/check-language-draft-switch.mjs && node scripts/check-workspace-persistence.mjs",
+    "test:workspace-persistence": "node scripts/check-language-draft-switch.mjs && node scripts/check-workspace-persistence.mjs && node scripts/check-unique-file-import.mjs",
     "test:team-boundaries": "node scripts/check-team-handoff-boundaries.mjs",
     "test:csv-workspace": "node scripts/check-csv-workspace-consistency.mjs",
     "build": "npm run test:qc-identity && npm run test:web-accessibility && npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && npm run test:team-boundaries && npm run test:csv-workspace && npm run test:sql-analyst && npm run test:r-runtime && vite build",
