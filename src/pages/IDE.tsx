@@ -85,6 +85,8 @@ const IDE = () => {
   const [files, setFiles] = useState<FileItem[]>([]);
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
+  const [lastSuccessfulOutput, setLastSuccessfulOutput] = useState<ConsoleMessage[]>([]);
+  const previousRunSucceeded = React.useRef(false);
   const [isRunning, setIsRunning] = useState(false);
   const [plainEnglishMode, setPlainEnglishMode] = useState(() => {
     return localStorage.getItem('plainEnglishMode') === 'true';
@@ -865,9 +867,10 @@ Jack,30,Miami,86`,
   };
 
   const handleRunCode = async () => {
+    if (isRunning) return;
+    if (previousRunSucceeded.current) setLastSuccessfulOutput(consoleOutput);
+    previousRunSucceeded.current = false;
     setConsoleOutput([]);
-    setPlotData(null);
-    setPlotCode(null);
     setIsRunning(true);
     setHasNewOutput(false);
     previousOutputLength.current = 0;
@@ -1040,6 +1043,9 @@ Jack,30,Miami,86`,
         addToConsole(output);
       });
 
+      // Replace the last-good plot only after execution succeeds.
+      setPlotData(null);
+      setPlotCode(null);
       // Handle plots
       if (result.plotUrl) {
         setPlotData(result.plotUrl);
@@ -1077,6 +1083,7 @@ Jack,30,Miami,86`,
       }
 
       addToConsole(">>> Execution completed ✓");
+      previousRunSucceeded.current = true;
       
       // Track activity for global stats
       await trackActivity({
@@ -1703,8 +1710,13 @@ Jack,30,Miami,86`,
   const consoleComponent = (
     <ConsolePanel
       output={consoleOutput}
+      lastSuccessfulOutput={lastSuccessfulOutput}
+      onRetry={handleRunCode}
+      isRunning={isRunning}
       onClear={() => {
         setConsoleOutput([]);
+        setLastSuccessfulOutput([]);
+        previousRunSucceeded.current = false;
         setHasNewOutput(false);
       }}
       plainEnglishMode={plainEnglishMode}
@@ -1770,6 +1782,8 @@ Jack,30,Miami,86`,
             onDownload={handleDownload}
             onClearConsole={() => {
               setConsoleOutput([]);
+              setLastSuccessfulOutput([]);
+              previousRunSucceeded.current = false;
               setHasNewOutput(false);
             }}
             onCSVUpload={handleCSVUpload}

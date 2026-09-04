@@ -19,6 +19,9 @@ interface ConsoleMessage {
 
 interface ConsolePanelProps {
   output: ConsoleMessage[];
+  lastSuccessfulOutput?: ConsoleMessage[];
+  onRetry?: () => void;
+  isRunning?: boolean;
   onClear: () => void;
   plainEnglishMode: boolean;
   onTogglePlainEnglish: () => void;
@@ -119,6 +122,9 @@ function localExplanation(text: string): ErrorExplanation {
 
 export const ConsolePanel = ({
   output,
+  lastSuccessfulOutput = [],
+  onRetry,
+  isRunning = false,
   onClear,
   plainEnglishMode,
   onTogglePlainEnglish,
@@ -220,6 +226,17 @@ export const ConsolePanel = ({
       </div>
 
       <ScrollArea className="flex-1 p-3">
+        {lastSuccessfulOutput.length > 0 && (
+          <details className="mb-3 rounded border border-border p-2">
+            <summary className="cursor-pointer text-sm">Last successful run output</summary>
+            <pre className="mt-2 whitespace-pre-wrap break-words text-xs">{lastSuccessfulOutput.slice(-maxMessages).map(message => message.text).join('\n')}</pre>
+          </details>
+        )}
+        {onRetry && displayedOutput.some(message => message.isError) && (
+          <Button variant="outline" size="sm" disabled={isRunning} onClick={onRetry} className="mb-2">
+            Run again
+          </Button>
+        )}
         <div role="log" aria-live="polite" aria-relevant="additions text" aria-label="Console output" tabIndex={0}>
         {output.length === 0 ? (
           <p className="text-sm text-muted-foreground">No output yet. Run your code to see results.</p>
@@ -237,6 +254,20 @@ export const ConsolePanel = ({
                 const explanation = message.explanation || (effectiveError ? localExplanation(message.text) : undefined);
                 const explainedError = effectiveError && explanation && plainEnglishMode;
                 const showingRaw = showRawError === stableIndex;
+
+                if (effectiveError && /Traceback \(most recent call last\)/.test(message.text) && !plainEnglishMode) {
+                  const lines = message.text.trim().split('\n').filter(Boolean);
+                  const summary = lines[lines.length - 1] || 'Python execution failed.';
+                  return (
+                    <div key={`${stableIndex}-${message.text}`} className="border-l-4 border-l-destructive pl-3 py-2">
+                      <p className="font-mono text-sm text-destructive whitespace-pre-wrap break-words">{summary}</p>
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-xs">View traceback</summary>
+                        <pre className="mt-2 whitespace-pre-wrap break-words text-xs">{message.text}</pre>
+                      </details>
+                    </div>
+                  );
+                }
 
                 if (explainedError && !showingRaw) {
                   return (
