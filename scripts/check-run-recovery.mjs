@@ -52,3 +52,24 @@ await ctx.run();
 assert.ok(ctx.consoleOutput.some(message => message.text.includes('Execution completed')));
 assert.equal(ctx.isRunning, false);
 console.log('Run recovery preserves successful output/plots through repeated failures and permits retry.');
+
+const uploadStart = source.indexOf('  const handleFileUpload = async');
+const uploadEnd = source.indexOf('  const parseCSVContent =', uploadStart);
+const imported = [];
+const uploadContext = {
+  files: [], isMobile: false, dbReady: false,
+  createUniqueFileName: name => name,
+  getLanguageFromFileName: () => 'python',
+  setFiles(update) { imported.push(...update([])); },
+  setActiveFile() {}, setShowDataset() {},
+  toast: { success() {}, info() {}, error() {} },
+};
+vm.createContext(uploadContext);
+vm.runInContext(ts.transpile(source.slice(uploadStart, uploadEnd) + '\nthis.upload = handleFileUpload;', { target: ts.ScriptTarget.ES2022 }), uploadContext);
+const liveList = [1, 2, 3, 4].map(n => ({ name: `qa${n}.py`, size: 10, text: async () => `print(${n})` }));
+const importing = uploadContext.upload(liveList);
+liveList.length = 0; // Browser input reset while the first file is being read.
+await importing;
+assert.equal(imported.length, 4, 'input reset must not truncate a multi-file import');
+assert.deepEqual(imported.map(file => file.content), ['print(1)', 'print(2)', 'print(3)', 'print(4)']);
+console.log('Multi-file import survives the picker clearing its live FileList.');

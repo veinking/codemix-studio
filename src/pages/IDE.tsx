@@ -579,14 +579,17 @@ Jack,30,Miami,86`,
   };
 
   const handleFileUpload = async (fileList: FileList) => {
+    // Snapshot before the first await: the picker resets its live FileList
+    // immediately so users can select the same local file again.
+    const selectedFiles = Array.from(fileList);
     const newFiles: FileItem[] = [];
     const usedNames = new Set(files.map((file) => file.name));
     
     // Check file size on mobile (warn if >5MB)
     const maxSize = isMobile ? 5 * 1024 * 1024 : 20 * 1024 * 1024; // 5MB mobile, 20MB desktop
     
-    for (let i = 0; i < fileList.length; i++) {
-      const file = fileList[i];
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
       
       if (file.size > maxSize) {
         toast.error(`${file.name} exceeds ${isMobile ? '5MB' : '20MB'} limit. Skipping.`);
