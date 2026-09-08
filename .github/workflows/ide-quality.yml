@@ -1,24 +1,45 @@
 name: bIDE Quality
 
+# Actions budget policy: manual checkpoint only. Normal iteration must not spend
+# runner minutes. Batch source changes first, then validate an exact candidate ref.
 on:
-  pull_request:
-  push:
-    branches: [main]
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Branch, tag, or commit to validate
+        required: true
+        default: main
+        type: string
+      confirm:
+        description: Type TEST to run the web quality gate
+        required: true
+        default: ""
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: bide-web-quality-${{ inputs.source_ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
+    if: ${{ inputs.confirm == 'TEST' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
       - name: Install dependencies
         run: npm ci
+      - name: Validate Actions budget policy
+        run: node scripts/validate-bide-actions-budget.mjs
       - name: Validate bIDE Focus V1
         run: node scripts/validate-bide-focus-v1.mjs
       - name: Validate bIDE Public Cleanup V1

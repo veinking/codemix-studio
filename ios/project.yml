@@ -1,0 +1,86 @@
+name: bIDE
+options:
+  bundleIdPrefix: com.bideide
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  Runestone:
+    url: https://github.com/simonbs/Runestone.git
+    from: 0.5.2
+  TreeSitterLanguages:
+    url: https://github.com/simonbs/TreeSitterLanguages.git
+    revision: 15cf3a9ec3ab95e0d058b7df9f35619123c9e02d
+
+targets:
+  bIDE:
+    type: application
+    platform: iOS
+    sources:
+      - path: BideApp
+    dependencies:
+      - package: Runestone
+        product: Runestone
+      - package: TreeSitterLanguages
+        product: TreeSitterPythonRunestone
+      - package: TreeSitterLanguages
+        product: TreeSitterSQLRunestone
+      - package: TreeSitterLanguages
+        product: TreeSitterRRunestone
+    info:
+      path: BideApp/Info.plist
+      properties:
+        CFBundleDisplayName: bIDE
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        LSApplicationCategoryType: public.app-category.developer-tools
+        UIApplicationSupportsIndirectInputEvents: true
+        UILaunchScreen: {}
+        LSSupportsOpeningDocumentsInPlace: false
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: bIDE Source Code
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes:
+              - public.python-script
+              - com.bideide.sql-source
+              - com.bideide.r-source
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: com.bideide.sql-source
+            UTTypeDescription: SQL Source Code
+            UTTypeConformsTo:
+              - public.source-code
+              - public.text
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - sql
+          - UTTypeIdentifier: com.bideide.r-source
+            UTTypeDescription: R Source Code
+            UTTypeConformsTo:
+              - public.source-code
+              - public.text
+            UTTypeTagSpecification:
+              public.filename-extension:
+                - r
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.bideide.ios
+        PRODUCT_NAME: bIDE
+        MARKETING_VERSION: 0.1.0
+        CURRENT_PROJECT_VERSION: 1
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: complete
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+
+schemes:
+  bIDE:
+    build:
+      targets:
+        bIDE: all
+    run:
+      config: Debug
+    archive:
+      config: Release
