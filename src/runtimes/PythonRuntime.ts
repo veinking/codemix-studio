@@ -1,6 +1,18 @@
 import { RuntimeExecutor, RuntimeConfig, ExecutionResult, CompatibilityResult } from './RuntimeInterface';
 import { checkLibraryCompatibility } from '@/utils/libraryCompatibility';
 
+export function summarizePythonRuntimeError(error: unknown): string {
+  const raw = String(error || 'Python execution failed').trim();
+  if (!raw) return 'Python execution failed';
+
+  const lines = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const tail = lines[lines.length - 1] || raw;
+  return tail.replace(/^PythonError:\s*/i, '').trim() || 'Python execution failed';
+}
+
 export class PythonRuntime implements RuntimeExecutor {
   private worker: Worker | null = null;
   private isReady = false;
@@ -86,14 +98,33 @@ export class PythonRuntime implements RuntimeExecutor {
     }
 
     const result: ExecutionResult = { output: '', datasets: [] };
+    const bufferedStderr: string[] = [];
+
+    const flushStderr = (errorText?: string) => {
+      for (const text of bufferedStderr) {
+        const normalized = String(text || '').trim();
+        if (!normalized) continue;
+        // Pyodide commonly sends the traceback to stderr and then sends the same
+        // traceback again in its terminal error event. Suppress only stderr that
+        // is echoed by that terminal error so genuine user stderr still appears.
+        if (errorText && String(errorText).includes(normalized)) continue;
+        result.output += `${text}\n`;
+        onOutput(text);
+      }
+      bufferedStderr.length = 0;
+    };
 
     return new Promise((resolve) => {
       const listener = (evt: MessageEvent) => {
         const msg = evt.data;
 
-        if (msg.type === 'stdout' || msg.type === 'stderr') {
+        if (msg.type === 'stdout') {
           result.output += msg.text + '\n';
           onOutput(msg.text);
+        } else if (msg.type === 'stderr') {
+          // Hold stderr until we know whether it is genuine program output or
+          // Pyodide's duplicate copy of a terminal traceback.
+          bufferedStderr.push(msg.text);
         } else if (msg.type === 'plot') {
           if (typeof msg.dataUrl === 'string' && msg.dataUrl.startsWith('data:image/')) {
             // The existing IDE + PlotViewer path consumes ExecutionResult.plotUrl.
@@ -101,6 +132,7 @@ export class PythonRuntime implements RuntimeExecutor {
             result.plotUrl = msg.dataUrl;
           }
         } else if (msg.type === 'result') {
+          flushStderr();
           if (msg.result !== undefined && msg.result !== null) {
             const outputStr = String(msg.result);
             result.output += outputStr + '\n';
@@ -109,8 +141,10 @@ export class PythonRuntime implements RuntimeExecutor {
           this.worker?.removeEventListener('message', listener);
           resolve(result);
         } else if (msg.type === 'error') {
-          result.error = msg.error;
-          result.output += `Error: ${msg.error}\n`;
+          const rawError = String(msg.error || 'Python execution failed');
+          flushStderr(rawError);
+          result.error = summarizePythonRuntimeError(rawError);
+          result.output += `Error: ${result.error}\n`;
           // RuntimeRegistry converts result.error into the single user-facing
           // execution error. Do not stream the same traceback a second time.
           this.worker?.removeEventListener('message', listener);
