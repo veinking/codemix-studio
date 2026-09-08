@@ -133,11 +133,30 @@ export const ConsolePanel = ({
   onToggleCollapse,
 }: ConsolePanelProps) => {
   const [showRawError, setShowRawError] = React.useState<number | null>(null);
+  const [preservedSuccessfulOutput, setPreservedSuccessfulOutput] = React.useState<ConsoleMessage[]>([]);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  const previousOutputRef = React.useRef<ConsoleMessage[]>(output);
+  const manualClearRef = React.useRef(false);
   const isMobile = React.useMemo(
     () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent),
     [],
   );
+
+  // IDE currently clears output at the beginning of every run. Preserve the
+  // previous run only when it completed without an obvious error, so a failed
+  // debug attempt cannot erase the user's last known-good console context.
+  React.useEffect(() => {
+    const previous = previousOutputRef.current;
+    if (output.length === 0 && previous.length > 0) {
+      if (manualClearRef.current) {
+        manualClearRef.current = false;
+      } else if (!previous.some(looksLikeError)) {
+        setPreservedSuccessfulOutput(previous.slice());
+      }
+    }
+    if (output.length > 0) manualClearRef.current = false;
+    previousOutputRef.current = output;
+  }, [output]);
 
   React.useEffect(() => {
     if (isCollapsed) return;
@@ -150,6 +169,9 @@ export const ConsolePanel = ({
   const maxMessages = isMobile ? 300 : 1500;
   const startIndex = Math.max(0, output.length - maxMessages);
   const recentOutput = output.slice(startIndex);
+  const effectiveLastSuccessfulOutput = lastSuccessfulOutput.length > 0
+    ? lastSuccessfulOutput
+    : preservedSuccessfulOutput;
 
   // Some runtimes currently resolve with an error instead of throwing. Until every
   // runtime is normalized, do not show a misleading success footer immediately
@@ -168,6 +190,12 @@ export const ConsolePanel = ({
       return "border-l-4 border-l-yellow-500 bg-yellow-500/5 pl-3 py-2";
     }
     return "py-1";
+  };
+
+  const handleClear = () => {
+    manualClearRef.current = true;
+    setPreservedSuccessfulOutput([]);
+    onClear();
   };
 
   if (isCollapsed) {
@@ -214,7 +242,7 @@ export const ConsolePanel = ({
           >
             {plainEnglishMode ? <Code className="w-4 h-4" /> : <Lightbulb className="w-4 h-4" />}
           </Button>
-          <Button variant="ghost" size="icon" onClick={onClear} title="Clear console">
+          <Button variant="ghost" size="icon" onClick={handleClear} title="Clear console">
             <Trash2 className="w-4 h-4" />
           </Button>
           {onToggleCollapse && (
@@ -226,10 +254,10 @@ export const ConsolePanel = ({
       </div>
 
       <ScrollArea className="flex-1 p-3">
-        {lastSuccessfulOutput.length > 0 && (
+        {effectiveLastSuccessfulOutput.length > 0 && (
           <details className="mb-3 rounded border border-border p-2">
             <summary className="cursor-pointer text-sm">Last successful run output</summary>
-            <pre className="mt-2 whitespace-pre-wrap break-words text-xs">{lastSuccessfulOutput.slice(-maxMessages).map(message => message.text).join('\n')}</pre>
+            <pre className="mt-2 whitespace-pre-wrap break-words text-xs">{effectiveLastSuccessfulOutput.slice(-maxMessages).map(message => message.text).join('\n')}</pre>
           </details>
         )}
         {onRetry && displayedOutput.some(message => message.isError) && (
