@@ -8,7 +8,7 @@ on:
       - .github/workflows/dependency-repair-probe.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   repair-lockfile:
@@ -24,24 +24,31 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
-      - name: Override Monaco sanitizer with patched DOMPurify 3.x
+      - name: Apply proposed DOMPurify override in working tree
         run: |
           npm pkg set "overrides.dompurify=^3.4.13"
           npm install --package-lock-only
-      - name: Install proposed dependency graph
-        run: npm ci
-      - name: Require no high-severity npm advisories
-        run: npm audit --audit-level=high
-      - name: Prove full bIDE production build
-        run: npm run build
-      - name: Commit tested sanitizer dependency repair
+          npm ci
+      - name: Print exact high-severity audit entries
         run: |
-          if git diff --quiet -- package.json package-lock.json; then
-            echo "DOMPurify dependency repair already applied"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json
-          git commit -m "Override Monaco sanitizer with patched DOMPurify"
-          git push origin "HEAD:${{ github.head_ref }}"
+          npm audit --json > npm-audit.json || true
+          node - <<'NODE'
+          const fs = require('fs');
+          const report = JSON.parse(fs.readFileSync('npm-audit.json', 'utf8'));
+          const high = Object.entries(report.vulnerabilities || {})
+            .filter(([, value]) => value.severity === 'high')
+            .map(([name, value]) => ({
+              name,
+              severity: value.severity,
+              isDirect: value.isDirect,
+              via: value.via,
+              effects: value.effects,
+              range: value.range,
+              fixAvailable: value.fixAvailable,
+            }));
+          console.log(JSON.stringify({ metadata: report.metadata, high }, null, 2));
+          if (high.length !== 1) {
+            console.error(`Expected exactly one remaining high advisory entry, found ${high.length}`);
+            process.exit(1);
+          }
+          NODE
