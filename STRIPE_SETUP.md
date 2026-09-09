@@ -1,64 +1,37 @@
-# Stripe Setup — bIDE by CodeMix
+# Stripe Setup — shared PocketBI billing
 
-## Sale/package status
+## Standalone bIDE Stripe is retired
 
-No Stripe account, payment account, customer list, subscription revenue, or Stripe credentials are included with this starter SaaS package. The buyer must create and own all Stripe resources before enabling paid plans.
+bIDE does **not** operate a separate Stripe subscription, checkout, cancellation, reactivation, or webhook stack.
 
-## How the current code is configured
+PocketBI's shared billing backend is the canonical authority for paid access across the ecosystem. bIDE consumes the resulting PocketBI entitlements (for example `bide.pro`) rather than creating its own Stripe customer/subscription lifecycle.
 
-Stripe is implemented through Supabase Edge Functions. Do **not** hardcode Stripe price IDs or secret keys in source code. The checkout function reads its configuration from Supabase Edge Function secrets:
+Do not deploy these historical bIDE functions:
 
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRO_PRICE_ID`
+- `create-checkout`
+- `check-subscription`
+- `cancel-subscription`
+- `reactivate-subscription`
+- `sync-subscription`
+- `stripe-webhook`
 
-The current `create-checkout` function returns a configuration error until `STRIPE_SECRET_KEY` and `STRIPE_PRO_PRICE_ID` are set in the buyer-owned Supabase project. Stripe webhook handling requires `STRIPE_WEBHOOK_SECRET`.
+Their deployable source has been removed from the current branch. Historical implementations remain available through git history only.
 
-## Buyer setup checklist
+## Current billing flow
 
-1. Create a buyer-owned Stripe account.
-2. Create a Stripe product for the paid bIDE plan, for example `bIDE Pro`.
-3. Create a recurring Stripe price for that product.
-4. Copy the Stripe price ID, which starts with `price_`.
-5. Create a webhook endpoint pointing to the deployed Supabase `stripe-webhook` Edge Function URL.
-6. Subscribe the webhook endpoint to checkout/subscription events used by the app, including checkout session completion and customer subscription updates/deletions.
-7. Copy the webhook signing secret from Stripe.
-8. Set Supabase Edge Function secrets in the buyer-owned Supabase project:
+1. A customer signs in with PocketBI ID.
+2. PocketBI's canonical web billing flow creates/manages Stripe checkout or the billing portal.
+3. The canonical PocketBI webhook normalizes subscription state into the shared backend.
+4. Effective entitlements are resolved from the shared plan/account or organization contract.
+5. bIDE reads shared access; it does not maintain a second subscription record.
 
-```bash
-supabase secrets set STRIPE_SECRET_KEY=your-stripe-secret-key
-supabase secrets set STRIPE_WEBHOOK_SECRET=your-stripe-webhook-signing-secret
-supabase secrets set STRIPE_PRO_PRICE_ID=price_your_bide_pro_price
-```
+Account deletion follows the same rule: use the shared `delete-pocketbi-account` service rather than a bIDE-specific deletion function.
 
-9. Deploy/redeploy the Stripe-related Supabase Edge Functions:
+## Release safety
 
-```bash
-supabase functions deploy create-checkout
-supabase functions deploy check-subscription
-supabase functions deploy cancel-subscription
-supabase functions deploy reactivate-subscription
-supabase functions deploy sync-subscription
-supabase functions deploy stripe-webhook
-```
+- Never add `STRIPE_SECRET_KEY`, Stripe webhook secrets, or private price IDs to bIDE browser code.
+- Never restore a standalone `STRIPE_PRO_PRICE_ID` flow for bIDE.
+- Do not create a separate bIDE Stripe product as a shortcut around PocketBI entitlements.
+- Changes to shared pricing, checkout, portal, webhooks, or entitlement normalization belong in the canonical PocketBI/Datasnap billing path.
 
-10. Test with Stripe test mode before production.
-
-## Frontend test flow
-
-After Supabase and Stripe are configured by the buyer:
-
-1. Sign in with a test user.
-2. Visit the upgrade/pricing flow.
-3. Start checkout.
-4. Complete Stripe test checkout with a Stripe test card.
-5. Confirm the account/subscription page shows the paid tier.
-6. Confirm the Stripe Dashboard shows the customer and subscription.
-7. Confirm Supabase profile/subscription fields sync through the webhook or subscription sync function.
-
-## Security notes
-
-- Keep all Stripe secret values in Supabase Edge Function secrets, not Vite frontend env files.
-- Do not commit `.env` or real Stripe credentials.
-- Do not place `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, or a production price ID directly in TypeScript source.
-- Review Stripe tax, billing address, refund, cancellation, and legal policies before launch.
+See `POCKETBI_PLATFORM_BACKEND.md` for the shared backend boundary.
