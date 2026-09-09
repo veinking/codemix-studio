@@ -67,7 +67,7 @@ final class CurrentGenerationSchemaDriftTests: XCTestCase {
             sqliteName: registeredTable.sqliteName,
             table: staleTable
         )
-        try "3".write(
+        try "4".write(
             to: dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
             atomically: true,
             encoding: .utf8

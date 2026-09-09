@@ -258,6 +258,6 @@ final class JoinPipelineTests: XCTestCase {
             contentsOf: dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
             encoding: .utf8
         ).trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "3")
+        XCTAssertEqual(generation, "4")
     }
 }

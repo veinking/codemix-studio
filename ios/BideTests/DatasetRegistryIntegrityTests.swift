@@ -150,7 +150,7 @@ final class DatasetRegistryIntegrityTests: XCTestCase {
         XCTAssertNil(store.dataError)
         let generation = try String(contentsOf: urls.generationURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "3")
+        XCTAssertEqual(generation, "4")
 
         let report = try SQLiteProjectEngine.execute(
             databaseURL: urls.databaseURL,

@@ -40,7 +40,9 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
         )
         XCTAssertTrue(manager.fileExists(atPath: urls.databaseURL.path))
 
-        // No datasets.bide.json is created, so the registry is intentionally empty.
+        // A readable empty registry is authoritative: there are no dataset-derived tables
+        // that should survive migration. Missing registry is tested separately as SQL-only.
+        try Data("[]".utf8).write(to: urls.registryURL, options: .atomic)
         try "1".write(to: urls.markerURL, atomically: true, encoding: .utf8)
 
         let store = DataWorkspaceStore()
@@ -56,7 +58,7 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
 
         let generation = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "3")
+        XCTAssertEqual(generation, "4")
     }
 
     @MainActor
@@ -71,6 +73,7 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
             databaseURL: urls.databaseURL,
             sql: "CREATE TABLE ghost_table (value TEXT); INSERT INTO ghost_table VALUES ('stale');"
         )
+        try Data("[]".utf8).write(to: urls.registryURL, options: .atomic)
         try "1".write(to: urls.markerURL, atomically: true, encoding: .utf8)
 
         let store = DataWorkspaceStore()
@@ -90,7 +93,7 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
         XCTAssertFalse(manager.fileExists(atPath: urls.databaseURL.path))
         let migratedGeneration = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(migratedGeneration, "3")
+        XCTAssertEqual(migratedGeneration, "4")
     }
 
     @MainActor
@@ -152,7 +155,7 @@ final class DatabaseMigrationEdgeCaseTests: XCTestCase {
 
         let generation = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "3")
+        XCTAssertEqual(generation, "4")
 
         let repairedRows = try SQLiteProjectEngine.execute(
             databaseURL: urls.databaseURL,

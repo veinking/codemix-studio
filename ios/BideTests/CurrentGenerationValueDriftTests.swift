@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import bIDE
 
-final class CurrentGenerationDatabaseDriftTests: XCTestCase {
+final class CurrentGenerationValueDriftTests: XCTestCase {
     private let customersCSV = """
     customer_id,customer_name,state,segment,signup_date
     C001,Avery Brooks,VA,Small Business,2026-01-08
@@ -54,7 +54,7 @@ final class CurrentGenerationDatabaseDriftTests: XCTestCase {
     """
 
     @MainActor
-    func testCurrentGenerationEmptyTablesAreRebuiltBeforeLeftJoinRuns() async throws {
+    func testCurrentGenerationSameShapeValueDriftIsRebuiltBeforeJoinAndExport() async throws {
         let projectID = UUID()
         let manager = FileManager.default
         let documents = try XCTUnwrap(manager.urls(for: .documentDirectory, in: .userDomainMask).first)
@@ -110,30 +110,41 @@ final class CurrentGenerationDatabaseDriftTests: XCTestCase {
             options: .atomic
         )
 
-        // Reproduce the physical-device failure: metadata and generation marker say the
-        // datasets are current, both SQLite tables exist, but their rows have disappeared.
-        let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
-        let emptyCustomers = ParsedDatasetTable(
+        // Reproduce the Build-12 blind spot: the derived database has the correct table
+        // names, ordered schemas, and exact row counts, but ordinary cell values have been
+        // mutated with uniqueness suffixes. Generation-3 validation accepted this shape.
+        var corruptedCustomerRows = customers.rows
+        corruptedCustomerRows[0][0] = "C001_2"
+        corruptedCustomerRows[0][2] = "VA_2"
+
+        var corruptedOrderRows = orders.rows
+        corruptedOrderRows[0][1] = "C001_2"
+        corruptedOrderRows[0][3] = "Starter Plan_2"
+        corruptedOrderRows[0][5] = "49.0_2"
+
+        let corruptedCustomers = ParsedDatasetTable(
             displayName: customers.displayName,
             sourceSheetName: customers.sourceSheetName,
             columns: customers.columns,
-            rows: []
+            rows: corruptedCustomerRows
         )
-        let emptyOrders = ParsedDatasetTable(
+        let corruptedOrders = ParsedDatasetTable(
             displayName: orders.displayName,
             sourceSheetName: orders.sourceSheetName,
             columns: orders.columns,
-            rows: []
+            rows: corruptedOrderRows
         )
+
+        let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
         try SQLiteProjectEngine.importTable(
             databaseURL: databaseURL,
             sqliteName: customerTable.sqliteName,
-            table: emptyCustomers
+            table: corruptedCustomers
         )
         try SQLiteProjectEngine.importTable(
             databaseURL: databaseURL,
             sqliteName: orderTable.sqliteName,
-            table: emptyOrders
+            table: corruptedOrders
         )
         try "4".write(
             to: dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
@@ -147,32 +158,50 @@ final class CurrentGenerationDatabaseDriftTests: XCTestCase {
 
         let sql = """
         SELECT l.*, r.*
-        FROM "bide_join_practice_customers" AS l
-        LEFT JOIN "bide_join_practice_orders" AS r
+        FROM "bide_join_practice_orders" AS l
+        LEFT JOIN "bide_join_practice_customers" AS r
           ON l."customer_id" = r."customer_id";
         """
         await store.executeSQL(sql, projectID: projectID)
 
         XCTAssertNil(store.sqlError)
         XCTAssertNil(store.dataError)
-        let result = try XCTUnwrap(store.lastSQLRun?.primaryResult)
+        let report = try XCTUnwrap(store.lastSQLRun)
+        let result = try XCTUnwrap(report.primaryResult)
         XCTAssertEqual(result.columns.count, 12)
-        XCTAssertEqual(result.rows.count, 28)
+        XCTAssertEqual(result.rows.count, 27)
 
-        let unmatchedCustomer = try XCTUnwrap(result.rows.first(where: { $0.first ?? nil == "C013" }))
-        XCTAssertEqual(unmatchedCustomer[0], "C013")
-        XCTAssertNil(unmatchedCustomer[5])
+        let orphan999 = try XCTUnwrap(result.rows.first(where: { $0[1] == "C999" }))
+        XCTAssertTrue(orphan999[7...11].allSatisfy { $0 == nil })
+        let orphan888 = try XCTUnwrap(result.rows.first(where: { $0[1] == "C888" }))
+        XCTAssertTrue(orphan888[7...11].allSatisfy { $0 == nil })
 
-        let repairedCustomers = try SQLiteProjectEngine.execute(
-            databaseURL: databaseURL,
-            sql: "SELECT COUNT(*) FROM \"bide_join_practice_customers\";"
+        let flattened = result.rows.flatMap { $0.compactMap { $0 } }
+        XCTAssertFalse(flattened.contains("C001_2"))
+        XCTAssertFalse(flattened.contains("VA_2"))
+        XCTAssertFalse(flattened.contains("Starter Plan_2"))
+        XCTAssertFalse(flattened.contains("49.0_2"))
+        XCTAssertTrue(flattened.contains("C001"))
+        XCTAssertTrue(flattened.contains("VA"))
+        XCTAssertTrue(flattened.contains("Starter Plan"))
+
+        let exportCandidate = await store.exportSQLResult(
+            report,
+            projectID: projectID,
+            registerAsDataset: false
         )
-        XCTAssertEqual(repairedCustomers.primaryResult?.rows.first?.first ?? nil, "15")
+        let exportURL = try XCTUnwrap(exportCandidate)
+        defer { try? manager.removeItem(at: exportURL) }
 
-        let repairedOrders = try SQLiteProjectEngine.execute(
-            databaseURL: databaseURL,
-            sql: "SELECT COUNT(*) FROM \"bide_join_practice_orders\";"
-        )
-        XCTAssertEqual(repairedOrders.primaryResult?.rows.first?.first ?? nil, "27")
+        let exported = try XCTUnwrap(DatasetParser.parse(url: exportURL, format: .csv).first)
+        XCTAssertEqual(exported.columns.count, 12)
+        XCTAssertEqual(exported.rows.count, 27)
+        XCTAssertTrue(exported.rows.allSatisfy { $0.count == 12 })
+
+        let exportedValues = exported.rows.flatMap { $0.compactMap { $0 } }
+        XCTAssertFalse(exportedValues.contains("C001_2"))
+        XCTAssertFalse(exportedValues.contains("VA_2"))
+        XCTAssertFalse(exportedValues.contains("Starter Plan_2"))
+        XCTAssertFalse(exportedValues.contains("49.0_2"))
     }
 }

@@ -128,16 +128,19 @@ const runJoinBody = joinBuilder.slice(runJoinStart, createQueryStart);
 assert.ok(!runJoinBody.includes("dismiss()"), "runJoin must not dismiss the Join Builder before results are presented.");
 assert.ok(runJoinBody.includes("onJoinCompleted(report)"), "runJoin must persist the completed report before presentation.");
 
-// Build 11 must distrust generation-2 derived SQLite state and must also verify that
-// a current generation-3 database still matches the authoritative registry row counts.
-// Physical build-10 testing proved a generation marker plus existing table names is not
-// enough: the SQLite tables can exist yet contain zero rows while the source files persist.
+// Build 13 must distrust every pre-generation-4 derived SQLite state and also verify
+// that a current generation-4 database still matches authoritative source values.
+// Physical Build 12 proved schema + row-count agreement is insufficient when ordinary
+// cell values can drift while the derived database keeps the same shape.
 const migration = read(migrationPath);
-assert.ok(migration.includes('derivedDatabaseGeneration = "3"'), "TestFlight build must force a generation-3 source rebuild of derived SQLite state.");
+assert.ok(migration.includes('derivedDatabaseGeneration = "4"'), "TestFlight build must force a generation-4 source rebuild of derived SQLite state.");
 assert.ok(migration.includes("refreshDatasetRegistryFromSourceAssets"), "Generation migration must reconstruct metadata from project source files.");
 assert.ok(migration.includes("rebuildDatabaseWithinDataOperation(projectID: projectID)"), "Generation migration must rebuild SQLite from the refreshed source registry.");
-assert.ok(migration.includes("derivedDatabaseMatchesRegistry"), "SQL readiness must compare derived SQLite tables with registry row counts.");
-assert.ok(migration.includes("SELECT COUNT(*)"), "Derived-database validation must verify actual table row counts before SQL runs.");
+assert.ok(migration.includes("derivedDatabaseMatchesRegistry"), "SQL readiness must compare derived SQLite tables with authoritative source data.");
+assert.ok(migration.includes("DatasetValueFingerprint"), "Generation-4 validation must fingerprint derived SQLite row values.");
+assert.ok(migration.includes("canonicalSourceFingerprint"), "Generation-4 validation must fingerprint canonical source row values.");
+assert.ok(migration.includes("actualRowCount == table.rowCount"), "Derived-database validation must still verify actual table row counts before SQL runs.");
+assert.ok(migration.includes("actualFingerprint.value == expectedFingerprint"), "Derived-database validation must reject same-shaped value drift.");
 assert.ok(migration.includes("could not invalidate the stale SQL state"), "A detected current-generation drift must fail closed if invalidation cannot complete.");
 
 // Full-result share/save may stream and verify more than the screen preview. The

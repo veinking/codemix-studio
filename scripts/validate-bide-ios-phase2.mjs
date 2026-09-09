@@ -151,7 +151,7 @@ assert.ok(
 const migration = read("ios/BideApp/Stores/DataWorkspaceStore+DatabaseMigration.swift");
 for (const migrationCapability of [
   "derivedDatabaseGeneration",
-  'derivedDatabaseGeneration = "3"',
+  'derivedDatabaseGeneration = "4"',
   ".bide-sqlite-generation",
   "isDerivedDatabaseReadyForSQL",
   "prepareDerivedDatabaseForSQLIfNeeded",
@@ -291,7 +291,7 @@ for (const regression of [
   'try "2".write',
   "XCTAssertEqual(repaired.rowCount, 27)",
   "XCTAssertEqual(repaired.columns.count, 7)",
-  "XCTAssertEqual(generation, \"3\")",
+  "XCTAssertEqual(generation, \"4\")",
 ]) {
   assert.ok(joinTests.includes(regression), `Phone join regression coverage missing: ${regression}`);
 }
