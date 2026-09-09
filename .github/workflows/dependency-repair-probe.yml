@@ -22,7 +22,7 @@ jobs:
       - name: Install locked dependencies
         run: npm ci
       - name: Apply non-breaking npm audit repair to lockfile
-        run: npm audit fix --package-lock-only
+        run: npm audit fix --package-lock-only || true
       - name: Show remaining high-severity audit
         run: npm audit --audit-level=high || true
       - name: Upload repaired lockfile
