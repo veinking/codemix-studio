@@ -24,22 +24,24 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
-      - name: Upgrade Monaco to patched release in working tree
-        run: npm install monaco-editor@0.56.0 --save-exact --package-lock-only
+      - name: Override Monaco sanitizer with patched DOMPurify 3.x
+        run: |
+          npm pkg set "overrides.dompurify=^3.4.13"
+          npm install --package-lock-only
       - name: Install proposed dependency graph
         run: npm ci
       - name: Require no high-severity npm advisories
         run: npm audit --audit-level=high
       - name: Prove full bIDE production build
         run: npm run build
-      - name: Commit tested Monaco dependency repair
+      - name: Commit tested sanitizer dependency repair
         run: |
           if git diff --quiet -- package.json package-lock.json; then
-            echo "Monaco dependency repair already applied"
+            echo "DOMPurify dependency repair already applied"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
-          git commit -m "Upgrade Monaco to patched dependency chain"
+          git commit -m "Override Monaco sanitizer with patched DOMPurify"
           git push origin "HEAD:${{ github.head_ref }}"
