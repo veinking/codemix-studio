@@ -1,0 +1,33 @@
+name: bIDE Dependency Repair Probe
+
+on:
+  pull_request:
+    paths:
+      - package.json
+      - package-lock.json
+      - .github/workflows/dependency-repair-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  repair-lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Apply non-breaking npm audit repair to lockfile
+        run: npm audit fix --package-lock-only
+      - name: Show remaining high-severity audit
+        run: npm audit --audit-level=high || true
+      - name: Upload repaired lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: repaired-package-lock
+          path: package-lock.json
+          if-no-files-found: error
