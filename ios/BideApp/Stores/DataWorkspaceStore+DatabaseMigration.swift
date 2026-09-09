@@ -1,8 +1,48 @@
 import Foundation
+import SQLite3
+
+private struct DatasetValueFingerprint {
+    private(set) var value: UInt64 = 14_695_981_039_346_656_037
+
+    mutating func append(row: [String?]) {
+        mix(byte: 0x52)
+        mix(number: UInt64(row.count))
+
+        for cell in row {
+            guard let cell else {
+                mix(byte: 0x00)
+                continue
+            }
+
+            mix(byte: 0x01)
+            mix(number: UInt64(cell.utf8.count))
+            for byte in cell.utf8 {
+                mix(byte: byte)
+            }
+        }
+    }
+
+    private mutating func mix(number: UInt64) {
+        var remaining = number
+        for _ in 0..<8 {
+            mix(byte: UInt8(truncatingIfNeeded: remaining))
+            remaining >>= 8
+        }
+    }
+
+    private mutating func mix(byte: UInt8) {
+        value ^= UInt64(byte)
+        value &*= 1_099_511_628_211
+    }
+}
 
 @MainActor
 extension DataWorkspaceStore {
-    private static let derivedDatabaseGeneration = "2"
+    // Generation 4 is the Build-12 hardware-integrity reset. Generation 3 validated schema
+    // and row counts but could still trust same-shaped SQLite tables whose cell values had
+    // drifted (for example C001 -> C001_2). Every generation-3 project must rebuild from its
+    // source datasets before SQL is trusted again.
+    private static let derivedDatabaseGeneration = "4"
 
     func isDerivedDatabaseReadyForSQL(projectID: UUID) -> Bool {
         guard activeProjectID == projectID else { return false }
@@ -39,7 +79,41 @@ extension DataWorkspaceStore {
         guard validateDatasetRegistryBeforeRecovery(projectID: projectID) else {
             return false
         }
-        if isDerivedDatabaseReadyForSQL(projectID: projectID) { return true }
+
+        let manager = FileManager.default
+        let documents = manager.urls(for: .documentDirectory, in: .userDomainMask).first!
+        let projectDirectory = documents
+            .appendingPathComponent("bIDE Projects", isDirectory: true)
+            .appendingPathComponent(projectID.uuidString, isDirectory: true)
+        let dataDirectory = projectDirectory.appendingPathComponent("data", isDirectory: true)
+        let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
+        let markerURL = dataDirectory.appendingPathComponent(".bide-sqlite-generation")
+
+        if isDerivedDatabaseReadyForSQL(projectID: projectID) {
+            let expectedAssets = datasets
+            let matchesRegistry = await Task.detached(priority: .userInitiated) {
+                Self.derivedDatabaseMatchesRegistry(
+                    databaseURL: databaseURL,
+                    projectDirectory: projectDirectory,
+                    expectedAssets: expectedAssets
+                )
+            }.value
+
+            guard activeProjectID == projectID else { return false }
+            if matchesRegistry { return true }
+
+            // A current generation marker is not enough if the actual SQLite tables have
+            // drifted from the authoritative registry or source values. Invalidate the marker
+            // so migration must rebuild from project source files before SQL can run.
+            do {
+                if manager.fileExists(atPath: markerURL.path) {
+                    try manager.removeItem(at: markerURL)
+                }
+            } catch {
+                dataError = "bIDE detected that the local SQL tables no longer match the project datasets, but could not invalidate the stale SQL state: \(error.localizedDescription)"
+                return false
+            }
+        }
 
         guard !hasActiveDataOperation(projectID: projectID),
               !hasActiveSQLOperation(projectID: projectID) else {
@@ -47,7 +121,22 @@ extension DataWorkspaceStore {
         }
 
         await migrateDerivedDatabaseIfNeeded(projectID: projectID)
-        return isDerivedDatabaseReadyForSQL(projectID: projectID)
+        guard isDerivedDatabaseReadyForSQL(projectID: projectID) else { return false }
+
+        let expectedAssets = datasets
+        let matchesRegistry = await Task.detached(priority: .userInitiated) {
+            Self.derivedDatabaseMatchesRegistry(
+                databaseURL: databaseURL,
+                projectDirectory: projectDirectory,
+                expectedAssets: expectedAssets
+            )
+        }.value
+
+        guard activeProjectID == projectID else { return false }
+        if !matchesRegistry {
+            dataError = "bIDE rebuilt the local SQL database, but its table schemas, row counts, or values still do not match the project source datasets. SQL was blocked instead of returning an untrusted result."
+        }
+        return matchesRegistry
     }
 
     func migrateDerivedDatabaseIfNeeded(projectID: UUID) async {
@@ -191,5 +280,167 @@ extension DataWorkspaceStore {
         encoder.dateEncodingStrategy = .iso8601
         let refreshedData = try encoder.encode(refreshedAssets)
         try refreshedData.write(to: registryURL, options: .atomic)
+    }
+
+    nonisolated private static func derivedDatabaseMatchesRegistry(
+        databaseURL: URL,
+        projectDirectory: URL,
+        expectedAssets: [DatasetAsset]
+    ) -> Bool {
+        if expectedAssets.isEmpty { return true }
+        guard FileManager.default.fileExists(atPath: databaseURL.path) else { return false }
+
+        // Re-read the authoritative source files. Registry shape alone cannot detect a
+        // same-row-count/same-schema value mutation in the derived SQLite database.
+        var expectedTables: [DatasetTableDescriptor] = []
+        var expectedFingerprints: [String: UInt64] = [:]
+
+        for asset in expectedAssets {
+            let sourceURL = projectDirectory.appendingPathComponent(asset.relativePath)
+            guard let parsedTables = try? DatasetParser.parse(url: sourceURL, format: asset.format),
+                  parsedTables.count == asset.tables.count else {
+                return false
+            }
+
+            for (parsed, descriptor) in zip(parsedTables, asset.tables) {
+                guard parsed.rows.count == descriptor.rowCount,
+                      parsed.columns == descriptor.columns else {
+                    return false
+                }
+                expectedTables.append(descriptor)
+                expectedFingerprints[descriptor.sqliteName.lowercased()] = canonicalSourceFingerprint(parsed)
+            }
+        }
+
+        var db: OpaquePointer?
+        let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX
+        let openResult = databaseURL.path.withCString { pointer in
+            sqlite3_open_v2(pointer, &db, flags, nil)
+        }
+        guard openResult == SQLITE_OK, let db else {
+            if let db { sqlite3_close(db) }
+            return false
+        }
+        defer { sqlite3_close(db) }
+        sqlite3_busy_timeout(db, 3_000)
+
+        for table in expectedTables {
+            let schemaSQL = "PRAGMA table_info(\(SQLiteProjectEngine.quoteIdentifier(table.sqliteName)));"
+            var schemaStatement: OpaquePointer?
+            let schemaPrepareResult = schemaSQL.withCString { pointer in
+                sqlite3_prepare_v2(db, pointer, -1, &schemaStatement, nil)
+            }
+            guard schemaPrepareResult == SQLITE_OK, let schemaStatement else {
+                if let schemaStatement { sqlite3_finalize(schemaStatement) }
+                return false
+            }
+
+            var actualColumns: [DatasetColumn] = []
+            var schemaStep = sqlite3_step(schemaStatement)
+            while schemaStep == SQLITE_ROW {
+                guard let namePointer = sqlite3_column_text(schemaStatement, 1),
+                      let typePointer = sqlite3_column_text(schemaStatement, 2) else {
+                    sqlite3_finalize(schemaStatement)
+                    return false
+                }
+                let name = String(cString: namePointer)
+                let typeName = String(cString: typePointer).uppercased()
+                guard let type = DatasetColumnType(rawValue: typeName) else {
+                    sqlite3_finalize(schemaStatement)
+                    return false
+                }
+                actualColumns.append(DatasetColumn(name: name, type: type))
+                schemaStep = sqlite3_step(schemaStatement)
+            }
+            guard schemaStep == SQLITE_DONE else {
+                sqlite3_finalize(schemaStatement)
+                return false
+            }
+            sqlite3_finalize(schemaStatement)
+            guard actualColumns == table.columns else { return false }
+
+            let valueSQL = "SELECT * FROM \(SQLiteProjectEngine.quoteIdentifier(table.sqliteName)) ORDER BY rowid;"
+            var valueStatement: OpaquePointer?
+            let valuePrepareResult = valueSQL.withCString { pointer in
+                sqlite3_prepare_v2(db, pointer, -1, &valueStatement, nil)
+            }
+            guard valuePrepareResult == SQLITE_OK, let valueStatement else {
+                if let valueStatement { sqlite3_finalize(valueStatement) }
+                return false
+            }
+
+            var actualFingerprint = DatasetValueFingerprint()
+            var actualRowCount = 0
+            var valueStep = sqlite3_step(valueStatement)
+            while valueStep == SQLITE_ROW {
+                let row = (0..<table.columns.count).map { index in
+                    sqliteColumnValue(valueStatement, index: Int32(index))
+                }
+                actualFingerprint.append(row: row)
+                actualRowCount += 1
+                valueStep = sqlite3_step(valueStatement)
+            }
+            guard valueStep == SQLITE_DONE else {
+                sqlite3_finalize(valueStatement)
+                return false
+            }
+            sqlite3_finalize(valueStatement)
+
+            guard actualRowCount == table.rowCount,
+                  let expectedFingerprint = expectedFingerprints[table.sqliteName.lowercased()],
+                  actualFingerprint.value == expectedFingerprint else {
+                return false
+            }
+        }
+
+        return true
+    }
+
+    nonisolated private static func canonicalSourceFingerprint(_ table: ParsedDatasetTable) -> UInt64 {
+        var fingerprint = DatasetValueFingerprint()
+        for sourceRow in table.rows {
+            let canonicalRow = table.columns.enumerated().map { index, column -> String? in
+                let value = index < sourceRow.count ? sourceRow[index] : nil
+                return canonicalSQLiteValue(value, type: column.type)
+            }
+            fingerprint.append(row: canonicalRow)
+        }
+        return fingerprint.value
+    }
+
+    nonisolated private static func canonicalSQLiteValue(
+        _ value: String?,
+        type: DatasetColumnType
+    ) -> String? {
+        guard let value else { return nil }
+        switch type {
+        case .integer:
+            return Int64(value).map { String($0) } ?? value
+        case .real:
+            return Double(value).map { String($0) } ?? value
+        case .text:
+            return value
+        }
+    }
+
+    nonisolated private static func sqliteColumnValue(
+        _ statement: OpaquePointer,
+        index: Int32
+    ) -> String? {
+        switch sqlite3_column_type(statement, index) {
+        case SQLITE_NULL:
+            return nil
+        case SQLITE_INTEGER:
+            return String(sqlite3_column_int64(statement, index))
+        case SQLITE_FLOAT:
+            return String(sqlite3_column_double(statement, index))
+        case SQLITE_TEXT:
+            guard let pointer = sqlite3_column_text(statement, index) else { return nil }
+            return String(cString: pointer)
+        case SQLITE_BLOB:
+            return "<BLOB \(sqlite3_column_bytes(statement, index)) bytes>"
+        default:
+            return nil
+        }
     }
 }

@@ -7,12 +7,14 @@ struct SQLJoinBuilderView: View {
 
     let tables: [DatasetTableDescriptor]
     let onEditableQueryCreated: () -> Void
+    let onJoinCompleted: (SQLRunReport) -> Void
 
     @State private var leftTableID: UUID?
     @State private var rightTableID: UUID?
     @State private var leftColumn = ""
     @State private var rightColumn = ""
     @State private var joinType: JoinType = .inner
+    @State private var presentedJoinReport: SQLRunReport?
 
     var body: some View {
         NavigationStack {
@@ -129,6 +131,7 @@ struct SQLJoinBuilderView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
+                        .disabled(dataWorkspace.isRunningSQL)
                 }
             }
             .alert("Join Error", isPresented: Binding(
@@ -140,6 +143,15 @@ struct SQLJoinBuilderView: View {
                 Text(dataWorkspace.sqlError ?? "Could not complete the join action.")
             }
             .onAppear(perform: configureDefaults)
+        }
+        .interactiveDismissDisabled(dataWorkspace.isRunningSQL)
+        .sheet(item: $presentedJoinReport, onDismiss: {
+            // Close the builder only after the result sheet has completed its own
+            // dismissal. This avoids racing two sibling sheet transitions on iOS.
+            dismiss()
+        }) { report in
+            SQLResultsView(report: report, title: "Join Results")
+                .presentationDetents([.medium, .large])
         }
     }
 
@@ -221,9 +233,14 @@ struct SQLJoinBuilderView: View {
 
         Task {
             await dataWorkspace.executeSQL(sql, projectID: projectID)
-            if dataWorkspace.lastSQLRun != nil {
-                dismiss()
-            }
+            guard let report = dataWorkspace.lastSQLRun else { return }
+
+            // Capture the report in both the builder and parent before presentation.
+            // Keep the builder alive while results are visible so SwiftUI performs
+            // only one sheet transition at a time.
+            dataWorkspace.lastSQLRun = nil
+            onJoinCompleted(report)
+            presentedJoinReport = report
         }
     }
 
@@ -233,20 +250,29 @@ struct SQLJoinBuilderView: View {
             return
         }
 
-        let previousFileID = workspace.activeFileID
         let left = leftTable?.sqliteName ?? "left"
         let right = rightTable?.sqliteName ?? "right"
         workspace.createFile(named: "join_\(left)_\(right)", language: .sql)
 
-        guard let createdFileID = workspace.activeFileID,
-              createdFileID != previousFileID,
+        if case .failed(let message) = workspace.saveState {
+            dataWorkspace.sqlError = "bIDE could not create the editable SQL file: \(message) The Join Builder will stay open so nothing is lost."
+            return
+        }
+
+        guard workspace.activeFileID != nil,
               workspace.activeFile?.language == .sql else {
-            dataWorkspace.sqlError = "bIDE could not create the editable SQL file. The Join Builder will stay open so nothing is lost."
+            dataWorkspace.sqlError = "bIDE could not activate the editable SQL file. The Join Builder will stay open so nothing is lost."
             return
         }
 
         workspace.updateDocumentText(sql + "\n")
         workspace.saveActiveDocumentNow()
+
+        if case .failed(let message) = workspace.saveState {
+            dataWorkspace.sqlError = "bIDE created the editable SQL file but could not save the generated join query: \(message) The Join Builder will stay open so nothing is lost."
+            return
+        }
+
         onEditableQueryCreated()
         dismiss()
     }

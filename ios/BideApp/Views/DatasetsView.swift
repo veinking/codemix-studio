@@ -95,7 +95,7 @@ struct DatasetsView: View {
                     }
 
                     Button {
-                        joinResultReport = report
+                        openJoinReport(report)
                     } label: {
                         Label("Open Join Results", systemImage: "tablecells")
                     }
@@ -185,6 +185,9 @@ struct DatasetsView: View {
                 tables: dataWorkspace.tables,
                 onEditableQueryCreated: {
                     openWorkspaceAfterJoinDismiss = true
+                },
+                onJoinCompleted: { report in
+                    lastCompletedJoinReport = report
                 }
             )
         }
@@ -255,19 +258,19 @@ struct DatasetsView: View {
     }
 
     private func handleJoinBuilderDismissal() {
-        if openWorkspaceAfterJoinDismiss {
-            openWorkspaceAfterJoinDismiss = false
-            dataWorkspace.lastSQLRun = nil
-            Task { @MainActor in
-                await Task.yield()
-                session.selectedSection = .workspace
-            }
-            return
-        }
-
-        guard let report = dataWorkspace.lastSQLRun else { return }
+        guard openWorkspaceAfterJoinDismiss else { return }
+        openWorkspaceAfterJoinDismiss = false
         dataWorkspace.lastSQLRun = nil
-        lastCompletedJoinReport = report
+        Task { @MainActor in
+            await Task.yield()
+            session.selectedSection = .workspace
+        }
+    }
+
+    private func openJoinReport(_ report: SQLRunReport) {
+        // Force a nil -> report transition every time so a previous interrupted
+        // presentation cannot leave the button inert with a stale non-nil item.
+        joinResultReport = nil
         Task { @MainActor in
             await Task.yield()
             joinResultReport = report

@@ -109,7 +109,7 @@ const Privacy = () => {
           </p>
 
           <h2>12. Contact</h2>
-          <p>Privacy or account questions can be sent to <a href="mailto:support@bideide.com">support@bideide.com</a>.</p>
+          <p>Privacy or account questions can be sent to <a href="mailto:support@pocketbi.app">support@pocketbi.app</a>.</p>
         </div>
       </div>
     </div>

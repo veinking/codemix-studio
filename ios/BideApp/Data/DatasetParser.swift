@@ -47,6 +47,13 @@ enum DatasetParser {
         if source.first == "\u{feff}" {
             source.removeFirst()
         }
+
+        // Swift String iteration can treat CRLF as one extended grapheme cluster. Normalize
+        // Windows line endings before Character-based scanning so each record separator is
+        // recognized instead of being appended to a field. Embedded CRLF cell values are
+        // already canonicalized to LF by normalizedCell().
+        source = source.replacingOccurrences(of: "\r\n", with: "\n")
+
         let records = try delimitedRecords(in: source, delimiter: delimiter)
         try validateDelimitedShape(records, displayName: url.lastPathComponent)
         return try normalize(records: records, displayName: url.deletingPathExtension().lastPathComponent)
@@ -59,6 +66,7 @@ enum DatasetParser {
         if source.first == "\u{feff}" {
             source.removeFirst()
         }
+        source = source.replacingOccurrences(of: "\r\n", with: "\n")
 
         let sample = source.split(whereSeparator: \.isNewline).first.map(String.init) ?? ""
         let candidates: [Character] = ["\t", ",", "|", ";"]
@@ -257,10 +265,6 @@ enum DatasetParser {
             )
         }
 
-        // A common damaged-CSV failure mode is losing most row separators. The parser then
-        // interprets hundreds of ordinary cell values as one giant header and uniqueHeaders()
-        // visibly mutates repeated values into names such as C001_2 or 49.0_2. Fail closed
-        // instead of registering that shape as a 0-row / hundreds-of-columns dataset.
         if headerWidth >= 32,
            headerWidth >= medianWidth * 3,
            headerWidth - medianWidth >= 32 {

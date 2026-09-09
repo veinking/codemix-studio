@@ -1,0 +1,182 @@
+name: bIDE RC2 Exact-Head Gate
+
+on:
+  push:
+    branches:
+      - hotfix/ios-rc2-value-integrity-build12
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-rc2-exact-head-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-preflight:
+    name: source-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Verify exact PR #70 head
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          PR70_HEAD="$(git ls-remote --heads origin refs/heads/hotfix/ios-rc2-value-integrity-build12 | awk '{print $1}')"
+          echo "Workflow SHA: ${GITHUB_SHA}"
+          echo "Checked-out SHA: ${ACTUAL_SHA}"
+          echo "PR #70 head: ${PR70_HEAD}"
+          [[ "${ACTUAL_SHA}" == "${GITHUB_SHA}" ]]
+          [[ "${PR70_HEAD}" == "${ACTUAL_SHA}" ]]
+          test -z "$(git status --porcelain)"
+
+      - name: Generate deterministic App Store icon
+        run: node scripts/generate-bide-appicon.mjs
+
+      - name: Validate generated App Store icon
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+
+          path = Path('ios/BideApp/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png')
+          data = path.read_bytes()
+          if data[:8] != b'\x89PNG\r\n\x1a\n':
+              raise SystemExit('Generated App Store icon is not a PNG.')
+          width, height = struct.unpack('>II', data[16:24])
+          color_type = data[25]
+          if (width, height) != (1024, 1024):
+              raise SystemExit(f'Generated icon must be 1024x1024, found {width}x{height}.')
+          if color_type in (4, 6):
+              raise SystemExit(f'Generated App Store icon contains an alpha channel (PNG color type {color_type}).')
+          print(f'Generated icon valid: {width}x{height}, PNG color type {color_type}.')
+          PY
+          grep -q 'AppIcon-1024.png' ios/BideApp/Assets.xcassets/AppIcon.appiconset/Contents.json
+
+      - name: Validate Phase 1 native scope
+        run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Validate generation-4 data integrity
+        run: node scripts/validate-bide-ios-phase2-integrity.mjs
+
+      - name: Validate canonical XLSX fixture
+        run: node scripts/validate-bide-ios-multisheet-fixture.mjs
+
+      - name: Validate hardware regression coverage
+        run: node scripts/validate-bide-ios-hardware-regressions.mjs
+
+  native-xctest:
+    name: native-xctest
+    needs: source-preflight
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      LOG_PATH: ${{ github.workspace }}/build/NativeXCTest
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Verify exact PR #70 head
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          PR70_HEAD="$(git ls-remote --heads origin refs/heads/hotfix/ios-rc2-value-integrity-build12 | awk '{print $1}')"
+          echo "Workflow SHA: ${GITHUB_SHA}"
+          echo "Checked-out SHA: ${ACTUAL_SHA}"
+          echo "PR #70 head: ${PR70_HEAD}"
+          [[ "${ACTUAL_SHA}" == "${GITHUB_SHA}" ]]
+          [[ "${PR70_HEAD}" == "${ACTUAL_SHA}" ]]
+          test -z "$(git status --porcelain)"
+
+      - name: Select Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          XCODE_PATH="/Applications/Xcode.app/Contents/Developer"
+          test -d "${XCODE_PATH}"
+          sudo xcode-select --switch "${XCODE_PATH}"
+          XCODE_VERSION="$(xcodebuild -version | awk 'NR == 1 { print $2}')"
+          XCODE_MAJOR="${XCODE_VERSION%%.*}"
+          if (( XCODE_MAJOR < 26 )); then
+            echo "Xcode 26 or later is required; found ${XCODE_VERSION}." >&2
+            exit 1
+          fi
+          xcodebuild -version
+          echo "iOS SDK: $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Generate deterministic App Store icon
+        run: node scripts/generate-bide-appicon.mjs
+
+      - name: Validate Phase 1 native scope
+        run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Validate generation-4 data integrity
+        run: node scripts/validate-bide-ios-phase2-integrity.mjs
+
+      - name: Validate canonical XLSX fixture
+        run: node scripts/validate-bide-ios-multisheet-fixture.mjs
+
+      - name: Validate hardware regression coverage
+        run: node scripts/validate-bide-ios-hardware-regressions.mjs
+
+      - name: Install XcodeGen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${LOG_PATH}"
+          (
+            cd ios
+            xcodegen generate
+          ) 2>&1 | tee "${LOG_PATH}/xcodegen.log"
+          test -d ios/bIDE.xcodeproj
+
+      - name: Run full native XCTest suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${LOG_PATH}"
+          DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[x["udid"] for xs in d["devices"].values() for x in xs if x.get("isAvailable") and x.get("name","").startswith("iPhone")]; print(ids[0] if ids else "")')"
+          if [[ -z "${DEVICE_ID}" ]]; then
+            echo "No available iPhone simulator was found." >&2
+            exit 1
+          fi
+          echo "Using simulator: ${DEVICE_ID}"
+          xcodebuild \
+            -project ios/bIDE.xcodeproj \
+            -scheme bIDE \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=${DEVICE_ID}" \
+            CODE_SIGNING_ALLOWED=NO \
+            test 2>&1 | tee "${LOG_PATH}/native-tests.log"
+
+      - name: Upload native diagnostic logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bIDE-Native-XCTest-${{ github.run_id }}
+          path: build/NativeXCTest
+          retention-days: 14
+          if-no-files-found: ignore

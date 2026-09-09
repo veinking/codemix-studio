@@ -103,7 +103,7 @@ const Terms = () => {
           </p>
 
           <h2>14. Contact</h2>
-          <p>Questions about these terms can be sent to <a href="mailto:support@bideide.com">support@bideide.com</a>.</p>
+          <p>Questions about these terms can be sent to <a href="mailto:support@pocketbi.app">support@pocketbi.app</a>.</p>
         </div>
       </div>
     </div>
