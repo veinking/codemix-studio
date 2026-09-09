@@ -15,6 +15,8 @@ const config = fs.readFileSync('supabase/config.toml', 'utf8');
 const stripeDocs = fs.readFileSync('STRIPE_SETUP.md', 'utf8');
 const backendDocs = fs.readFileSync('BACKEND_SETUP.md', 'utf8');
 const handoffDocs = fs.readFileSync('HANDOFF.md', 'utf8');
+const readme = fs.readFileSync('README.md', 'utf8');
+const envExample = fs.readFileSync('.env.example', 'utf8');
 
 for (const slug of retired) {
   assert.ok(
@@ -27,7 +29,7 @@ for (const slug of retired) {
   );
 }
 
-const productionContract = `${stripeDocs}\n${backendDocs}\n${handoffDocs}`;
+const productionContract = `${stripeDocs}\n${backendDocs}\n${handoffDocs}\n${readme}`;
 assert.match(
   productionContract,
   /shared PocketBI/i,
@@ -39,8 +41,17 @@ assert.match(
   'Stripe documentation must explicitly retire standalone bIDE subscriptions.',
 );
 assert.ok(
-  !stripeDocs.includes('STRIPE_PRO_PRICE_ID'),
-  'bIDE docs must not restore a standalone Stripe Pro price contract.',
+  !productionContract.includes('STRIPE_PRO_PRICE_ID'),
+  'Current bIDE release docs must not restore a standalone Stripe Pro price contract.',
+);
+assert.ok(
+  !envExample.includes('STRIPE_PRO_PRICE_ID') && !envExample.includes('STRIPE_SECRET_KEY') && !envExample.includes('STRIPE_WEBHOOK_SECRET'),
+  'bIDE env example must not invite a standalone Stripe deployment.',
+);
+assert.match(
+  readme,
+  /does \*\*not\*\* run a separate Stripe subscription stack/i,
+  'README must preserve the shared PocketBI billing boundary.',
 );
 
 const sourceFiles = [
