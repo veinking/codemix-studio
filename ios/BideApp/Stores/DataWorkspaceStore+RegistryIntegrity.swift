@@ -105,9 +105,11 @@ extension DataWorkspaceStore {
             // source from which a user-created SQL-only database could be rebuilt. Once the
             // recovery-artifact checks above have proved that the missing registry is not an
             // interrupted transaction, preserve that SQLite file and advance only its trust
-            // marker. Otherwise the generation bump would delete legitimate user SQL tables.
+            // marker. Do not mutate the marker while a project operation owns SQL/data state.
             let databaseURL = dataDirectory.appendingPathComponent(".bide.sqlite")
-            if manager.fileExists(atPath: databaseURL.path) {
+            if manager.fileExists(atPath: databaseURL.path),
+               !hasActiveDataOperation(projectID: projectID),
+               !hasActiveSQLOperation(projectID: projectID) {
                 do {
                     try manager.createDirectory(at: dataDirectory, withIntermediateDirectories: true)
                     try "4".write(to: generationMarker, atomically: true, encoding: .utf8)
