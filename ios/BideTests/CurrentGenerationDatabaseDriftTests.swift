@@ -135,7 +135,7 @@ final class CurrentGenerationDatabaseDriftTests: XCTestCase {
             sqliteName: orderTable.sqliteName,
             table: emptyOrders
         )
-        try "3".write(
+        try "4".write(
             to: dataDirectory.appendingPathComponent(".bide-sqlite-generation"),
             atomically: true,
             encoding: .utf8
