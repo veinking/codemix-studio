@@ -8,7 +8,7 @@ on:
       - .github/workflows/dependency-repair-probe.yml
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   repair-lockfile:
@@ -24,31 +24,23 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
-      - name: Apply proposed DOMPurify override in working tree
+      - name: Apply minimal patched dependency graph in working tree
         run: |
           npm pkg set "overrides.dompurify=^3.4.13"
-          npm install --package-lock-only
+          npm install vite@6.4.3 --save-dev --save-exact --package-lock-only
           npm ci
-      - name: Print exact high-severity audit entries
+      - name: Require no high-severity npm advisories
+        run: npm audit --audit-level=high
+      - name: Prove full bIDE production build
+        run: npm run build
+      - name: Commit tested dependency repair
         run: |
-          npm audit --json > npm-audit.json || true
-          node - <<'NODE'
-          const fs = require('fs');
-          const report = JSON.parse(fs.readFileSync('npm-audit.json', 'utf8'));
-          const high = Object.entries(report.vulnerabilities || {})
-            .filter(([, value]) => value.severity === 'high')
-            .map(([name, value]) => ({
-              name,
-              severity: value.severity,
-              isDirect: value.isDirect,
-              via: value.via,
-              effects: value.effects,
-              range: value.range,
-              fixAvailable: value.fixAvailable,
-            }));
-          console.log(JSON.stringify({ metadata: report.metadata, high }, null, 2));
-          if (high.length !== 1) {
-            console.error(`Expected exactly one remaining high advisory entry, found ${high.length}`);
-            process.exit(1);
-          }
-          NODE
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "Dependency repair already applied"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git commit -m "Patch Vite and Monaco sanitizer dependencies"
+          git push origin "HEAD:${{ github.head_ref }}"
