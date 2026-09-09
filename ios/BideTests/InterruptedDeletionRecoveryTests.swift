@@ -123,7 +123,7 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
 
         let generation = try String(contentsOf: urls.markerURL, encoding: .utf8)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        XCTAssertEqual(generation, "3")
+        XCTAssertEqual(generation, "4")
     }
 
     @MainActor
@@ -161,7 +161,7 @@ final class InterruptedDeletionRecoveryTests: XCTestCase {
         let malformedURL = urls.dataDirectory.appendingPathComponent(".bide-delete-not-a-valid-transaction")
         try "do not touch".write(to: malformedURL, atomically: true, encoding: .utf8)
         try writeRegistry([], to: urls.registryURL)
-        try "3".write(to: urls.markerURL, atomically: true, encoding: .utf8)
+        try "4".write(to: urls.markerURL, atomically: true, encoding: .utf8)
         _ = try SQLiteProjectEngine.execute(
             databaseURL: urls.databaseURL,
             sql: "CREATE TABLE stale_table (value TEXT);"
