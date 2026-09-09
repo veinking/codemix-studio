@@ -1,70 +1,43 @@
-# Backend Setup — Supabase for bIDE by CodeMix
+# Backend Setup — bIDE web
 
-## Backend status
+## Production authority
 
-The included backend is **buyer-configurable**. This sale package includes Supabase migrations and Edge Functions, but no live Supabase project credentials. The old project ref was removed from the app and `supabase/config.toml` now uses `your-project-ref`.
+bIDE web uses the shared PocketBI Platform backend. The canonical Supabase project is documented in `POCKETBI_PLATFORM_BACKEND.md` and owns PocketBI ID, account lifecycle, billing sources, subscriptions, entitlements, organizations, credits, and shared product access.
 
+Do **not** create or deploy a separate bIDE subscription stack.
 
-## Sale boundaries
+## Product-specific Edge Functions
 
-The buyer must create their own Supabase project. No Supabase project, production database, customer database, email list, service role key, Stripe/payment account, OpenAI/AI credentials, or social media accounts are included with this repository unless separately transferred in writing. `bideide.com` is the primary domain; `codemixapp.com` is only a secondary/redirect domain if the seller chooses to include it.
+Only deploy a bIDE-specific Edge Function when the current web application intentionally uses it and its authentication, abuse controls, and secrets have been reviewed. Historical functions may remain in git history, but they are not part of the production deployment contract.
 
-## Supabase setup
+The retired standalone bIDE functions are:
 
-1. Create a new Supabase project owned by the buyer.
-2. Install the Supabase CLI.
-3. Link the project:
+- `create-checkout`
+- `check-subscription`
+- `cancel-subscription`
+- `reactivate-subscription`
+- `sync-subscription`
+- `stripe-webhook`
+- `delete-account`
 
-```bash
-supabase link --project-ref your-project-ref
-```
+Billing and account deletion must go through the shared PocketBI services instead. In particular, the canonical account-deletion service is `delete-pocketbi-account`, not the retired bIDE function.
 
-4. Apply database migrations:
+## Current local configuration
 
-```bash
-supabase db push
-```
+`supabase/config.toml` is linked to the shared PocketBI project so migrations and explicitly approved bIDE product functions can be managed consistently. It intentionally does not declare the retired billing/account functions above.
 
-5. Deploy functions:
+Set secrets only for functions that are deliberately deployed. Never expose service-role keys or provider secrets to Vite/browser code.
 
-```bash
-supabase functions deploy ai-code-assistant
-supabase functions deploy code-translator
-supabase functions deploy data-advisor
-supabase functions deploy lab-trainer
-supabase functions deploy explain-error
-supabase functions deploy create-checkout
-supabase functions deploy check-subscription
-supabase functions deploy cancel-subscription
-supabase functions deploy reactivate-subscription
-supabase functions deploy delete-account
-supabase functions deploy sync-subscription
-supabase functions deploy stripe-webhook
-```
+## Local/offline behavior
 
-## Required Supabase secrets
+The browser IDE keeps its local-first coding/data workflow usable without silently uploading workspace files. PocketBI ID and explicit cloud/share features require the shared backend; local editing and supported browser runtimes should fail gracefully when an optional connected service is unavailable.
 
-Set secrets in Supabase, not in frontend `.env` files:
+## Release rule
 
-```bash
-supabase secrets set SUPABASE_URL=https://your-project-ref.supabase.co
-supabase secrets set SUPABASE_ANON_KEY=your-anon-key
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-supabase secrets set OPENAI_API_KEY=your-openai-key
-supabase secrets set LOVABLE_API_KEY=your-ai-gateway-key-if-used
-supabase secrets set STRIPE_SECRET_KEY=your-stripe-secret-key
-supabase secrets set STRIPE_WEBHOOK_SECRET=your-webhook-secret
-supabase secrets set STRIPE_PRO_PRICE_ID=price_...
-```
+Before deploying any Edge Function from this repository:
 
-## RLS and security notes
-
-- Treat all workspace, profile, feedback, activity, recipe, lab, and share data as user-owned.
-- Review every migration in `supabase/migrations` before production.
-- Confirm RLS is enabled for user-owned tables.
-- Policies should scope rows by `auth.uid()` or intentionally public share IDs.
-- Never expose `SUPABASE_SERVICE_ROLE_KEY`, Stripe secret keys, webhook secrets, or AI provider keys to the Vite frontend.
-
-## Missing config behavior
-
-The frontend detects missing Supabase env values and continues in offline/local mode. Auth, cloud sync, AI function calls, and payments show errors or disabled behavior instead of crashing.
+1. confirm the frontend or shared contract still calls it;
+2. confirm the canonical PocketBI project does not already provide the capability;
+3. require authentication or a documented custom-auth boundary;
+4. add rate/abuse controls where the endpoint can consume paid compute or third-party APIs;
+5. add a regression that prevents old standalone billing/account architecture from returning.
