@@ -1,66 +1,49 @@
-# Handoff — bIDE by CodeMix
+# Handoff — bIDE web
 
-## Sale positioning
+## Product position
 
-bIDE by CodeMix is a browser IDE starter SaaS package, not a revenue-generating business. The package is prepared for buyer setup and customization around the primary domain `bideide.com`. The secondary domain `codemixapp.com` may be included as a redirect/secondary domain if the seller chooses to transfer it separately.
+bIDE is the browser coding/data IDE in the PocketBI ecosystem. `bideide.com` is its public domain, while PocketBI provides the shared identity, billing, entitlement, and organization authority.
 
 ## Project structure
 
-- `src/pages` — landing, IDE, auth/account, pricing, docs, tutorials, blog/use-case pages.
-- `src/components` — editor UI, dialogs, data science tools, layout, shadcn-style UI primitives.
-- `src/runtimes` — runtime adapters for executable/editor languages.
-- `src/hooks` — auth/cloud/AI/local storage/device hooks.
-- `src/integrations/supabase` — typed Supabase client and generated DB types.
-- `supabase/migrations` — database schema migrations.
-- `supabase/functions` — Edge Functions for AI, subscriptions, account, and webhooks.
-- `public` — icons, manifest, sitemap, worker assets.
+- `src/pages` — landing, IDE, auth/account, docs, support, legal, and handoff routes.
+- `src/components` — editor UI, datasets, plots, workspaces, dialogs, and responsive layouts.
+- `src/runtimes` — browser runtime adapters.
+- `src/hooks` — local storage, workspace, device, and account helpers.
+- `src/integrations/pocketbi` — PocketBI identity/handoff integration.
+- `src/integrations/supabase` — shared-backend client/types.
+- `supabase/functions` — only current bIDE-specific Edge Function source; shared account/billing functions are owned outside this repo.
+- `supabase/migrations` — bIDE product-data schema history and current hardening migrations.
 
-## What works
+## Current release boundary
 
-- Fresh `npm install`.
-- Vite dev server.
-- Production build and preview.
-- Landing/marketing pages.
-- Browser IDE shell with language selection and editor UI.
-- Local/offline operation when Supabase is not configured.
-- Build-time TypeScript/Vite checks.
+Normal web coding/data workflows should remain local-first. PocketBI ID is used for explicit account-connected services and entitlements; files are not silently synced just because a user signs in.
 
-## Buyer-owned services required before launch
+The current production billing model has **no standalone bIDE subscription**. Do not restore or deploy historical bIDE checkout/subscription functions. Shared PocketBI billing is the only paid-access authority.
 
-- Buyer must create their own Supabase project and apply the included migrations/functions.
-- Buyer must add their own Stripe credentials, product, price, webhook, and payment policies.
-- Buyer must add their own OpenAI or AI gateway credentials for AI Edge Functions.
-- No customer database is included.
-- No email list is included.
-- No social media accounts are included unless separately transferred.
-- No Stripe/payment account transfer is included.
+Retired standalone functions include `create-checkout`, `check-subscription`, `cancel-subscription`, `reactivate-subscription`, `sync-subscription`, `stripe-webhook`, and `delete-account`.
 
-## What needs finishing
+For account deletion, use the shared `delete-pocketbi-account` service. For paid access, read the shared PocketBI entitlement contract such as `bide.pro`.
 
-- Buyer must create and configure Supabase.
-- Buyer must configure AI provider credentials and validate prompts/quotas.
-- Buyer must create Stripe account/products/prices/webhooks.
-- Buyer should perform browser QA for each runtime and mobile device class before launch.
-- Buyer should decide whether `codemixapp.com` redirects to `bideide.com` or hosts a secondary landing page if included.
+## Deployment
 
-## Backend notes
+- Web frontend: Vercel production from `main`.
+- Shared backend: canonical PocketBI Supabase project documented in `POCKETBI_PLATFORM_BACKEND.md`.
+- Only deploy bIDE-specific Edge Functions after confirming the current frontend intentionally calls them and authentication/abuse controls are adequate.
 
-Supabase is optional in local mode and required for auth, cloud workspace, sharing, usage tracking, recipes/activity, account management, and subscription sync. See `BACKEND_SETUP.md`.
+## Release checks
 
-## AI notes
+Before shipping web changes:
 
-AI tooling is implemented through Supabase Edge Functions. API keys are server-side only. Missing frontend Supabase config prevents AI calls gracefully.
+1. run the bIDE Quality workflow and production build;
+2. verify Python/R/SQL normal execution and recoverable error behavior;
+3. verify multi-file import and local workspace persistence;
+4. verify PocketBI handoff fallback behavior;
+5. verify public Support/Privacy/Terms remain consistent with the shared PocketBI account/billing model;
+6. do not merge native iOS release work into this web release lane.
 
-## Payment notes
+## Known acceptance work
 
-Stripe checkout is disabled by default. `create-checkout` requires `STRIPE_SECRET_KEY` and `STRIPE_PRO_PRICE_ID`; webhook sync requires `STRIPE_WEBHOOK_SECRET`. No Stripe account is included in the sale.
+The remaining Python-runtime issue is code-fixed and production-deployed but should stay open until the exact success → deliberate error → last-good-output → retry sequence is manually observed on `bideide.com/ide`.
 
-## Deployment notes
-
-Deploy static frontend to Vercel/Netlify/Cloudflare Pages. Deploy backend to buyer-owned Supabase. Use `bideide.com` as the primary canonical domain and redirect `codemixapp.com` if included.
-
-## Known limitations and post-sale improvements
-
-- Build may warn about large JavaScript chunks because bIDE includes Monaco, Pyodide/runtime adapters, sql.js-style browser IDE dependencies, docs pages, and data tools.
-- Recommended future optimization: lazy-load Monaco, Pyodide/runtime adapters, docs pages, and data tools.
-- Runtime behavior should be manually retested in target browsers after deployment.
+Historical sale-package and standalone billing instructions are not the production deployment contract.
