@@ -40,9 +40,11 @@ assert.match(
   /does \*\*not\*\* operate a separate Stripe subscription/i,
   'Stripe documentation must explicitly retire standalone bIDE subscriptions.',
 );
+
+const activeSetupDocs = `${backendDocs}\n${handoffDocs}\n${readme}`;
 assert.ok(
-  !productionContract.includes('STRIPE_PRO_PRICE_ID'),
-  'Current bIDE release docs must not restore a standalone Stripe Pro price contract.',
+  !activeSetupDocs.includes('STRIPE_PRO_PRICE_ID'),
+  'Active bIDE setup docs must not restore a standalone Stripe Pro price contract.',
 );
 assert.ok(
   !envExample.includes('STRIPE_PRO_PRICE_ID') && !envExample.includes('STRIPE_SECRET_KEY') && !envExample.includes('STRIPE_WEBHOOK_SECRET'),
