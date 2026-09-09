@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "audit:high": "npm audit --audit-level=high",
     "test:qc-identity": "node scripts/check-product-qc-identity.mjs",
     "test:web-accessibility": "node scripts/check-web-accessibility.mjs",
     "test:default-demo": "node scripts/check-default-demo-plot.mjs",
@@ -16,7 +17,7 @@
     "test:csv-workspace": "node scripts/check-csv-workspace-consistency.mjs",
     "test:python-runtime-errors": "node scripts/check-python-runtime-errors.mjs",
     "test:retired-billing": "node scripts/check-retired-bide-billing.mjs",
-    "build": "npm run test:qc-identity && npm run test:web-accessibility && npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && npm run test:team-boundaries && npm run test:csv-workspace && npm run test:python-runtime-errors && npm run test:retired-billing && npm run test:sql-analyst && npm run test:r-runtime && vite build",
+    "build": "npm run audit:high && npm run test:qc-identity && npm run test:web-accessibility && npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && npm run test:team-boundaries && npm run test:csv-workspace && npm run test:python-runtime-errors && npm run test:retired-billing && npm run test:sql-analyst && npm run test:r-runtime && vite build",
     "build:dev": "npm run test:qc-identity && npm run test:web-accessibility && npm run test:default-demo && npm run test:solo-data-integrity && npm run test:plot-builder-runtime && npm run test:share-hardening && npm run test:workspace-persistence && npm run test:team-boundaries && npm run test:csv-workspace && npm run test:python-runtime-errors && npm run test:retired-billing && npm run test:sql-analyst && npm run test:r-runtime && vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -107,6 +108,9 @@
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19"
+    "vite": "6.4.3"
+  },
+  "overrides": {
+    "dompurify": "^3.4.13"
   }
 }
