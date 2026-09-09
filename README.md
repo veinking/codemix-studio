@@ -1,29 +1,31 @@
-# bIDE by CodeMix — Buyer-Ready Browser IDE Starter SaaS
+# bIDE — Browser IDE in the PocketBI ecosystem
 
-**bIDE** is the primary product brand and **bideide.com** is the primary domain. **CodeMix** is the package/studio name; use **“bIDE by CodeMix”** when referencing both. **codemixapp.com** is included as a secondary/redirect domain candidate.
+**bIDE** is the browser coding and data IDE at `bideide.com`. It is part of the PocketBI ecosystem and uses PocketBI ID plus the shared PocketBI backend for account-connected services and entitlements.
 
-bIDE is a React + Vite browser IDE starter package for running and learning code in the browser. It includes a Monaco editor, multi-language runtime adapters, data-science utilities, docs/SEO pages, optional Supabase auth/cloud features, optional Supabase Edge Function AI tools, and optional Stripe subscription scaffolding.
+The web app is React + Vite with Monaco editing, browser runtimes, local datasets/workspaces, plotting/data tools, documentation, PocketBI handoffs, and optional bring-your-own-key Code Assist.
 
-## Current status
+## Production model
 
-This repository is prepared as a buyer-configurable starter SaaS. The frontend installs, builds, previews, and runs without real backend secrets. Supabase, AI, and Stripe features are disabled/fail gracefully until the buyer supplies their own credentials and deploys the included backend.
+- Normal coding/data work is local-first in the browser.
+- PocketBI ID is used for explicit account/cloud/share features.
+- PocketBI's shared backend owns billing, subscription state, entitlements, organizations, and account lifecycle.
+- bIDE does **not** run a separate Stripe subscription stack.
+- The current paid entitlement is resolved through the shared PocketBI contract (for example `bide.pro`).
 
-
-## Sale scope and buyer responsibilities
-
-This repository is a starter SaaS package, not a revenue-generating business. The buyer must create and own their Supabase project, Stripe account/credentials, and OpenAI or AI provider credentials. No customer database, email list, social media accounts, Stripe/payment account transfer, Supabase project, or live API credentials are included unless separately transferred in writing.
+See `POCKETBI_PLATFORM_BACKEND.md`, `BACKEND_SETUP.md`, and `STRIPE_SETUP.md` for the backend boundary.
 
 ## Tech stack
 
-- React 18, TypeScript, Vite
-- Tailwind CSS + shadcn/ui-style Radix components
+- React 18 + TypeScript + Vite
+- Tailwind CSS / Radix UI components
 - Monaco Editor
-- Browser runtimes/adapters for JavaScript, Python/Pyodide, R, SQL/sql.js, PHP, Ruby, Lua, and editor-only languages
-- Supabase client, migrations, and Edge Functions for optional auth/cloud/share/AI/payment flows
-- Stripe Edge Function scaffolding for subscriptions
-- PWA support via vite-plugin-pwa
+- Browser execution for the currently supported runtime set, including Python/Pyodide, R/webR-compatible flows, JavaScript, and SQL/sql.js
+- IndexedDB/local browser workspace persistence
+- Supabase client for PocketBI-connected account/product features
+- PocketBI dataset handoff V1
+- PWA support
 
-## Fresh clone setup
+## Local setup
 
 ```bash
 npm install
@@ -31,55 +33,49 @@ cp .env.example .env
 npm run dev
 ```
 
-Open the dev server printed by Vite. This project is configured for `http://localhost:8080` by default.
+The IDE should remain useful in local/offline mode when optional account-connected services are unavailable.
 
-## Common commands
+## Quality commands
 
 ```bash
-npm install          # install pinned dependencies from package-lock.json
-npm run dev          # local Vite dev server
-npm run lint         # ESLint checks
-npm run build        # production build
-npm run preview      # preview the production build locally
+npm run build
+npm run lint
+npm run test:python-runtime-errors
+npm run test:sql-analyst
+npm run test:r-runtime
+npm run test:retired-billing
 ```
 
-## Environment variables
+`npm run build` runs the product integrity/regression guards before the Vite production build.
 
-Copy `.env.example` to `.env`. The app works in local/offline mode without these values, but buyer-owned values are required for hosted auth, cloud workspaces, sharing, AI Edge Functions, and paid plans.
+## Backend rules
 
-Frontend variables:
+The canonical PocketBI Platform project is documented in `POCKETBI_PLATFORM_BACKEND.md`. Do not deploy historical Edge Functions blindly.
 
-- `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_PUBLIC_SITE_URL`
+Retired standalone bIDE billing/account functions are intentionally absent from deployable source:
 
-Server/Edge Function secrets, configured in Supabase rather than exposed in frontend bundles:
+- `create-checkout`
+- `check-subscription`
+- `cancel-subscription`
+- `reactivate-subscription`
+- `sync-subscription`
+- `stripe-webhook`
+- `delete-account`
 
-- `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `OPENAI_API_KEY` or buyer-selected AI gateway credentials
-- `LOVABLE_API_KEY` if continuing to use the current AI gateway implementation
-- `STRIPE_SECRET_KEY`
-- `STRIPE_WEBHOOK_SECRET`
-- `STRIPE_PRO_PRICE_ID`
+Shared PocketBI services own those responsibilities. Account deletion uses the shared `delete-pocketbi-account` service.
 
-Never commit `.env` or real credentials.
+## Environment
 
-## Deployment steps
+`.env.example` contains public PocketBI/Supabase configuration placeholders and optional server-side provider placeholders. It intentionally does **not** contain standalone bIDE Stripe secrets or a bIDE Stripe price ID.
 
-1. Create buyer-owned Supabase and Stripe accounts.
-2. Apply Supabase migrations from `supabase/migrations`.
-3. Configure Supabase Edge Function secrets from `.env.example`.
-4. Deploy Edge Functions from `supabase/functions`.
-5. Configure Stripe products, prices, and webhooks.
-6. Deploy the Vite app to Vercel, Netlify, Cloudflare Pages, or similar.
-7. Point `bideide.com` at the frontend host and redirect `codemixapp.com` if desired.
+Never expose service-role keys or provider secrets in Vite/browser variables and never commit real credentials.
 
-## Known limitations
+## Deployment
 
-- Backend features are buyer-configurable, not live by default.
-- AI functions require server-side credentials and may need provider migration if the buyer does not use the included AI gateway pattern.
-- Stripe checkout is disabled until `STRIPE_SECRET_KEY` and `STRIPE_PRO_PRICE_ID` are set.
-- Some language runtimes rely on browser/WebAssembly support and CDN/runtime loading behavior.
-- Build emits large chunk warnings; this is acceptable for handoff but code-splitting is a recommended post-sale improvement.
+- Production web deployments come from `main` through the connected Vercel project.
+- Deliberate preview branches may deploy when allowed by `vercel.json`; native-only branch work should not consume web previews.
+- Shared backend/schema changes must respect the PocketBI platform contract rather than creating product-local copies of identity or billing state.
+
+## Release focus
+
+The current web release lane is maintenance/hardening: runtime correctness, imports/exports, workspace persistence, account boundaries, cross-product handoffs, and truthful public surfaces. Native iOS work is intentionally isolated from this web lane.
