@@ -24,24 +24,22 @@ jobs:
           cache: npm
       - name: Install locked dependencies
         run: npm ci
-      - name: Apply non-breaking npm audit repair to lockfile
-        run: npm audit fix --package-lock-only || true
-      - name: Show remaining high-severity audit
-        run: npm audit --audit-level=high || true
-      - name: Commit repaired lockfile
+      - name: Upgrade Monaco to patched release in working tree
+        run: npm install monaco-editor@0.56.0 --save-exact --package-lock-only
+      - name: Install proposed dependency graph
+        run: npm ci
+      - name: Require no high-severity npm advisories
+        run: npm audit --audit-level=high
+      - name: Prove full bIDE production build
+        run: npm run build
+      - name: Commit tested Monaco dependency repair
         run: |
-          if git diff --quiet -- package-lock.json; then
-            echo "package-lock.json already contains the safe repair"
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "Monaco dependency repair already applied"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package-lock.json
-          git commit -m "Apply non-breaking npm audit lockfile repair"
+          git add package.json package-lock.json
+          git commit -m "Upgrade Monaco to patched dependency chain"
           git push origin "HEAD:${{ github.head_ref }}"
-      - name: Upload repaired lockfile
-        uses: actions/upload-artifact@v4
-        with:
-          name: repaired-package-lock
-          path: package-lock.json
-          if-no-files-found: error
