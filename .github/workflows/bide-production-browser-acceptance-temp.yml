@@ -1,0 +1,86 @@
+name: bIDE Production Browser Acceptance (temporary)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/bide-production-browser-acceptance-temp.yml
+
+permissions:
+  contents: read
+
+jobs:
+  browser-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify production Python recovery and multi-file import
+        run: |
+          cat > /tmp/bide-prod-acceptance.mjs <<'NODE'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const browser = await chromium.launch({ headless: true });
+          const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+          const page = await context.newPage();
+          page.on('console', msg => console.log('[browser]', msg.type(), msg.text()));
+          page.on('pageerror', err => console.log('[pageerror]', err.message));
+
+          await page.goto('https://www.bideide.com/ide', { waitUntil: 'domcontentloaded', timeout: 60000 });
+
+          if (await page.getByText('Welcome to bIDE', { exact: true }).count()) {
+            const overlayButton = page.locator('.fixed.inset-0 button').first();
+            if (await overlayButton.count()) await overlayButton.click();
+          }
+
+          const editor = page.locator('.monaco-editor textarea').first();
+          await editor.waitFor({ state: 'attached', timeout: 30000 });
+
+          async function setCode(code) {
+            await editor.click({ force: true });
+            await page.keyboard.press('Control+A');
+            await page.keyboard.type(code);
+          }
+
+          async function runAndWaitFor(text, timeout = 120000) {
+            await editor.click({ force: true });
+            await page.keyboard.press('Control+Enter');
+            await page.getByText(text, { exact: false }).first().waitFor({ state: 'visible', timeout });
+          }
+
+          await setCode('print("before-error")');
+          await runAndWaitFor('before-error');
+
+          await setCode('raise ValueError("intentional QA failure")');
+          await runAndWaitFor('intentional QA failure');
+
+          const bodyAfterFailure = await page.locator('body').innerText();
+          if (!bodyAfterFailure.includes('before-error')) {
+            throw new Error('Last successful output was not preserved after Python failure');
+          }
+          const failureMatches = bodyAfterFailure.match(/intentional QA failure/g) || [];
+          if (failureMatches.length > 3) {
+            throw new Error(`Python failure appears duplicated excessively (${failureMatches.length} visible matches)`);
+          }
+
+          await setCode('print("after-retry")');
+          await runAndWaitFor('after-retry');
+
+          fs.writeFileSync('/tmp/qa-one.csv', 'id,value\n1,alpha\n');
+          fs.writeFileSync('/tmp/qa-two.csv', 'id,value\n2,beta\n');
+          const upload = page.locator('#file-upload');
+          await upload.setInputFiles(['/tmp/qa-one.csv', '/tmp/qa-two.csv']);
+          await page.getByText('qa-one.csv', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+          await page.getByText('qa-two.csv', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+
+          console.log('Production bIDE browser acceptance passed: Python recovery + multi-file import.');
+          await browser.close();
+          NODE
+          node /tmp/bide-prod-acceptance.mjs
