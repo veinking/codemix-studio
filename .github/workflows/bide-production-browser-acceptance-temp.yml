@@ -23,7 +23,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Verify production Python recovery and multi-file import
         run: |
-          cat > /tmp/bide-prod-acceptance.mjs <<'NODE'
+          cat > bide-prod-acceptance.mjs <<'NODE'
           import { chromium } from 'playwright';
           import fs from 'node:fs';
 
@@ -83,4 +83,4 @@ jobs:
           console.log('Production bIDE browser acceptance passed: Python recovery + multi-file import.');
           await browser.close();
           NODE
-          node /tmp/bide-prod-acceptance.mjs
+          node ./bide-prod-acceptance.mjs
