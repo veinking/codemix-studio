@@ -1,0 +1,166 @@
+name: bIDE iOS Python R RC13 Gate
+
+on:
+  push:
+    branches:
+      - agent/bide-ios-python-r-rc13
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-ios-python-r-rc13-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source-preflight:
+    name: source-preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Verify exact branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          REMOTE_HEAD="$(git ls-remote --heads origin refs/heads/agent/bide-ios-python-r-rc13 | awk '{print $1}')"
+          echo "Workflow SHA: ${GITHUB_SHA}"
+          echo "Checked-out SHA: ${ACTUAL_SHA}"
+          echo "Runtime RC head: ${REMOTE_HEAD}"
+          [[ "${ACTUAL_SHA}" == "${GITHUB_SHA}" ]]
+          [[ "${REMOTE_HEAD}" == "${ACTUAL_SHA}" ]]
+          test -z "$(git status --porcelain)"
+
+      - name: Validate JavaScript syntax
+        run: |
+          node --check scripts/prepare-bide-ios-runtimes.mjs
+          node --check scripts/validate-bide-ios-runtimes.mjs
+
+      - name: Validate native SQL and editor baselines
+        run: |
+          node scripts/validate-bide-ios-phase1.mjs
+          node scripts/validate-bide-ios-phase2.mjs
+          node scripts/validate-bide-ios-phase2-integrity.mjs
+          node scripts/validate-bide-ios-multisheet-fixture.mjs
+          node scripts/validate-bide-ios-hardware-regressions.mjs
+
+      - name: Validate Python and R source wiring
+        run: node scripts/validate-bide-ios-runtimes.mjs
+
+      - name: Prepare pinned runtime payloads
+        run: node scripts/prepare-bide-ios-runtimes.mjs
+
+      - name: Verify prepared runtime bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f ios/BideApp/RuntimeAssets/runtime-host.html
+          test -f ios/BideApp/RuntimeAssets/runtime-manifest.json
+          test -f ios/BideApp/RuntimeAssets/pyodide/pyodide.mjs
+          test -f ios/BideApp/RuntimeAssets/webr/webr.mjs
+          grep -q '"version": "314.0.6"' ios/BideApp/RuntimeAssets/runtime-manifest.json
+          grep -q '"version": "0.6.0"' ios/BideApp/RuntimeAssets/runtime-manifest.json
+          du -sh ios/BideApp/RuntimeAssets
+
+  native-xctest:
+    name: native-xctest
+    needs: source-preflight
+    runs-on: macos-26
+    timeout-minutes: 35
+    env:
+      LOG_PATH: ${{ github.workspace }}/build/NativeRuntimeXCTest
+    steps:
+      - name: Check out exact candidate
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+
+      - name: Verify exact branch head
+        shell: bash
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          REMOTE_HEAD="$(git ls-remote --heads origin refs/heads/agent/bide-ios-python-r-rc13 | awk '{print $1}')"
+          [[ "${ACTUAL_SHA}" == "${GITHUB_SHA}" ]]
+          [[ "${REMOTE_HEAD}" == "${ACTUAL_SHA}" ]]
+          test -z "$(git status --porcelain)"
+
+      - name: Select Xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          XCODE_PATH="/Applications/Xcode.app/Contents/Developer"
+          test -d "${XCODE_PATH}"
+          sudo xcode-select --switch "${XCODE_PATH}"
+          xcodebuild -version
+          echo "iOS SDK: $(xcrun --sdk iphoneos --show-sdk-version)"
+
+      - name: Generate deterministic App Store icon
+        run: node scripts/generate-bide-appicon.mjs
+
+      - name: Validate protected SQL baseline and runtime wiring
+        run: |
+          node scripts/validate-bide-ios-phase1.mjs
+          node scripts/validate-bide-ios-phase2.mjs
+          node scripts/validate-bide-ios-phase2-integrity.mjs
+          node scripts/validate-bide-ios-hardware-regressions.mjs
+          node scripts/validate-bide-ios-runtimes.mjs
+
+      - name: Prepare pinned Python and R runtimes
+        run: node scripts/prepare-bide-ios-runtimes.mjs
+
+      - name: Install XcodeGen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate Xcode project
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${LOG_PATH}"
+          (
+            cd ios
+            xcodegen generate
+          ) 2>&1 | tee "${LOG_PATH}/xcodegen.log"
+          test -d ios/bIDE.xcodeproj
+
+      - name: Run full native XCTest suite including Python and R execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "${LOG_PATH}"
+          DEVICE_ID="$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); ids=[x["udid"] for xs in d["devices"].values() for x in xs if x.get("isAvailable") and x.get("name","").startswith("iPhone")]; print(ids[0] if ids else "")')"
+          if [[ -z "${DEVICE_ID}" ]]; then
+            echo "No available iPhone simulator was found." >&2
+            exit 1
+          fi
+          echo "Using simulator: ${DEVICE_ID}"
+          xcodebuild \
+            -project ios/bIDE.xcodeproj \
+            -scheme bIDE \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=${DEVICE_ID}" \
+            CODE_SIGNING_ALLOWED=NO \
+            test 2>&1 | tee "${LOG_PATH}/native-tests.log"
+
+      - name: Upload native diagnostic logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: bIDE-Python-R-Native-XCTest-${{ github.run_id }}
+          path: build/NativeRuntimeXCTest
+          retention-days: 14
+          if-no-files-found: ignore
