@@ -43,6 +43,7 @@ const goodPlot = ctx.plotData;
 fail = true;
 await ctx.run();
 assert.ok(ctx.lastSuccessfulOutput.some(message => message.text === 'last-good-output'));
+assert.ok(ctx.lastSuccessfulOutputRef.current.some(message => message.text === 'last-good-output'), 'failed run must not replace the synchronous last-good snapshot');
 assert.equal(ctx.plotData, goodPlot, 'failed run must preserve last-good plot');
 assert.ok(ctx.consoleOutput.some(message => message.text === 'before-error'));
 assert.equal(ctx.consoleOutput.filter(message => message.isError).length, 1);
