@@ -142,17 +142,15 @@ export const ConsolePanel = ({
     [],
   );
 
-  // IDE currently clears output at the beginning of every run. Preserve the
-  // previous run only when it completed without an obvious error, so a failed
-  // debug attempt cannot erase the user's last known-good console context.
+  // Snapshot successful output as soon as the run completes. Waiting until the
+  // next run clears the console is timing-sensitive and can lose the previous
+  // result when React batches state changes or the console subtree remounts.
   React.useEffect(() => {
-    const previous = previousOutputRef.current;
-    if (output.length === 0 && previous.length > 0) {
-      if (manualClearRef.current) {
-        manualClearRef.current = false;
-      } else if (!previous.some(looksLikeError)) {
-        setPreservedSuccessfulOutput(previous.slice());
-      }
+    const completedSuccessfully = output.some((message) =>
+      /execution completed\s*✓/i.test(message.text),
+    );
+    if (completedSuccessfully) {
+      setPreservedSuccessfulOutput(output.slice());
     }
     if (output.length > 0) manualClearRef.current = false;
     previousOutputRef.current = output;
@@ -254,7 +252,7 @@ export const ConsolePanel = ({
       </div>
 
       <ScrollArea className="flex-1 p-3">
-        {effectiveLastSuccessfulOutput.length > 0 && (
+        {effectiveLastSuccessfulOutput.length > 0 && displayedOutput.some(looksLikeError) && (
           <details className="mb-3 rounded border border-border p-2">
             <summary className="cursor-pointer text-sm">Last successful run output</summary>
             <pre className="mt-2 whitespace-pre-wrap break-words text-xs">{effectiveLastSuccessfulOutput.slice(-maxMessages).map(message => message.text).join('\n')}</pre>
