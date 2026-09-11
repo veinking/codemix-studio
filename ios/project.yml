@@ -4,6 +4,7 @@ options:
   developmentLanguage: en
   deploymentTarget:
     iOS: "17.0"
+  preGenCommand: node ../scripts/prepare-bide-ios-runtimes.mjs
 
 packages:
   Runestone:
@@ -22,6 +23,12 @@ targets:
     platform: iOS
     sources:
       - path: BideApp
+        excludes:
+          - RuntimeAssets
+      - path: BideRuntime
+      - path: BideApp/RuntimeAssets
+        type: folder
+        buildPhase: resources
     dependencies:
       - package: Runestone
         product: Runestone
@@ -44,6 +51,8 @@ targets:
         LSApplicationCategoryType: public.app-category.developer-tools
         UIApplicationSupportsIndirectInputEvents: true
         UILaunchScreen: {}
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationPortraitUpsideDown
@@ -111,6 +120,10 @@ targets:
       - path: BideTests/Fixtures/bIDE-Phase2-Test-MultiSheet.xlsx
         buildPhase: resources
         group: BideTests/Fixtures
+      - path: BideApp/RuntimeAssets
+        type: folder
+        buildPhase: resources
+        group: RuntimeAssets
     dependencies:
       - target: bIDE
     settings:
