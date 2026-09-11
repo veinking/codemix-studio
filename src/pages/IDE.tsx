@@ -1093,8 +1093,9 @@ Jack,30,Miami,86`,
       }
 
       addToConsole(">>> Execution completed ✓");
-      lastSuccessfulOutputRef.current = consoleOutputRef.current.slice();
-      setLastSuccessfulOutput([]);
+      const successfulSnapshot = consoleOutputRef.current.slice();
+      lastSuccessfulOutputRef.current = successfulSnapshot;
+      setLastSuccessfulOutput(successfulSnapshot);
       previousRunSucceeded.current = true;
       
       // Track activity for global stats

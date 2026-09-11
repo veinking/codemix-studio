@@ -39,6 +39,7 @@ vm.runInContext(ts.transpile(source.slice(start, end) + '\nthis.run = handleRunC
 await ctx.run();
 assert.ok(ctx.consoleOutput.some(message => message.text === 'last-good-output'));
 assert.ok(ctx.lastSuccessfulOutputRef.current.some(message => message.text === 'last-good-output'), 'successful run must snapshot its console synchronously');
+assert.ok(ctx.lastSuccessfulOutput.some(message => message.text === 'last-good-output'), 'successful run must publish the snapshot immediately for later failures');
 const goodPlot = ctx.plotData;
 fail = true;
 await ctx.run();
