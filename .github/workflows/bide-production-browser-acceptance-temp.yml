@@ -51,6 +51,8 @@ jobs:
           await editor.waitFor({ state: 'attached', timeout: 30000 });
           const consoleLog = page.getByRole('log', { name: 'Console output' }).last();
           await consoleLog.waitFor({ state: 'visible', timeout: 30000 });
+          const runButton = page.getByRole('button', { name: 'Run', exact: true }).first();
+          await runButton.waitFor({ state: 'visible', timeout: 30000 });
 
           async function setCode(code) {
             await editor.click({ force: true });
@@ -59,8 +61,7 @@ jobs:
           }
 
           async function runAndWaitFor(text, timeout = 120000) {
-            await editor.click({ force: true });
-            await page.keyboard.press('Control+Enter');
+            await runButton.click();
             await consoleLog.getByText(text, { exact: false }).first().waitFor({ state: 'visible', timeout });
           }
 
