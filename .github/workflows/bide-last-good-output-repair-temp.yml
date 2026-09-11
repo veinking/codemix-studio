@@ -77,6 +77,7 @@ jobs:
           test_path.write_text(test)
           PY
 
+          npm ci --ignore-scripts
           node scripts/check-run-recovery.mjs
 
           git rm .github/workflows/bide-last-good-output-repair-temp.yml
