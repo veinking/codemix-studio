@@ -86,6 +86,8 @@ const IDE = () => {
   const [activeFile, setActiveFile] = useState<string | null>(null);
   const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);
   const [lastSuccessfulOutput, setLastSuccessfulOutput] = useState<ConsoleMessage[]>([]);
+  const consoleOutputRef = React.useRef<ConsoleMessage[]>([]);
+  const lastSuccessfulOutputRef = React.useRef<ConsoleMessage[]>([]);
   const previousRunSucceeded = React.useRef(false);
   const [isRunning, setIsRunning] = useState(false);
   const [plainEnglishMode, setPlainEnglishMode] = useState(() => {
@@ -473,7 +475,9 @@ Jack,30,Miami,86`,
   }, [dbReady]);
 
   const addToConsole = (message: string, isError: boolean = false) => {
-    setConsoleOutput((prev) => [...prev, { text: message, isError }]);
+    const nextMessage = { text: message, isError };
+    consoleOutputRef.current = [...consoleOutputRef.current, nextMessage];
+    setConsoleOutput(consoleOutputRef.current);
   };
 
   const addErrorWithExplanation = async (errorMessage: string, code: string, language: string) => {
@@ -871,8 +875,11 @@ Jack,30,Miami,86`,
 
   const handleRunCode = async () => {
     if (isRunning) return;
-    if (previousRunSucceeded.current) setLastSuccessfulOutput(consoleOutput);
+    if (lastSuccessfulOutputRef.current.length > 0) {
+      setLastSuccessfulOutput(lastSuccessfulOutputRef.current.slice());
+    }
     previousRunSucceeded.current = false;
+    consoleOutputRef.current = [];
     setConsoleOutput([]);
     setIsRunning(true);
     setHasNewOutput(false);
@@ -1086,6 +1093,8 @@ Jack,30,Miami,86`,
       }
 
       addToConsole(">>> Execution completed ✓");
+      lastSuccessfulOutputRef.current = consoleOutputRef.current.slice();
+      setLastSuccessfulOutput([]);
       previousRunSucceeded.current = true;
       
       // Track activity for global stats
@@ -1717,6 +1726,8 @@ Jack,30,Miami,86`,
       onRetry={handleRunCode}
       isRunning={isRunning}
       onClear={() => {
+        consoleOutputRef.current = [];
+        lastSuccessfulOutputRef.current = [];
         setConsoleOutput([]);
         setLastSuccessfulOutput([]);
         previousRunSucceeded.current = false;

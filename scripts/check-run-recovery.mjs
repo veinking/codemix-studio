@@ -19,6 +19,7 @@ const runtime = {
 };
 const ctx = {
   isRunning: false, consoleOutput: [], lastSuccessfulOutput: [],
+  consoleOutputRef: { current: [] }, lastSuccessfulOutputRef: { current: [] },
   previousRunSucceeded: { current: false }, previousOutputLength: { current: 0 },
   currentFile: { language: 'python', content: 'print(1)' }, activeFile: 'qa.py',
   isMobile: false, deviceType: 'desktop',
@@ -29,7 +30,7 @@ const ctx = {
   setPlotData(value) { ctx.plotData = value; },
   setPlotCode(value) { ctx.plotCode = value; },
   setIsRunning(value) { ctx.isRunning = value; }, setHasNewOutput() {},
-  addToConsole(text) { ctx.consoleOutput = [...ctx.consoleOutput, { text }]; },
+  addToConsole(text) { const next = [...ctx.consoleOutputRef.current, { text }]; ctx.consoleOutputRef.current = next; ctx.consoleOutput = next; },
   async addErrorWithExplanation(text) { ctx.consoleOutput = [...ctx.consoleOutput, { text, isError: true }]; },
   async trackActivity() {},
 };
@@ -37,10 +38,12 @@ vm.createContext(ctx);
 vm.runInContext(ts.transpile(source.slice(start, end) + '\nthis.run = handleRunCode;', { target: ts.ScriptTarget.ES2022 }), ctx);
 await ctx.run();
 assert.ok(ctx.consoleOutput.some(message => message.text === 'last-good-output'));
+assert.ok(ctx.lastSuccessfulOutputRef.current.some(message => message.text === 'last-good-output'), 'successful run must snapshot its console synchronously');
 const goodPlot = ctx.plotData;
 fail = true;
 await ctx.run();
 assert.ok(ctx.lastSuccessfulOutput.some(message => message.text === 'last-good-output'));
+assert.ok(ctx.lastSuccessfulOutputRef.current.some(message => message.text === 'last-good-output'), 'failed run must not replace the synchronous last-good snapshot');
 assert.equal(ctx.plotData, goodPlot, 'failed run must preserve last-good plot');
 assert.ok(ctx.consoleOutput.some(message => message.text === 'before-error'));
 assert.equal(ctx.consoleOutput.filter(message => message.isError).length, 1);
