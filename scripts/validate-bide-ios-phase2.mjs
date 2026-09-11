@@ -320,19 +320,22 @@ assert.ok(
   "Saved-result recovery must precede source reconciliation, which must precede derived SQLite migration."
 );
 
-const nativeSource = walk("ios/BideApp")
-  .filter((filePath) => filePath.endsWith(".swift"))
+const swiftFiles = walk("ios/BideApp").filter((filePath) => filePath.endsWith(".swift"));
+const allNativeSource = swiftFiles.map(read).join("\n");
+const nonRuntimeSource = swiftFiles
+  .filter((filePath) => !filePath.split(path.sep).includes("Runtime"))
   .map(read)
   .join("\n");
 
-for (const forbidden of [
-  "import StoreKit",
-  "import Supabase",
-  "WKWebView",
-  "Pyodide",
-  "webR",
-]) {
-  assert.ok(!nativeSource.includes(forbidden), `Phase 2 scope leak detected: ${forbidden}`);
+for (const forbidden of ["import StoreKit", "import Supabase"]) {
+  assert.ok(!allNativeSource.includes(forbidden), `Phase 2 scope leak detected: ${forbidden}`);
+}
+
+for (const runtimeBoundary of ["WKWebView", "Pyodide", "webR"]) {
+  assert.ok(
+    !nonRuntimeSource.includes(runtimeBoundary),
+    `Runtime implementation leaked into the audited SQL/data surface: ${runtimeBoundary}`
+  );
 }
 
 console.log("bIDE iOS Phase 2 audited data + SQL validation passed.");

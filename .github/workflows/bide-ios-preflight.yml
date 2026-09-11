@@ -35,6 +35,9 @@ jobs:
       - name: Validate Phase 2 integrity cleanup
         run: node scripts/validate-bide-ios-phase2-integrity.mjs
 
+      - name: Validate Python and R runtime wiring
+        run: node scripts/validate-bide-ios-runtimes.mjs
+
       - name: Validate canonical multi-sheet XLSX fixture
         run: node scripts/validate-bide-ios-multisheet-fixture.mjs
 

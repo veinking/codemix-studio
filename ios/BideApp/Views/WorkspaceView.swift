@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkspaceView: View {
     @EnvironmentObject private var workspace: WorkspaceStore
     @EnvironmentObject private var dataWorkspace: DataWorkspaceStore
+    @EnvironmentObject private var codeRuntime: CodeRuntimeStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @State private var selection = NSRange(location: 0, length: 0)
@@ -12,17 +13,16 @@ struct WorkspaceView: View {
     @State private var findReplacePresented = false
     @State private var findText = ""
     @State private var replaceText = ""
-    @State private var runPreview = ""
-    @State private var runPreviewPresented = false
 
     private var isCompact: Bool {
         horizontalSizeClass == .compact
     }
 
     private var activeProjectHasDatabaseWork: Bool {
-        guard let projectID = workspace.activeProjectID else { return false }
+        guard let projectID = workspace.activeProjectID else { return codeRuntime.isRunning }
         return dataWorkspace.hasActiveDataOperation(projectID: projectID) ||
-            dataWorkspace.hasActiveSQLOperation(projectID: projectID)
+            dataWorkspace.hasActiveSQLOperation(projectID: projectID) ||
+            codeRuntime.isRunning
     }
 
     private var activeLanguage: CodeLanguage {
@@ -83,7 +83,8 @@ struct WorkspaceView: View {
                 Button {
                     editorCommand = EditorCommand(action: .runSelection)
                 } label: {
-                    if activeLanguage == .sql && dataWorkspace.isRunningSQL {
+                    if (activeLanguage == .sql && dataWorkspace.isRunningSQL) ||
+                        (activeLanguage != .sql && codeRuntime.isRunning) {
                         ProgressView()
                             .controlSize(.small)
                     } else {
@@ -95,6 +96,7 @@ struct WorkspaceView: View {
                 .disabled(
                     workspace.activeFile == nil ||
                     dataWorkspace.isRunningSQL ||
+                    codeRuntime.isRunning ||
                     (activeLanguage == .sql && dataWorkspace.isImporting)
                 )
             }
@@ -141,12 +143,9 @@ struct WorkspaceView: View {
             SQLResultsView(report: report)
                 .presentationDetents([.medium, .large])
         }
-        .alert("Runtime comes next", isPresented: $runPreviewPresented) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(runPreview.isEmpty
-                 ? "Python and R execution are wired in later phases. SQL is now native and executable in Phase 2."
-                 : "Run selection/file is wired at the editor boundary. Python/R execution is intentionally deferred.\n\n\(runPreview.prefix(220))")
+        .sheet(item: $codeRuntime.lastRun) { report in
+            CodeRuntimeResultsView(report: report)
+                .presentationDetents([.medium, .large])
         }
         .alert("SQL Error", isPresented: Binding(
             get: { dataWorkspace.sqlError != nil },
@@ -155,6 +154,14 @@ struct WorkspaceView: View {
             Button("OK", role: .cancel) { dataWorkspace.sqlError = nil }
         } message: {
             Text(dataWorkspace.sqlError ?? "Unknown SQL error.")
+        }
+        .alert("Runtime Error", isPresented: Binding(
+            get: { codeRuntime.runtimeError != nil },
+            set: { if !$0 { codeRuntime.runtimeError = nil } }
+        )) {
+            Button("OK", role: .cancel) { codeRuntime.runtimeError = nil }
+        } message: {
+            Text(codeRuntime.runtimeError ?? "Unknown runtime error.")
         }
         .onChange(of: workspace.activeFileID) { _, _ in
             selection = NSRange(location: 0, length: 0)
@@ -179,14 +186,16 @@ struct WorkspaceView: View {
                     command: $editorCommand,
                     wrapLines: isCompact,
                     onRunRequested: { code in
-                        if activeLanguage == .sql,
-                           let projectID = workspace.activeProjectID {
+                        switch activeLanguage {
+                        case .sql:
+                            guard let projectID = workspace.activeProjectID else { return }
                             Task {
                                 await dataWorkspace.executeSQL(code, projectID: projectID)
                             }
-                        } else {
-                            runPreview = code
-                            runPreviewPresented = true
+                        case .python, .r:
+                            Task {
+                                await codeRuntime.execute(code, language: activeLanguage)
+                            }
                         }
                     }
                 )
@@ -326,7 +335,7 @@ private struct NewFileSheet: View {
                 Section {
                     LabeledContent("Extension", value: ".\(language.fileExtension)")
                 } footer: {
-                    Text("Native bIDE V1 intentionally supports Python, SQL, and R code files only.")
+                    Text("Native bIDE V1 supports executable Python, SQL, and R files.")
                 }
             }
             .navigationTitle("New File")

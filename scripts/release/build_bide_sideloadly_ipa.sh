@@ -29,13 +29,14 @@ IPA_PATH="${ROOT_DIR}/build/bIDE-Sideloadly.ipa"
 rm -rf "${DERIVED_DATA_PATH}" "${OUTPUT_DIR}" "${IPA_PATH}"
 mkdir -p "${LOG_DIR}"
 
-echo "==> Generating bIDE Xcode project"
+echo "==> Generating bIDE Xcode project and pinned runtime payloads"
 (
   cd ios
   xcodegen generate
 ) 2>&1 | tee "${LOG_DIR}/xcodegen.log"
 
 test -d ios/bIDE.xcodeproj
+test -f ios/BideApp/RuntimeAssets/runtime-manifest.json
 
 echo "==> Building unsigned arm64 bIDE app"
 set -o pipefail
@@ -61,9 +62,15 @@ EXECUTABLE_NAME="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "${APP
 BUNDLE_ID="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "${APP_PATH}/Info.plist")"
 SUPPORTED_PLATFORM="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleSupportedPlatforms:0' "${APP_PATH}/Info.plist")"
 EXECUTABLE_PATH="${APP_PATH}/${EXECUTABLE_NAME}"
+RUNTIME_ROOT="${APP_PATH}/RuntimeAssets"
 
 test -x "${EXECUTABLE_PATH}"
 [[ "${SUPPORTED_PLATFORM}" == "iPhoneOS" ]]
+test -f "${RUNTIME_ROOT}/runtime-host.html"
+test -f "${RUNTIME_ROOT}/runtime-manifest.json"
+test -f "${RUNTIME_ROOT}/pyodide/pyodide.mjs"
+test -f "${RUNTIME_ROOT}/webr/webr.mjs"
+
 ARCHITECTURES="$(xcrun lipo -archs "${EXECUTABLE_PATH}")"
 echo "${ARCHITECTURES}" | tee "${LOG_DIR}/architectures.log"
 echo "${ARCHITECTURES}" | grep -qw arm64
@@ -74,8 +81,11 @@ echo "${ARCHITECTURES}" | grep -qw arm64
   echo "Architectures: ${ARCHITECTURES}"
   echo "Device families: iPhone + iPad"
   echo "Code signing: disabled for Sideloadly packaging"
-  echo "SQL execution: native SQLite enabled in Phase 2"
-  echo "Python/R execution: intentionally deferred beyond Phase 2"
+  echo "SQL execution: native SQLite enabled"
+  echo "Python execution: bundled Pyodide core enabled"
+  echo "R execution: bundled webR enabled"
+  echo "Runtime manifest:"
+  cat "${RUNTIME_ROOT}/runtime-manifest.json"
 } | tee "${LOG_DIR}/app-bundle-verification.txt"
 
 rm -rf "${APP_PATH}/_CodeSignature" "${APP_PATH}/embedded.mobileprovision"
