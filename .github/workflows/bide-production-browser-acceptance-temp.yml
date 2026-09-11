@@ -20,7 +20,7 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           npm install --no-save --ignore-scripts playwright@1.55.0
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Verify production Python recovery and multi-file import
         run: |
           cat > bide-prod-acceptance.mjs <<'NODE'
@@ -40,12 +40,13 @@ jobs:
             browserErrors.push(err.message);
           });
 
-          await page.goto('https://www.bideide.com/ide', { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-          if (await page.getByText('Welcome to bIDE', { exact: true }).count()) {
-            const overlayButton = page.locator('.fixed.inset-0 button').first();
-            if (await overlayButton.count()) await overlayButton.click();
-          }
+          // Skip first-visit starter-file activation so the Run button executes
+          // the scratch editor we are deliberately controlling below.
+          await page.addInitScript(() => {
+            localStorage.setItem('bide_visited', 'true');
+            localStorage.removeItem('bide_starter_seed_pending');
+          });
+          await page.goto('https://www.bideide.com/ide?lang=python', { waitUntil: 'domcontentloaded', timeout: 60000 });
 
           const editor = page.locator('.monaco-editor textarea').first();
           await editor.waitFor({ state: 'attached', timeout: 30000 });
@@ -57,7 +58,10 @@ jobs:
           async function setCode(code) {
             await editor.click({ force: true });
             await page.keyboard.press('Control+A');
-            await page.keyboard.type(code);
+            await page.keyboard.insertText(code);
+            // Monaco updates React state from its change event. Give that event one
+            // render turn before invoking the global Run action.
+            await page.waitForTimeout(250);
           }
 
           async function runAndWaitFor(text, timeout = 120000) {
