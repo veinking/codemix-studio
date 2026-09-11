@@ -57,7 +57,7 @@ struct BideCodeEditor: UIViewRepresentable {
     }
 
     private func configure(_ textView: TextView) {
-        textView.backgroundColor = .secondarySystemBackground
+        textView.backgroundColor = .systemBackground
         textView.showLineNumbers = true
         textView.lineSelectionDisplayType = .line
         textView.lineHeightMultiplier = 1.2
