@@ -1,7 +1,9 @@
 name: bIDE Last-Good Render Repair (temporary)
 
 on:
-  pull_request:
+  push:
+    branches:
+      - fix/bide-last-good-render-v2-20260911
     paths:
       - .github/workflows/bide-last-good-render-v2-temp.yml
 
@@ -14,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: fix/bide-last-good-render-v2-20260911
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@v4
         with:
@@ -42,11 +44,42 @@ jobs:
 
           panel_path = Path('src/components/ConsolePanel.tsx')
           panel = panel_path.read_text()
-          old_panel = '''        {effectiveLastSuccessfulOutput.length > 0 && ('''
-          new_panel = '''        {effectiveLastSuccessfulOutput.length > 0 && displayedOutput.some(looksLikeError) && ('''
-          if panel.count(old_panel) != 1:
-            raise SystemExit(f'Expected one ConsolePanel last-good render gate, found {panel.count(old_panel)}')
-          panel_path.write_text(panel.replace(old_panel, new_panel))
+          old_effect = '''  // IDE currently clears output at the beginning of every run. Preserve the
+  // previous run only when it completed without an obvious error, so a failed
+  // debug attempt cannot erase the user's last known-good console context.
+  React.useEffect(() => {
+    const previous = previousOutputRef.current;
+    if (output.length === 0 && previous.length > 0) {
+      if (manualClearRef.current) {
+        manualClearRef.current = false;
+      } else if (!previous.some(looksLikeError)) {
+        setPreservedSuccessfulOutput(previous.slice());
+      }
+    }
+    if (output.length > 0) manualClearRef.current = false;
+    previousOutputRef.current = output;
+  }, [output]);'''
+          new_effect = '''  // Snapshot successful output as soon as the run completes. Waiting until the
+  // next run clears the console is timing-sensitive and can lose the previous
+  // result when React batches state changes or the console subtree remounts.
+  React.useEffect(() => {
+    const completedSuccessfully = output.some((message) =>
+      /execution completed\\s*✓/i.test(message.text),
+    );
+    if (completedSuccessfully) {
+      setPreservedSuccessfulOutput(output.slice());
+    }
+    if (output.length > 0) manualClearRef.current = false;
+    previousOutputRef.current = output;
+  }, [output]);'''
+          if panel.count(old_effect) != 1:
+            raise SystemExit(f'Expected one ConsolePanel preservation effect, found {panel.count(old_effect)}')
+          panel = panel.replace(old_effect, new_effect)
+          old_gate = '''        {effectiveLastSuccessfulOutput.length > 0 && ('''
+          new_gate = '''        {effectiveLastSuccessfulOutput.length > 0 && displayedOutput.some(looksLikeError) && ('''
+          if panel.count(old_gate) != 1:
+            raise SystemExit(f'Expected one ConsolePanel last-good render gate, found {panel.count(old_gate)}')
+          panel_path.write_text(panel.replace(old_gate, new_gate))
 
           test_path = Path('scripts/check-run-recovery.mjs')
           test = test_path.read_text()
@@ -69,4 +102,4 @@ const goodPlot = ctx.plotData;'''
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add src/pages/IDE.tsx src/components/ConsolePanel.tsx scripts/check-run-recovery.mjs
           git commit -m "Make last-good recovery rendering deterministic"
-          git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          git push origin HEAD:fix/bide-last-good-render-v2-20260911
