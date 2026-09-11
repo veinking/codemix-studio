@@ -1,0 +1,87 @@
+name: bIDE Last-Good Output Repair (temporary)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/bide-last-good-output-repair-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Apply production-proven recovery fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ide_path = Path('src/pages/IDE.tsx')
+          source = ide_path.read_text()
+
+          replacements = [
+            (
+              "  const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);\n  const [lastSuccessfulOutput, setLastSuccessfulOutput] = useState<ConsoleMessage[]>([]);\n  const previousRunSucceeded = React.useRef(false);",
+              "  const [consoleOutput, setConsoleOutput] = useState<ConsoleMessage[]>([]);\n  const [lastSuccessfulOutput, setLastSuccessfulOutput] = useState<ConsoleMessage[]>([]);\n  const consoleOutputRef = React.useRef<ConsoleMessage[]>([]);\n  const lastSuccessfulOutputRef = React.useRef<ConsoleMessage[]>([]);\n  const previousRunSucceeded = React.useRef(false);",
+            ),
+            (
+              "  const addToConsole = (message: string, isError: boolean = false) => {\n    setConsoleOutput((prev) => [...prev, { text: message, isError }]);\n  };",
+              "  const addToConsole = (message: string, isError: boolean = false) => {\n    const nextMessage = { text: message, isError };\n    consoleOutputRef.current = [...consoleOutputRef.current, nextMessage];\n    setConsoleOutput(consoleOutputRef.current);\n  };",
+            ),
+            (
+              "  const handleRunCode = async () => {\n    if (isRunning) return;\n    if (previousRunSucceeded.current) setLastSuccessfulOutput(consoleOutput);\n    previousRunSucceeded.current = false;\n    setConsoleOutput([]);",
+              "  const handleRunCode = async () => {\n    if (isRunning) return;\n    if (lastSuccessfulOutputRef.current.length > 0) {\n      setLastSuccessfulOutput(lastSuccessfulOutputRef.current.slice());\n    }\n    previousRunSucceeded.current = false;\n    consoleOutputRef.current = [];\n    setConsoleOutput([]);",
+            ),
+            (
+              "      addToConsole(\">>> Execution completed ✓\");\n      previousRunSucceeded.current = true;",
+              "      addToConsole(\">>> Execution completed ✓\");\n      lastSuccessfulOutputRef.current = consoleOutputRef.current.slice();\n      setLastSuccessfulOutput([]);\n      previousRunSucceeded.current = true;",
+            ),
+            (
+              "      onClear={() => {\n        setConsoleOutput([]);\n        setLastSuccessfulOutput([]);\n        previousRunSucceeded.current = false;",
+              "      onClear={() => {\n        consoleOutputRef.current = [];\n        lastSuccessfulOutputRef.current = [];\n        setConsoleOutput([]);\n        setLastSuccessfulOutput([]);\n        previousRunSucceeded.current = false;",
+            ),
+          ]
+
+          for old, new in replacements:
+            count = source.count(old)
+            if count != 1:
+              raise SystemExit(f'Expected exactly one IDE match, found {count}: {old[:80]!r}')
+            source = source.replace(old, new)
+
+          ide_path.write_text(source)
+
+          test_path = Path('scripts/check-run-recovery.mjs')
+          test = test_path.read_text()
+          old_ctx = "  isRunning: false, consoleOutput: [], lastSuccessfulOutput: [],\n  previousRunSucceeded: { current: false }, previousOutputLength: { current: 0 },"
+          new_ctx = "  isRunning: false, consoleOutput: [], lastSuccessfulOutput: [],\n  consoleOutputRef: { current: [] }, lastSuccessfulOutputRef: { current: [] },\n  previousRunSucceeded: { current: false }, previousOutputLength: { current: 0 },"
+          if test.count(old_ctx) != 1:
+            raise SystemExit('Recovery test context marker did not match exactly once')
+          test = test.replace(old_ctx, new_ctx)
+
+          old_add = "  addToConsole(text) { ctx.consoleOutput = [...ctx.consoleOutput, { text }]; },"
+          new_add = "  addToConsole(text) { const next = [...ctx.consoleOutputRef.current, { text }]; ctx.consoleOutputRef.current = next; ctx.consoleOutput = next; },"
+          if test.count(old_add) != 1:
+            raise SystemExit('Recovery test addToConsole marker did not match exactly once')
+          test = test.replace(old_add, new_add)
+
+          old_assert = "assert.ok(ctx.consoleOutput.some(message => message.text === 'last-good-output'));\nconst goodPlot = ctx.plotData;"
+          new_assert = "assert.ok(ctx.consoleOutput.some(message => message.text === 'last-good-output'));\nassert.ok(ctx.lastSuccessfulOutputRef.current.some(message => message.text === 'last-good-output'), 'successful run must snapshot its console synchronously');\nconst goodPlot = ctx.plotData;"
+          if test.count(old_assert) != 1:
+            raise SystemExit('Recovery test success assertion marker did not match exactly once')
+          test = test.replace(old_assert, new_assert)
+          test_path.write_text(test)
+          PY
+
+          node scripts/check-run-recovery.mjs
+
+          git rm .github/workflows/bide-last-good-output-repair-temp.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/IDE.tsx scripts/check-run-recovery.mjs
+          git commit -m "Fix last-good output recovery in live runs"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
