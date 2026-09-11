@@ -1,0 +1,72 @@
+name: bIDE Last-Good Render Repair (temporary)
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/bide-last-good-render-v2-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Apply deterministic last-good render fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          ide_path = Path('src/pages/IDE.tsx')
+          ide = ide_path.read_text()
+          old = '''      addToConsole(">>> Execution completed ✓");
+      lastSuccessfulOutputRef.current = consoleOutputRef.current.slice();
+      setLastSuccessfulOutput([]);
+      previousRunSucceeded.current = true;'''
+          new = '''      addToConsole(">>> Execution completed ✓");
+      const successfulSnapshot = consoleOutputRef.current.slice();
+      lastSuccessfulOutputRef.current = successfulSnapshot;
+      setLastSuccessfulOutput(successfulSnapshot);
+      previousRunSucceeded.current = true;'''
+          if ide.count(old) != 1:
+            raise SystemExit(f'Expected one IDE success snapshot block, found {ide.count(old)}')
+          ide_path.write_text(ide.replace(old, new))
+
+          panel_path = Path('src/components/ConsolePanel.tsx')
+          panel = panel_path.read_text()
+          old_panel = '''        {effectiveLastSuccessfulOutput.length > 0 && ('''
+          new_panel = '''        {effectiveLastSuccessfulOutput.length > 0 && displayedOutput.some(looksLikeError) && ('''
+          if panel.count(old_panel) != 1:
+            raise SystemExit(f'Expected one ConsolePanel last-good render gate, found {panel.count(old_panel)}')
+          panel_path.write_text(panel.replace(old_panel, new_panel))
+
+          test_path = Path('scripts/check-run-recovery.mjs')
+          test = test_path.read_text()
+          marker = '''assert.ok(ctx.lastSuccessfulOutputRef.current.some(message => message.text === 'last-good-output'), 'successful run must snapshot its console synchronously');
+const goodPlot = ctx.plotData;'''
+          replacement = '''assert.ok(ctx.lastSuccessfulOutputRef.current.some(message => message.text === 'last-good-output'), 'successful run must snapshot its console synchronously');
+assert.ok(ctx.lastSuccessfulOutput.some(message => message.text === 'last-good-output'), 'successful run must publish the snapshot immediately for later failures');
+const goodPlot = ctx.plotData;'''
+          if test.count(marker) != 1:
+            raise SystemExit(f'Expected one recovery assertion marker, found {test.count(marker)}')
+          test_path.write_text(test.replace(marker, replacement))
+          PY
+
+          npm ci
+          node scripts/check-run-recovery.mjs
+          npm run build
+
+          git rm .github/workflows/bide-last-good-render-v2-temp.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/IDE.tsx src/components/ConsolePanel.tsx scripts/check-run-recovery.mjs
+          git commit -m "Make last-good recovery rendering deterministic"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
