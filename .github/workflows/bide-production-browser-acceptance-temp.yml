@@ -40,8 +40,6 @@ jobs:
             browserErrors.push(err.message);
           });
 
-          // Skip first-visit starter-file activation so the Run button executes
-          // the scratch editor we are deliberately controlling below.
           await page.addInitScript(() => {
             localStorage.setItem('bide_visited', 'true');
             localStorage.removeItem('bide_starter_seed_pending');
@@ -51,9 +49,6 @@ jobs:
           const editor = page.locator('.monaco-editor textarea').first();
           await editor.waitFor({ state: 'attached', timeout: 30000 });
 
-          // Desktop intentionally starts with the console collapsed. The collapsed
-          // branch exposes only the accessible log and does not mount the recovery
-          // <details> UI, so expand it before asserting rendered recovery behavior.
           const expandConsoleButton = page.getByTitle('Expand console');
           if (await expandConsoleButton.count()) {
             await expandConsoleButton.click();
@@ -69,8 +64,6 @@ jobs:
             await editor.click({ force: true });
             await page.keyboard.press('Control+A');
             await page.keyboard.insertText(code);
-            // Monaco updates React state from its change event. Give that event one
-            // render turn before invoking the global Run action.
             await page.waitForTimeout(250);
           }
 
@@ -87,8 +80,9 @@ jobs:
 
           const lastGood = page.locator('details').filter({ hasText: 'Last successful run output' }).first();
           await lastGood.waitFor({ state: 'visible', timeout: 30000 });
-          await lastGood.locator('summary').click();
+          await lastGood.evaluate((element) => { element.open = true; });
           const lastGoodText = await lastGood.innerText();
+          console.log('[qa] last-good recovery text:', JSON.stringify(lastGoodText));
           if (!lastGoodText.includes('before-error')) {
             throw new Error(`Last successful output was not preserved after Python failure. Rendered: ${JSON.stringify(lastGoodText)}`);
           }
