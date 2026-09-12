@@ -105,8 +105,9 @@ jobs:
           fs.writeFileSync('/tmp/qa-two.csv', 'id,value\n2,beta\n');
           const upload = page.locator('#file-upload');
           await upload.setInputFiles(['/tmp/qa-one.csv', '/tmp/qa-two.csv']);
-          await page.getByText('qa-one.csv', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
-          await page.getByText('qa-two.csv', { exact: true }).waitFor({ state: 'visible', timeout: 30000 });
+          const fileExplorer = page.locator('aside');
+          await fileExplorer.getByText('qa-one.csv', { exact: true }).first().waitFor({ state: 'visible', timeout: 30000 });
+          await fileExplorer.getByText('qa-two.csv', { exact: true }).first().waitFor({ state: 'visible', timeout: 30000 });
 
           console.log('Production bIDE browser acceptance passed: module loading + Python recovery + multi-file import.');
           await browser.close();
