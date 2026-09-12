@@ -87,9 +87,10 @@ jobs:
 
           const lastGood = page.locator('details').filter({ hasText: 'Last successful run output' }).first();
           await lastGood.waitFor({ state: 'visible', timeout: 30000 });
+          await lastGood.locator('summary').click();
           const lastGoodText = await lastGood.innerText();
           if (!lastGoodText.includes('before-error')) {
-            throw new Error('Last successful output was not preserved after Python failure');
+            throw new Error(`Last successful output was not preserved after Python failure. Rendered: ${JSON.stringify(lastGoodText)}`);
           }
 
           const failureText = await consoleLog.innerText();
