@@ -50,6 +50,16 @@ jobs:
 
           const editor = page.locator('.monaco-editor textarea').first();
           await editor.waitFor({ state: 'attached', timeout: 30000 });
+
+          // Desktop intentionally starts with the console collapsed. The collapsed
+          // branch exposes only the accessible log and does not mount the recovery
+          // <details> UI, so expand it before asserting rendered recovery behavior.
+          const expandConsoleButton = page.getByTitle('Expand console');
+          if (await expandConsoleButton.count()) {
+            await expandConsoleButton.click();
+            await page.getByTitle('Collapse console').waitFor({ state: 'visible', timeout: 30000 });
+          }
+
           const consoleLog = page.getByRole('log', { name: 'Console output' }).last();
           await consoleLog.waitFor({ state: 'visible', timeout: 30000 });
           const runButton = page.getByRole('button', { name: 'Run', exact: true }).first();
