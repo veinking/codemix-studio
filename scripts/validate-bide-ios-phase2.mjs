@@ -327,9 +327,16 @@ const nonRuntimeSource = swiftFiles
   .map(read)
   .join("\n");
 
-for (const forbidden of ["import StoreKit", "import Supabase"]) {
-  assert.ok(!allNativeSource.includes(forbidden), `Phase 2 scope leak detected: ${forbidden}`);
-}
+assert.ok(!allNativeSource.includes("import Supabase"), "Phase 2 scope leak detected: import Supabase");
+
+const storeKitFiles = swiftFiles
+  .filter((filePath) => read(filePath).includes("import StoreKit"))
+  .map((filePath) => filePath.split(path.sep).join("/"));
+assert.deepEqual(
+  storeKitFiles,
+  ["ios/BideApp/Stores/SubscriptionStore.swift"],
+  "StoreKit must stay isolated from the audited SQL/data surface."
+);
 
 for (const runtimeBoundary of ["WKWebView", "Pyodide", "webR"]) {
   assert.ok(
