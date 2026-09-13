@@ -6,13 +6,12 @@
   <title>bIDE Runtime Host</title>
 </head>
 <body>
-<script type="module">
-  import { loadPyodide } from './pyodide/pyodide.mjs';
-  import { WebR, ChannelType } from './webr/webr.mjs';
-
+<script>
   const PYODIDE_VERSION = '314.0.6';
   const WEBR_VERSION = '0.6.0';
 
+  let pyodideModulePromise = null;
+  let webrModulePromise = null;
   let pythonPromise = null;
   let rPromise = null;
 
@@ -20,9 +19,26 @@
     return new URL(`./${folder}/`, window.location.href).href;
   }
 
+  function pyodideModule() {
+    if (!pyodideModulePromise) {
+      pyodideModulePromise = import('./pyodide/pyodide.mjs');
+    }
+    return pyodideModulePromise;
+  }
+
+  function webrModule() {
+    if (!webrModulePromise) {
+      webrModulePromise = import('./webr/webr.mjs');
+    }
+    return webrModulePromise;
+  }
+
   async function pythonRuntime() {
     if (!pythonPromise) {
-      pythonPromise = loadPyodide({ indexURL: assetBase('pyodide') });
+      pythonPromise = (async () => {
+        const { loadPyodide } = await pyodideModule();
+        return loadPyodide({ indexURL: assetBase('pyodide') });
+      })();
     }
     return pythonPromise;
   }
@@ -30,6 +46,7 @@
   async function rRuntime() {
     if (!rPromise) {
       rPromise = (async () => {
+        const { WebR, ChannelType } = await webrModule();
         const runtime = new WebR({
           baseUrl: assetBase('webr'),
           channelType: ChannelType.PostMessage,
@@ -43,20 +60,21 @@
   }
 
   async function runPython(code) {
-    const runtime = await pythonRuntime();
     const stdout = [];
     const stderr = [];
 
-    runtime.setStdout({ batched: (line) => stdout.push(String(line)) });
-    runtime.setStderr({ batched: (line) => stderr.push(String(line)) });
-
-    let value = '';
     try {
+      const runtime = await pythonRuntime();
+      runtime.setStdout({ batched: (line) => stdout.push(String(line)) });
+      runtime.setStderr({ batched: (line) => stderr.push(String(line)) });
+
       const result = await runtime.runPythonAsync(code);
+      let value = '';
       if (result !== undefined && result !== null) {
         value = String(result);
         if (typeof result.destroy === 'function') result.destroy();
       }
+
       return {
         ok: true,
         stdout: stdout.join('\n'),
@@ -77,11 +95,11 @@
   }
 
   async function runR(code) {
-    const runtime = await rRuntime();
-    const sourcePath = '/tmp/bide-run.R';
-    await runtime.FS.writeFile(sourcePath, new TextEncoder().encode(code));
-
     try {
+      const runtime = await rRuntime();
+      const sourcePath = '/tmp/bide-run.R';
+      await runtime.FS.writeFile(sourcePath, new TextEncoder().encode(code));
+
       const output = await runtime.evalRString(
         "paste(capture.output(source('/tmp/bide-run.R', echo=FALSE, print.eval=TRUE)), collapse='\\n')"
       );
@@ -104,6 +122,9 @@
     }
   }
 
+  // Register synchronously. Runtime modules are intentionally loaded lazily so
+  // a loader failure is reported through the bridge instead of preventing the
+  // bridge itself from existing.
   window.bideRuntime = {
     async execute(language, code) {
       if (language === 'python') return runPython(code);
