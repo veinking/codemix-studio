@@ -5,6 +5,20 @@ final class AppSession: ObservableObject {
     @Published var selectedSection: AppSection = .workspace
     @Published var entitlement: EntitlementTier = .free
     @Published var isSignedIn = false
+
+    func applyAppStorePro(_ isActive: Bool) {
+        if isActive {
+            // A verified App Store purchase must unlock bIDE even when there is
+            // no PocketBI account. Do not downgrade a linked higher-tier account.
+            if entitlement == .free {
+                entitlement = .bidePro
+            }
+        } else if entitlement == .bidePro {
+            // Only remove the local App Store-derived tier. Linked PocketBI or
+            // Business access remains authoritative when present.
+            entitlement = .free
+        }
+    }
 }
 
 enum AppSection: String, CaseIterable, Identifiable, Hashable {
