@@ -7,6 +7,7 @@ struct BideApp: App {
     @StateObject private var workspace = WorkspaceStore()
     @StateObject private var dataWorkspace = DataWorkspaceStore()
     @StateObject private var codeRuntime = CodeRuntimeStore()
+    @StateObject private var subscriptions = SubscriptionStore()
 
     var body: some Scene {
         WindowGroup {
@@ -15,6 +16,14 @@ struct BideApp: App {
                 .environmentObject(workspace)
                 .environmentObject(dataWorkspace)
                 .environmentObject(codeRuntime)
+                .environmentObject(subscriptions)
+                .task {
+                    await subscriptions.prepare()
+                    session.applyAppStorePro(subscriptions.hasProAccess)
+                }
+                .onChange(of: subscriptions.activeProductIDs) { _, _ in
+                    session.applyAppStorePro(subscriptions.hasProAccess)
+                }
                 .onAppear {
                     synchronizeDataProject(workspace.activeProjectID)
                 }
