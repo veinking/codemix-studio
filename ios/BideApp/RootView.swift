@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 struct RootView: View {
@@ -77,6 +78,7 @@ struct RootView: View {
 
 private struct AccountView: View {
     @EnvironmentObject private var session: AppSession
+    @EnvironmentObject private var subscriptions: SubscriptionStore
 
     private enum ProductLinks {
         static let supportEmail = URL(string: "mailto:support@pocketbi.app?subject=bIDE%20iOS%20Support")!
@@ -92,8 +94,77 @@ private struct AccountView: View {
                 LabeledContent("Source", value: accessSource)
             }
 
-            Section("Account") {
-                Text("PocketBI ID and shared entitlements are intentionally deferred until the standalone editor/runtime path is stable.")
+            Section("bIDE Pro — App Store") {
+                if subscriptions.hasProAccess {
+                    Label("Active on this Apple ID", systemImage: "checkmark.seal.fill")
+                    Text("No PocketBI account is required to use this App Store entitlement.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else if subscriptions.isLoadingProducts {
+                    HStack {
+                        ProgressView()
+                        Text("Loading subscriptions…")
+                            .foregroundStyle(.secondary)
+                    }
+                } else if subscriptions.products.isEmpty {
+                    Text("No bIDE Pro products are currently available from the App Store.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                    Button("Retry") {
+                        Task { await subscriptions.loadProducts() }
+                    }
+                } else {
+                    ForEach(subscriptions.products, id: \.id) { product in
+                        Button {
+                            Task {
+                                await subscriptions.purchase(product)
+                                session.applyAppStorePro(subscriptions.hasProAccess)
+                            }
+                        } label: {
+                            HStack(alignment: .firstTextBaseline) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    Text(productTitle(product))
+                                        .font(.body.weight(.semibold))
+                                    Text(product.description)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(2)
+                                }
+                                Spacer(minLength: 12)
+                                Text(product.displayPrice)
+                                    .font(.body.weight(.semibold))
+                            }
+                        }
+                        .disabled(subscriptions.isPurchasing || subscriptions.isRestoring)
+                    }
+                }
+
+                Button {
+                    Task {
+                        await subscriptions.restorePurchases()
+                        session.applyAppStorePro(subscriptions.hasProAccess)
+                    }
+                } label: {
+                    if subscriptions.isRestoring {
+                        HStack {
+                            ProgressView()
+                            Text("Restoring Purchases…")
+                        }
+                    } else {
+                        Text("Restore Purchases")
+                    }
+                }
+                .disabled(subscriptions.isPurchasing || subscriptions.isRestoring)
+
+                if let message = subscriptions.statusMessage {
+                    Text(message)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("PocketBI Account — Optional") {
+                Text("You can subscribe to and use bIDE Pro with only your Apple ID. Connecting a PocketBI account later can be used to sync ecosystem entitlements, but it is not required for purchase, restore, or local Pro access.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -124,9 +195,19 @@ private struct AccountView: View {
     private var accessSource: String {
         switch session.entitlement {
         case .free: return "None"
-        case .bidePro: return "bIDE Pro"
+        case .bidePro: return "bIDE Pro — App Store"
         case .pocketBIPro: return "PocketBI Pro"
         case .business: return "Business"
         }
+    }
+
+    private func productTitle(_ product: Product) -> String {
+        if product.id == BideSubscriptionProduct.annual {
+            return "bIDE Pro Annual"
+        }
+        if product.id == BideSubscriptionProduct.monthly {
+            return "bIDE Pro Monthly"
+        }
+        return product.displayName
     }
 }
