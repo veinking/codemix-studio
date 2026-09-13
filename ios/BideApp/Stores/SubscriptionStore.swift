@@ -24,7 +24,7 @@ final class SubscriptionStore: ObservableObject {
 
     init() {
         transactionUpdatesTask = Task { [weak self] in
-            for await verificationResult in Transaction.updates {
+            for await verificationResult in StoreKit.Transaction.updates {
                 guard let self else { return }
                 await self.processTransactionUpdate(verificationResult)
             }
@@ -99,7 +99,7 @@ final class SubscriptionStore: ObservableObject {
     func refreshEntitlements() async {
         var active: Set<String> = []
 
-        for await verificationResult in Transaction.currentEntitlements {
+        for await verificationResult in StoreKit.Transaction.currentEntitlements {
             guard case .verified(let transaction) = verificationResult else { continue }
             guard BideSubscriptionProduct.identifiers.contains(transaction.productID) else { continue }
             active.insert(transaction.productID)
@@ -108,7 +108,7 @@ final class SubscriptionStore: ObservableObject {
         activeProductIDs = active
     }
 
-    private func processTransactionUpdate(_ verificationResult: VerificationResult<Transaction>) async {
+    private func processTransactionUpdate(_ verificationResult: VerificationResult<StoreKit.Transaction>) async {
         do {
             let transaction = try verified(verificationResult)
             guard BideSubscriptionProduct.identifiers.contains(transaction.productID) else {
@@ -123,7 +123,7 @@ final class SubscriptionStore: ObservableObject {
         }
     }
 
-    private func verified(_ result: VerificationResult<Transaction>) throws -> Transaction {
+    private func verified(\n        _ result: VerificationResult<StoreKit.Transaction>\n    ) throws -> StoreKit.Transaction {
         switch result {
         case .verified(let transaction):
             return transaction
