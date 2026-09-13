@@ -1,8 +1,16 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /runtime-lab
+Disallow: /pocketbi-handoff
+Disallow: /auth/pocketbi/callback
+Disallow: /share/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /runtime-lab
+Disallow: /pocketbi-handoff
+Disallow: /auth/pocketbi/callback
+Disallow: /share/
 
 User-agent: Twitterbot
 Allow: /
@@ -12,6 +20,9 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /runtime-lab
+Disallow: /pocketbi-handoff
+Disallow: /auth/pocketbi/callback
+Disallow: /share/
 
-# Sitemap
 Sitemap: https://bideide.com/sitemap.xml
