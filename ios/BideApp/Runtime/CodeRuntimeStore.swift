@@ -267,17 +267,16 @@ private final class RuntimeHTTPServer: @unchecked Sendable {
         contentType: String,
         over connection: NWConnection
     ) {
-        let headers = """
-        HTTP/1.1 \(status)\r
-        Content-Length: \(body.count)\r
-        Content-Type: \(contentType)\r
-        Cache-Control: no-store\r
-        Cross-Origin-Opener-Policy: same-origin\r
-        Cross-Origin-Embedder-Policy: require-corp\r
-        Cross-Origin-Resource-Policy: same-origin\r
-        Connection: close\r
-        \r
-        """
+        let headers = [
+            "HTTP/1.1 \(status)",
+            "Content-Length: \(body.count)",
+            "Content-Type: \(contentType)",
+            "Cache-Control: no-store",
+            "Cross-Origin-Opener-Policy: same-origin",
+            "Cross-Origin-Embedder-Policy: require-corp",
+            "Cross-Origin-Resource-Policy: same-origin",
+            "Connection: close",
+        ].joined(separator: "\r\n") + "\r\n\r\n"
         var response = Data(headers.utf8)
         response.append(body)
 
