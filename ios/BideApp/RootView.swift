@@ -1,4 +1,3 @@
-import StoreKit
 import SwiftUI
 
 struct RootView: View {
@@ -123,8 +122,14 @@ private struct AccountView: View {
                         } label: {
                             HStack(alignment: .firstTextBaseline) {
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(productTitle(product))
-                                        .font(.body.weight(.semibold))
+                                    Text(
+                                        product.id == BideSubscriptionProduct.annual
+                                            ? "bIDE Pro Annual"
+                                            : product.id == BideSubscriptionProduct.monthly
+                                                ? "bIDE Pro Monthly"
+                                                : product.displayName
+                                    )
+                                    .font(.body.weight(.semibold))
                                     Text(product.description)
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
@@ -199,15 +204,5 @@ private struct AccountView: View {
         case .pocketBIPro: return "PocketBI Pro"
         case .business: return "Business"
         }
-    }
-
-    private func productTitle(_ product: Product) -> String {
-        if product.id == BideSubscriptionProduct.annual {
-            return "bIDE Pro Annual"
-        }
-        if product.id == BideSubscriptionProduct.monthly {
-            return "bIDE Pro Monthly"
-        }
-        return product.displayName
     }
 }
