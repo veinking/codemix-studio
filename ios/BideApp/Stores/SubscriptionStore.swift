@@ -123,7 +123,9 @@ final class SubscriptionStore: ObservableObject {
         }
     }
 
-    private func verified(\n        _ result: VerificationResult<StoreKit.Transaction>\n    ) throws -> StoreKit.Transaction {
+    private func verified(
+        _ result: VerificationResult<StoreKit.Transaction>
+    ) throws -> StoreKit.Transaction {
         switch result {
         case .verified(let transaction):
             return transaction
