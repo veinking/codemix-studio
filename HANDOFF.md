@@ -42,8 +42,8 @@ Before shipping web changes:
 5. verify public Support/Privacy/Terms remain consistent with the shared PocketBI account/billing model;
 6. do not merge native iOS release work into this web release lane.
 
-## Known acceptance work
+## Production acceptance
 
-The remaining Python-runtime issue is code-fixed and production-deployed but should stay open until the exact success → deliberate error → last-good-output → retry sequence is manually observed on `bideide.com/ide`.
+The Python recovery path was accepted on production on 2026-09-13: a successful plotted Python run completed, a deliberate syntax failure surfaced once, the expanded console retained the **Last successful run output** disclosure, and **Run again** remained available. The automated recovery guards continue to cover successful-output and plot preservation through repeated failures.
 
 Historical sale-package and standalone billing instructions are not the production deployment contract.
