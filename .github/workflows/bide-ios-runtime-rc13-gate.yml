@@ -1,15 +1,15 @@
-name: bIDE iOS Python R RC13 Gate
+name: bIDE iOS Python R Finalize Gate
 
 on:
   push:
     branches:
-      - agent/bide-ios-python-r-rc13
+      - fix/bide-ios-runtime-finalize-20260913
 
 permissions:
   contents: read
 
 concurrency:
-  group: bide-ios-python-r-rc13-${{ github.ref }}
+  group: bide-ios-runtime-finalize-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -29,10 +29,10 @@ jobs:
         run: |
           set -euo pipefail
           ACTUAL_SHA="$(git rev-parse HEAD)"
-          REMOTE_HEAD="$(git ls-remote --heads origin refs/heads/agent/bide-ios-python-r-rc13 | awk '{print $1}')"
+          REMOTE_HEAD="$(git ls-remote --heads origin refs/heads/fix/bide-ios-runtime-finalize-20260913 | awk '{print $1}')"
           echo "Workflow SHA: ${GITHUB_SHA}"
           echo "Checked-out SHA: ${ACTUAL_SHA}"
-          echo "Runtime RC head: ${REMOTE_HEAD}"
+          echo "Runtime finish head: ${REMOTE_HEAD}"
           [[ "${ACTUAL_SHA}" == "${GITHUB_SHA}" ]]
           [[ "${REMOTE_HEAD}" == "${ACTUAL_SHA}" ]]
           test -z "$(git status --porcelain)"
@@ -68,13 +68,21 @@ jobs:
           grep -q '"version": "0.6.0"' ios/BideApp/RuntimeAssets/runtime-manifest.json
           du -sh ios/BideApp/RuntimeAssets
 
-  native-xctest:
-    name: native-xctest
+  native-runtime:
+    name: native-${{ matrix.runtime }}
     needs: source-preflight
     runs-on: macos-26
-    timeout-minutes: 35
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: python
+            only_test: BideTests/CodeRuntimeSmokeTests/testBundledPythonExecutesThroughNativeRuntimeBridge
+          - runtime: r
+            only_test: BideTests/CodeRuntimeSmokeTests/testBundledRExecutesThroughNativeRuntimeBridge
     env:
-      LOG_PATH: ${{ github.workspace }}/build/NativeRuntimeXCTest
+      LOG_PATH: ${{ github.workspace }}/build/NativeRuntimeXCTest-${{ matrix.runtime }}
     steps:
       - name: Check out exact candidate
         uses: actions/checkout@v4
@@ -87,7 +95,7 @@ jobs:
         run: |
           set -euo pipefail
           ACTUAL_SHA="$(git rev-parse HEAD)"
-          REMOTE_HEAD="$(git ls-remote --heads origin refs/heads/agent/bide-ios-python-r-rc13 | awk '{print $1}')"
+          REMOTE_HEAD="$(git ls-remote --heads origin refs/heads/fix/bide-ios-runtime-finalize-20260913 | awk '{print $1}')"
           [[ "${ACTUAL_SHA}" == "${GITHUB_SHA}" ]]
           [[ "${REMOTE_HEAD}" == "${ACTUAL_SHA}" ]]
           test -z "$(git status --porcelain)"
@@ -136,7 +144,7 @@ jobs:
           ) 2>&1 | tee "${LOG_PATH}/xcodegen.log"
           test -d ios/bIDE.xcodeproj
 
-      - name: Run full native XCTest suite including Python and R execution
+      - name: Run native ${{ matrix.runtime }} runtime smoke test
         shell: bash
         run: |
           set -euo pipefail
@@ -147,12 +155,14 @@ jobs:
             exit 1
           fi
           echo "Using simulator: ${DEVICE_ID}"
+          echo "Running only: ${{ matrix.only_test }}"
           xcodebuild \
             -project ios/bIDE.xcodeproj \
             -scheme bIDE \
             -configuration Debug \
             -sdk iphonesimulator \
             -destination "platform=iOS Simulator,id=${DEVICE_ID}" \
+            -only-testing:"${{ matrix.only_test }}" \
             CODE_SIGNING_ALLOWED=NO \
             test 2>&1 | tee "${LOG_PATH}/native-tests.log"
 
@@ -160,7 +170,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
-          name: bIDE-Python-R-Native-XCTest-${{ github.run_id }}
-          path: build/NativeRuntimeXCTest
+          name: bIDE-${{ matrix.runtime }}-Native-XCTest-${{ github.run_id }}
+          path: build/NativeRuntimeXCTest-${{ matrix.runtime }}
           retention-days: 14
           if-no-files-found: ignore
