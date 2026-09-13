@@ -78,9 +78,9 @@ jobs:
       matrix:
         include:
           - runtime: python
-            only_test: BideTests/CodeRuntimeSmokeTests/testBundledPythonExecutesThroughNativeRuntimeBridge
+            only_test: bIDETests/CodeRuntimeSmokeTests/testBundledPythonExecutesThroughNativeRuntimeBridge
           - runtime: r
-            only_test: BideTests/CodeRuntimeSmokeTests/testBundledRExecutesThroughNativeRuntimeBridge
+            only_test: bIDETests/CodeRuntimeSmokeTests/testBundledRExecutesThroughNativeRuntimeBridge
     env:
       LOG_PATH: ${{ github.workspace }}/build/NativeRuntimeXCTest-${{ matrix.runtime }}
     steps:
