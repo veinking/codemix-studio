@@ -1,0 +1,104 @@
+name: bIDE iOS Quality
+
+# EXPENSIVE CHECKPOINT LANE.
+# This workflow is manual-only by design. Do not attach push, pull_request,
+# ready_for_review, workflow_run, or schedule triggers. Batch fixes first and run
+# the macOS/Xcode lane only when an exact candidate head is worth device validation.
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact branch, tag, or commit to validate and package
+        required: true
+        type: string
+      confirm:
+        description: Type TEST to spend macOS/Xcode Actions minutes
+        required: true
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bide-ios-${{ inputs.source_ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: ${{ inputs.confirm == 'TEST' }}
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out requested source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          fetch-depth: 1
+
+      - name: Validate Actions budget policy
+        run: node scripts/validate-bide-actions-budget.mjs
+
+      - name: Validate Phase 1 scope
+        run: node scripts/validate-bide-ios-phase1.mjs
+
+      - name: Select Xcode 16.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          XCODE_PATH="/Applications/Xcode_16.4.app/Contents/Developer"
+          test -d "${XCODE_PATH}"
+          sudo xcode-select --switch "${XCODE_PATH}"
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v xcodegen >/dev/null 2>&1; then
+            brew install xcodegen
+          fi
+          xcodegen --version
+
+      - name: Generate project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build iPhone/iPad simulator target
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/bIDE.xcodeproj \
+            -scheme bIDE \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            build | tee /tmp/bide-ios-build.log
+
+      - name: Build unsigned physical-device IPA
+        shell: bash
+        run: bash scripts/release/build_bide_sideloadly_ipa.sh
+
+      - name: Upload bIDE physical-device package
+        uses: actions/upload-artifact@v4
+        with:
+          name: bIDE-Phase1-Sideloadly-${{ github.run_attempt }}
+          path: |
+            build/bIDE-Sideloadly.ipa
+            build/BideSideloadlyLogs/
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload simulator build diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bide-ios-build-diagnostics
+          path: |
+            /tmp/bide-ios-build.log
+            build/BideSideloadlyLogs/
+          retention-days: 7
+          if-no-files-found: warn
